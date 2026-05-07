@@ -37,11 +37,13 @@ class App extends Component {
     this.state = {
       queryText: '',
       querySchlagwort: '',
-      nResults: 5, // Default number of results
+      nResults: 10, // Default number of results
       fach: [],
       zyklus: [],
       results: [],
       isLoading: false, // Loading state
+      hasSearched: false,
+      searchError: '',
     };
   }
 
@@ -65,19 +67,22 @@ class App extends Component {
     }
   }
 
-  search = () => {
+  search = (options = {}) => {
+    const { silent = false } = options;
     const { queryText, querySchlagwort, nResults, fach, zyklus } = this.state;
 
     // Simple validation
     if (!queryText.trim()) {
-      alert('Please enter a search query.');
+      if (!silent) {
+        alert('Please enter a search query.');
+      }
       return;
     }
 
     console.log('Search Function started');
-    this.setState({ isLoading: true }); // Indicate loading state
+    this.setState({ isLoading: true, searchError: '' }); // Indicate loading state
 
-    fetch("/search", { // Ensure this URL is correct for your setup
+    fetch("http://127.0.0.1:5000/search", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -100,30 +105,44 @@ class App extends Component {
         return response.json();
       })
       .then(data => {
-        const results = data.documents ? data.documents[0].map((item, index) => {
+        const documents = Array.isArray(data?.documents?.[0])
+          ? data.documents[0]
+          : Array.isArray(data?.documents)
+            ? data.documents
+            : [];
+        const metadatas = Array.isArray(data?.metadatas?.[0])
+          ? data.metadatas[0]
+          : Array.isArray(data?.metadatas)
+            ? data.metadatas
+            : [];
+
+        const results = documents.map((item, index) => {
           return {
             text: item,
-            metadata: data.metadatas[0][index]
+            metadata: metadatas[index] || {}
           };
-        }) : [];
+        });
         this.setState({
           results: results,
-          isLoading: false
+          isLoading: false,
+          hasSearched: true,
+          searchError: ''
         });
       })
       .catch((error) => {
         console.error('Error:', error);
-        this.setState({ isLoading: false });
+        this.setState({
+          isLoading: false,
+          hasSearched: true,
+          searchError: 'API nicht erreichbar oder Fehler bei der Suche.'
+        });
       });
   }
   render() {
-    const { queryText, querySchlagwort, nResults, fach, zyklus, results, isLoading } = this.state;
+    const { queryText, querySchlagwort, nResults, fach, zyklus, results, isLoading, hasSearched, searchError } = this.state;
 
     return (
       <div className="app-container">
-
-
-
 
         <div className="content">
 
@@ -135,24 +154,26 @@ class App extends Component {
                 id="queryText"
                 onChange={this.handleChange}
                 onKeyDown={this.handleKeyDown}
-                placeholder="Suchen"
+                placeholder="Um was geht es?"
                 value={queryText}
               />
-              <input
-                style={{ maxWidth: '60px', marginLeft: '10px' }} // Inline style for demonstration
-                type="number"
-                id="nResults"
-                onChange={this.handleChange}
-                onKeyDown={this.handleKeyDown}
-                placeholder="#"
-                value={nResults}
-              />
+              <div className="Stichwort">
+                <input
+                  type="text"
+                  id="querySchlagwort"
+                  onChange={this.handleChange}
+                  onKeyDown={this.handleKeyDown}
+                  placeholder="Stichwort"
+                  value={querySchlagwort}
+                />
+              </div>
               <button onClick={this.search}>Suche</button>
             </div>
 
             <div id="results">
               {/* Results list */}
               {isLoading && <p>Loading...</p>}
+              {searchError && <p>{searchError}</p>}
               {results.length > 0 ? (
                 results.map((result, index) =>
                   <SearchResult
@@ -165,21 +186,13 @@ class App extends Component {
                     url={result.metadata.url}
                   />
                 )
-              ) : !isLoading ? (
+              ) : hasSearched && !isLoading && !searchError ? (
                 <p>Keine Ergebnisse gefunden.</p>
               ) : null}
             </div>
           </div>
           <div className="sidebar">
-            <h3>Stichwort</h3>
-            <input
-              type="text"
-              id="querySchlagwort"
-              onChange={this.handleChange}
-              onKeyDown={this.handleKeyDown}
-              placeholder="Stichwort"
-              value={querySchlagwort}
-            />
+
 
             <h3>Fach</h3>
             <Select
@@ -188,7 +201,7 @@ class App extends Component {
               isMulti
               onChange={(selectedOptions) =>
                 this.setState({ fach: selectedOptions.map(option => option.value) }, () => {
-                  this.search(); // Call search function after state is updated
+                  this.search({ silent: true }); // Call search after state update if query exists
                 })
               }
               className="basic-multi-select"
@@ -202,7 +215,7 @@ class App extends Component {
               isMulti
               onChange={(selectedOptions) =>
                 this.setState({ zyklus: selectedOptions.map(option => option.value) }, () => {
-                  this.search(); // Call search function after state is updated
+                  this.search({ silent: true }); // Call search after state update if query exists
                 })
               }
               className="basic-multi-select"
@@ -225,3 +238,14 @@ class App extends Component {
 
 export default App;
 
+/* RESULTS INPUT
+<input
+                style={{ maxWidth: '60px', marginLeft: '10px' }} // Inline style for demonstration
+                type="number"
+                id="nResults"
+                onChange={this.handleChange}
+                onKeyDown={this.handleKeyDown}
+                placeholder="#"
+                value={nResults}
+              />
+*/
