@@ -1,7 +1,5 @@
-// Importing modules
-import SearchResult from './components/SearchResult';
-import Select from 'react-select';
-import React, { Component } from 'react';
+import SearchResult from "./components/SearchResult";
+import React, { Component } from "react";
 import "./App.css";
 
 
@@ -30,81 +28,127 @@ const zyklusOptions = [
   { value: '2', label: '2' },
   { value: '3', label: '3' },
 ];
+const fachByZyklus = {
+  "1": [
+    "Bewegung und Sport",
+    "Bildnerisches Gestalten",
+    "Deutsch",
+    "Mathematik",
+    "Medien und Informatik",
+    "Musik",
+    "Natur, Mensch, Gesellschaft (1./2. Zyklus)",
+    "Textiles und Technisches Gestalten",
+  ],
+  "2": [
+    "Bewegung und Sport",
+    "Bildnerisches Gestalten",
+    "Deutsch",
+    "Englisch",
+    "Französisch",
+    "Mathematik",
+    "Medien und Informatik",
+    "Musik",
+    "Natur, Mensch, Gesellschaft (1./2. Zyklus)",
+    "Textiles und Technisches Gestalten",
+  ],
+  "3": [
+    "Berufliche Orientierung",
+    "Bewegung und Sport",
+    "Bildnerisches Gestalten",
+    "Deutsch",
+    "Englisch",
+    "Ethik, Religionen, Gemeinschaft (mit Lebenskunde)",
+    "Französisch",
+    "Italienisch",
+    "Latein",
+    "Mathematik",
+    "Medien und Informatik",
+    "Musik",
+    "Natur und Technik (mit Physik, Chemie, Biologie)",
+    "Räume, Zeiten, Gesellschaften (mit Geografie, Geschichte)",
+    "Textiles und Technisches Gestalten",
+    "Wirtschaft, Arbeit, Haushalt (mit Hauswirtschaft)",
+  ],
+};
 
 class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      queryText: '',
-      querySchlagwort: '',
-      nResults: 10, // Default number of results
+      queryText: "",
       fach: [],
       zyklus: [],
       results: [],
-      isLoading: false, // Loading state
+      isLoading: false,
       hasSearched: false,
-      searchError: '',
+      searchError: "",
     };
+    this.searchDebounceTimer = null;
   }
 
   handleChange = (event) => {
     this.setState({
-      [event.target.id]: event.target.value
+      [event.target.id]: event.target.value,
     });
-
-  }
-
-  handleSelectChange = (event) => {
-    this.setState({
-      [event.target.id]: Array.from(event.target.selectedOptions, option => option.value)
-    });
-
-  }
+  };
 
   handleKeyDown = (event) => {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       this.search();
+    }
+  };
+
+  componentWillUnmount() {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
     }
   }
 
+  scheduleSearch = () => {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+
+    this.searchDebounceTimer = setTimeout(() => {
+      this.search({ silent: true });
+    }, 260);
+  };
+
   search = (options = {}) => {
     const { silent = false } = options;
-    const { queryText, querySchlagwort, nResults, fach, zyklus } = this.state;
+    const { queryText, fach, zyklus } = this.state;
 
-    // Simple validation
     if (!queryText.trim()) {
       if (!silent) {
-        alert('Please enter a search query.');
+        alert("Bitte gib eine Suchanfrage ein.");
       }
       return;
     }
 
-    console.log('Search Function started');
-    this.setState({ isLoading: true, searchError: '' }); // Indicate loading state
+    this.setState({ isLoading: true, searchError: "" });
 
     fetch("http://127.0.0.1:5000/search", {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         query_texts: queryText,
-        querySchlagwort: querySchlagwort,
-        n_results: Number(nResults),
+        querySchlagwort: "",
+        n_results: 10,
         filters: {
-          fach: fach,
-          zyklus: zyklus,
+          fach,
+          zyklus,
         },
       }),
     })
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error("Network response was not ok");
         }
-        console.log('Results: ' + response);
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         const documents = Array.isArray(data?.documents?.[0])
           ? data.documents[0]
           : Array.isArray(data?.documents)
@@ -116,68 +160,213 @@ class App extends Component {
             ? data.metadatas
             : [];
 
-        const results = documents.map((item, index) => {
-          return {
-            text: item,
-            metadata: metadatas[index] || {}
-          };
-        });
+        const results = documents.map((item, index) => ({
+          id: `${metadatas[index]?.uid || "result"}-${index}`,
+          text: item,
+          metadata: metadatas[index] || {},
+        }));
+
         this.setState({
-          results: results,
+          results,
           isLoading: false,
           hasSearched: true,
-          searchError: ''
+          searchError: "",
         });
       })
-      .catch((error) => {
-        console.error('Error:', error);
+      .catch(() => {
         this.setState({
           isLoading: false,
           hasSearched: true,
-          searchError: 'API nicht erreichbar oder Fehler bei der Suche.'
+          searchError: "API nicht erreichbar oder Fehler bei der Suche.",
         });
       });
-  }
+  };
+
+  clearFilters = () => {
+    this.setState({ fach: [], zyklus: [] }, () => {
+      this.scheduleSearch();
+    });
+  };
+
+  toggleQuickFach = (fachValue) => {
+    this.setState((prevState) => {
+      const exists = prevState.fach.includes(fachValue);
+      const fach = exists
+        ? prevState.fach.filter((value) => value !== fachValue)
+        : [...prevState.fach, fachValue];
+      return { fach };
+    }, this.scheduleSearch);
+  };
+
+  toggleQuickZyklus = (zyklusValue) => {
+    this.setState((prevState) => {
+      const exists = prevState.zyklus.includes(zyklusValue);
+      const zyklus = exists
+        ? prevState.zyklus.filter((value) => value !== zyklusValue)
+        : [...prevState.zyklus, zyklusValue];
+      let fach = prevState.fach;
+      if (zyklus.length > 0) {
+        const allowedFach = new Set(
+          zyklus.flatMap((item) => fachByZyklus[item] || [])
+        );
+        fach = prevState.fach.filter((item) => allowedFach.has(item));
+      }
+      return { zyklus, fach };
+    }, this.scheduleSearch);
+  };
+
+  removeFilterChip = (type, value) => {
+    this.setState((prevState) => {
+      if (type === "fach") {
+        return { fach: prevState.fach.filter((item) => item !== value) };
+      }
+      return { zyklus: prevState.zyklus.filter((item) => item !== value) };
+    }, this.scheduleSearch);
+  };
+
+  handleChipClick = (chip) => {
+    if (chip.type === "fach") {
+      this.toggleQuickFach(chip.value);
+      return;
+    }
+    this.toggleQuickZyklus(chip.value);
+  };
+
+  isChipActive = (chip) => {
+    const { fach, zyklus } = this.state;
+    return chip.type === "fach" ? fach.includes(chip.value) : zyklus.includes(chip.value);
+  };
+
   render() {
-    const { queryText, querySchlagwort, nResults, fach, zyklus, results, isLoading, hasSearched, searchError } = this.state;
+    const { queryText, fach, zyklus, results, isLoading, hasSearched, searchError } = this.state;
+    const hasActiveFilters = fach.length > 0 || zyklus.length > 0;
+    const activeFilterChips = [
+      ...fach.map((value) => ({ type: "fach", label: value, value })),
+      ...zyklus.map((value) => ({ type: "zyklus", label: `Zyklus ${value}`, value })),
+    ];
+    const allowedFachValues = zyklus.length > 0
+      ? new Set(zyklus.flatMap((item) => fachByZyklus[item] || []))
+      : new Set();
+    const fachChips = fachOptions
+      .filter((option) => (zyklus.length > 0 ? allowedFachValues.has(option.value) : true))
+      .map((option) => ({ type: "fach", value: option.value, label: option.label }));
+    const zyklusChips = zyklusOptions.map((option) => ({ type: "zyklus", value: option.value, label: `Zyklus ${option.label}` }));
 
     return (
-      <div className="app-container">
+      <div className="app-shell">
+        <header className="hero">
+          <h1>Lehrplan 21 Suche</h1>
+          <p>
+            Beschreibe kurz deine Unterrichtsidee und finde passende Kompetenzen.
+          </p>
 
-        <div className="content">
+          <div className="search-bar">
+            <input
+              type="text"
+              id="queryText"
+              onChange={this.handleChange}
+              onKeyDown={this.handleKeyDown}
+              placeholder="z. B. Bruchrechnen mit Gruppenarbeit in der 5. Klasse"
+              value={queryText}
+              aria-label="Suchanfrage"
+            />
+            <button onClick={() => this.search()} aria-label="Suche starten">
+              Suchen
+            </button>
+          </div>
+        </header>
 
-          <div className="main-content">
-            <h2>KI basierte Suche im Lehrplan 21</h2>
-            <div className="input-over-results">
-              <input
-                type="text"
-                id="queryText"
-                onChange={this.handleChange}
-                onKeyDown={this.handleKeyDown}
-                placeholder="Um was geht es?"
-                value={queryText}
-              />
-              <div className="Stichwort">
-                <input
-                  type="text"
-                  id="querySchlagwort"
-                  onChange={this.handleChange}
-                  onKeyDown={this.handleKeyDown}
-                  placeholder="Stichwort"
-                  value={querySchlagwort}
-                />
-              </div>
-              <button onClick={this.search}>Suche</button>
+        <main className="layout">
+          <aside className="filters-sidebar">
+            <div className="filters-sidebar-header">
+              <h2>Filter</h2>
+              <button
+                className="clear-button"
+                onClick={this.clearFilters}
+                aria-label="Alle Filter löschen"
+                disabled={!hasActiveFilters}
+              >
+                Zurücksetzen
+              </button>
             </div>
 
-            <div id="results">
-              {/* Results list */}
-              {isLoading && <p>Loading...</p>}
-              {searchError && <p>{searchError}</p>}
-              {results.length > 0 ? (
-                results.map((result, index) =>
+            {hasActiveFilters && (
+              <div className="active-filters">
+                {activeFilterChips.map((chip) => (
+                  <button
+                    key={`${chip.type}-${chip.value}`}
+                    className="active-filter-chip"
+                    onClick={() => this.removeFilterChip(chip.type, chip.value)}
+                    aria-label={`${chip.label} entfernen`}
+                  >
+                    {chip.label} <span aria-hidden="true">x</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="quick-filters">
+              <div className="chip-group">
+                <p className="chip-group-title">1) Zyklus wählen</p>
+                <div className="chip-row">
+                  {zyklusChips.map((chip) => {
+                    const isActive = this.isChipActive(chip);
+                    return (
+                      <button
+                        key={`${chip.type}-${chip.value}`}
+                        className={`quick-chip ${isActive ? "active" : ""}`}
+                        onClick={() => this.handleChipClick(chip)}
+                        aria-label={`${chip.label} ${isActive ? "deaktivieren" : "aktivieren"}`}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="chip-group">
+                <p className="chip-group-title">2) Fach wählen (optional)</p>
+              {zyklus.length > 0 && (
+                <p className="chip-hint">
+                  Es werden nur Fächer angezeigt, die im gewählten Zyklus vorkommen.
+                </p>
+                )}
+                <div className="chip-row">
+                  {fachChips.map((chip) => {
+                    const isActive = this.isChipActive(chip);
+                    return (
+                      <button
+                        key={`${chip.type}-${chip.value}`}
+                      className={`quick-chip ${isActive ? "active" : ""}`}
+                        onClick={() => this.handleChipClick(chip)}
+                        aria-label={`${chip.label} ${isActive ? "deaktivieren" : "aktivieren"}`}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <section className="results-panel" aria-live="polite">
+            <div className="results-header">
+              <h2>Ergebnisse</h2>
+              {hasSearched && !searchError && !isLoading && (
+                <span>{results.length} Treffer</span>
+              )}
+            </div>
+
+            {isLoading && <p className="status-message">Suche läuft ...</p>}
+            {searchError && <p className="status-message error">{searchError}</p>}
+
+            {!isLoading && !searchError && results.length > 0 && (
+              <div className="results-grid">
+                {results.map((result) => (
                   <SearchResult
-                    key={index}
+                    key={result.id}
                     fach={result.metadata.fach}
                     zyklus={result.metadata.zyklus}
                     themenbereich={result.metadata.themenbereich}
@@ -185,67 +374,18 @@ class App extends Component {
                     text={result.text}
                     url={result.metadata.url}
                   />
-                )
-              ) : hasSearched && !isLoading && !searchError ? (
-                <p>Keine Ergebnisse gefunden.</p>
-              ) : null}
-            </div>
-          </div>
-          <div className="sidebar">
+                ))}
+              </div>
+            )}
 
-
-            <h3>Fach</h3>
-            <Select
-              id="fach"
-              options={fachOptions}
-              isMulti
-              onChange={(selectedOptions) =>
-                this.setState({ fach: selectedOptions.map(option => option.value) }, () => {
-                  this.search({ silent: true }); // Call search after state update if query exists
-                })
-              }
-              className="basic-multi-select"
-              classNamePrefix="select"
-            />
-
-            <h3>Zyklus</h3>
-            <Select
-              id="zyklus"
-              options={zyklusOptions}
-              isMulti
-              onChange={(selectedOptions) =>
-                this.setState({ zyklus: selectedOptions.map(option => option.value) }, () => {
-                  this.search({ silent: true }); // Call search after state update if query exists
-                })
-              }
-              className="basic-multi-select"
-              classNamePrefix="select"
-            />
-
-
-          </div>
-
-        </div>
+            {hasSearched && !isLoading && !searchError && results.length === 0 && (
+              <p className="status-message">Keine Ergebnisse gefunden.</p>
+            )}
+          </section>
+        </main>
       </div>
     );
   }
 }
 
-
-
-
-
-
 export default App;
-
-/* RESULTS INPUT
-<input
-                style={{ maxWidth: '60px', marginLeft: '10px' }} // Inline style for demonstration
-                type="number"
-                id="nResults"
-                onChange={this.handleChange}
-                onKeyDown={this.handleKeyDown}
-                placeholder="#"
-                value={nResults}
-              />
-*/

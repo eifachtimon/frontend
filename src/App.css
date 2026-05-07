@@ -1,107 +1,327 @@
-body, html {
-  font-family: Arial, sans-serif;
+:root {
+  color-scheme: dark;
+}
+
+body,
+html {
   margin: 0;
   padding: 0;
-  color: #f9f9f9;
-  background-color: #1b1b1b;
- /* background-color: #f3f3f3; */
+  background: #0f1117;
+  color: #ebedf2;
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
+.app-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px 32px;
+}
 
-.app-container {
+.hero {
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+}
+
+.hero p {
+  margin: 0 0 16px;
+  color: #a9b1c1;
+}
+
+.search-bar {
   display: flex;
-  flex-direction: column;
-  margin: 10pt;
+  gap: 10px;
 }
 
-
-.content {
-  display: flex;
-  margin: 0px 50px 0px 50px;
-  
-}
-
-.sidebar {
+.search-bar input {
   flex: 1;
-  max-width: 250px; 
-  margin-top: 135px;/* Adjust based on your preference */
-  /* Other styles remain unchanged */
+  border: 1px solid #2a3140;
+  border-radius: 12px;
+  background: #171b24;
+  color: #f4f7fb;
+  padding: 14px 16px;
+  font-size: 1rem;
 }
 
-.main-content {
-  flex: 3;
+.search-bar input:focus {
+  outline: 2px solid #4d8dff;
+  outline-offset: 1px;
+}
+
+.search-bar button,
+.copy-button,
+.source-button,
+.clear-button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.search-bar button {
+  background: #4d8dff;
+  color: #fff;
+  min-width: 120px;
+}
+
+.search-bar button:hover {
+  background: #3d79df;
+}
+
+.quick-filters {
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  margin: 0px 50px 0px 0px;
+  gap: 8px;
+  align-items: flex-start;
 }
 
-.input-over-results {
-  display: flex;
-  align-items: center; /* Centers items vertically in the container */
-  margin-bottom: 20px; /* Keeps space between this section and results */
+.quick-filters-label {
+  color: #a9b1c1;
+  font-size: 0.85rem;
+  margin-right: 2px;
 }
 
-.input-over-results input[type="text"] {
-  flex-grow: 1; /* Allows the text input to take up remaining space */
-}
-
-.input-over-results input[type="number"] {
-  max-width: 10px; /* Or any other width that fits your design */
-  margin-left: 10px;
-  margin-right: 10px;
-   /* Adds a little space between the inputs */
-}
-
-.container {
-  max-width: 600px;
-  margin: auto;
-  padding: 20px;
-}
-
-
-
-input[type="text"],input[type="schlagwort"], input[type="text"] {
-  width: calc(100% - 50%);
-  padding: 15px 30px;
-  margin: 10px 0;
-  border: 4px solid #2b2b2b;
-  border-radius: 10px;
-  color: white;
-  background-color: #151515;
-}
-
-button { 
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 10px;
+.quick-chip {
+  border: 1px solid #2d3545;
+  background: #151a23;
+  color: #d8e0ef;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
   cursor: pointer;
 }
 
-button:hover {
-  background-color: #0056b3;
+.quick-chip.active {
+  background: #2f7cff;
+  border-color: #2f7cff;
+  color: #fff;
 }
 
-.result-item {
-  background-color: #2b2b2b;
-
-  margin: 0px 85px 20px 0px;
-  padding: 30px 40px 30px 40px;
-  border-radius: 10px;
-  width: 800;
+.quick-chip.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
-.web-view {
-  position: relative;
+.chip-tabs {
+  display: none;
 }
 
-.click-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-group {
   width: 100%;
-  height: 100%;
-  cursor: pointer; /* Gives an indication that the area is clickable */
-  z-index: 2; /* Ensures the overlay is above the iframe content */
+}
+
+.chip-group-title {
+  margin: 6px 0 8px;
+  font-size: 0.78rem;
+  color: #99a5bb;
+}
+
+.chip-hint {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  color: #8c98ad;
+}
+
+.active-filters {
+  margin-top: 10px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.active-filter-chip {
+  border: 1px solid #3a4660;
+  background: #1d2432;
+  color: #d8e0ef;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.active-filter-clear {
+  border: 0;
+  background: transparent;
+  color: #92b8ff;
+  padding: 6px 2px;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.filters-sidebar {
+  background: #171b24;
+  border: 1px solid #252d3b;
+  border-radius: 14px;
+  padding: 14px;
+  position: sticky;
+  top: 14px;
+}
+
+.filters-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.filters-sidebar-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.results-panel {
+  background: #171b24;
+  border: 1px solid #252d3b;
+  border-radius: 14px;
+}
+
+.results-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.clear-button {
+  background: #2a3344;
+  color: #d2d9e6;
+}
+
+.clear-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.results-panel {
+  padding: 14px;
+}
+
+.results-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  color: #bcc5d6;
+}
+
+.results-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.status-message {
+  margin: 14px 0;
+  color: #b9c1d0;
+}
+
+.status-message.error {
+  color: #ff8f8f;
+}
+
+.result-card {
+  border: 1px solid #2a3344;
+  border-radius: 12px;
+  padding: 14px;
+  background: #11151d;
+}
+
+.result-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.meta-pill {
+  background: #232d3d;
+  color: #d7dfed;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+
+.meta-pill.code {
+  background: #2d3c57;
+}
+
+.result-topic {
+  margin: 0 0 8px;
+  color: #c4cede;
+  font-size: 0.92rem;
+}
+
+.result-text {
+  margin: 0 0 10px;
+  color: #edf1f8;
+  line-height: 1.45;
+}
+
+.copy-button {
+  background: #2f7cff;
+  color: #fff;
+}
+
+.copy-button:hover {
+  background: #236be8;
+}
+
+.source-button {
+  background: transparent;
+  color: #8eb7ff;
+  border: 1px solid #2f7cff;
+}
+
+.source-button:hover {
+  background: #1b2740;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .filters-sidebar {
+    position: static;
+  }
+
+  .search-bar {
+    flex-direction: column;
+  }
+
+  .search-bar button {
+    width: 100%;
+  }
+
+  .quick-filters-label {
+    width: 100%;
+  }
+
+  .chip-row {
+    width: 100%;
+  }
 }
