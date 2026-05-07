@@ -3,6 +3,7 @@ import React, { Component } from "react";
 import "./App.css";
 
 const STORAGE_KEY = "lp21-search-state-v1";
+const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5000").replace(/\/$/, "");
 const promptSuggestions = [
   "Bruchrechnen in der 5. Klasse",
   "Unterrichtsidee zu Körperausdruck in Musik",
@@ -110,13 +111,17 @@ class App extends Component {
       isLoading: false,
       hasSearched: false,
       searchError: "",
+      queryValidationError: false,
+      revealResults: false,
     };
     this.searchDebounceTimer = null;
   }
 
   handleChange = (event) => {
+    const nextValue = event.target.value;
     this.setState({
-      [event.target.id]: event.target.value,
+      [event.target.id]: nextValue,
+      queryValidationError: event.target.id === "queryText" ? false : this.state.queryValidationError,
     }, this.persistSearchState);
   };
 
@@ -197,17 +202,25 @@ class App extends Component {
   search = (options = {}) => {
     const { silent = false } = options;
     const { queryText, fach, zyklus } = this.state;
+    const searchStartedAt = Date.now();
 
     if (!queryText.trim()) {
-      if (!silent) {
-        alert("Bitte gib eine Suchanfrage ein.");
-      }
+      this.setState({ queryValidationError: true });
       return;
     }
 
-    this.setState({ isLoading: true, searchError: "", showFachFilters: false }, this.persistSearchState);
+    this.setState(
+      {
+        isLoading: true,
+        searchError: "",
+        showFachFilters: false,
+        queryValidationError: false,
+        revealResults: false,
+      },
+      this.persistSearchState
+    );
 
-    fetch("http://127.0.0.1:5000/search", {
+    fetch(`${API_BASE_URL}/search`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -215,7 +228,6 @@ class App extends Component {
       body: JSON.stringify({
         query_texts: queryText,
         querySchlagwort: "",
-        n_results: 10,
         filters: {
           fach,
           zyklus,
@@ -246,19 +258,29 @@ class App extends Component {
           metadata: metadatas[index] || {},
         }));
 
-        this.setState({
-          results,
-          isLoading: false,
-          hasSearched: true,
-          searchError: "",
-        }, this.persistSearchState);
+        const elapsed = Date.now() - searchStartedAt;
+        const remaining = Math.max(0, 500 - elapsed);
+        setTimeout(() => {
+          this.setState({
+            results,
+            isLoading: false,
+            hasSearched: true,
+            searchError: "",
+            revealResults: true,
+          }, this.persistSearchState);
+        }, remaining);
       })
       .catch(() => {
-        this.setState({
-          isLoading: false,
-          hasSearched: true,
-          searchError: "API nicht erreichbar oder Fehler bei der Suche.",
-        }, this.persistSearchState);
+        const elapsed = Date.now() - searchStartedAt;
+        const remaining = Math.max(0, 500 - elapsed);
+        setTimeout(() => {
+          this.setState({
+            isLoading: false,
+            hasSearched: true,
+            searchError: "API nicht erreichbar oder Fehler bei der Suche.",
+            revealResults: false,
+          }, this.persistSearchState);
+        }, remaining);
       });
   };
 
@@ -340,6 +362,8 @@ class App extends Component {
       isLoading,
       hasSearched,
       searchError,
+      queryValidationError,
+      revealResults,
     } = this.state;
     const allowedFachValues = zyklus.length > 0
       ? new Set(zyklus.flatMap((item) => fachByZyklus[item] || []))
@@ -351,37 +375,34 @@ class App extends Component {
       .filter((option) => (zyklus.length > 0 ? allowedFachValues.has(option.value) : true))
       .filter((option) => !fach.includes(option.value))
       .map((option) => ({ type: "fach", value: option.value, label: option.label }));
-    const groupedResults = results.reduce((acc, result) => {
-      const themenbereich = result.metadata.themenbereich || "Ohne Themenbereich";
-      if (!acc[themenbereich]) {
-        acc[themenbereich] = [];
-      }
-      acc[themenbereich].push(result);
-      return acc;
-    }, {});
-    const groupedSections = Object.entries(groupedResults).flatMap(([themenbereich, items]) => {
-      const fachBuckets = items.reduce((bucketAcc, item) => {
-        const fachName = item.metadata.fach || "Unbekanntes Fach";
-        if (!bucketAcc[fachName]) {
-          bucketAcc[fachName] = [];
-        }
-        bucketAcc[fachName].push(item);
-        return bucketAcc;
-      }, {});
+    const fachSections = Object.entries(
+      results.reduce((acc, result) => {
+        const fachName = result.metadata.fach || "Unbekanntes Fach";
+        const themenbereich = result.metadata.themenbereich || "Ohne Themenbereich";
 
-      return Object.entries(fachBuckets).map(([fachName, fachItems]) => ({
-        key: `${themenbereich}-${fachName}`,
+        if (!acc[fachName]) {
+          acc[fachName] = {};
+        }
+        if (!acc[fachName][themenbereich]) {
+          acc[fachName][themenbereich] = [];
+        }
+        acc[fachName][themenbereich].push(result);
+        return acc;
+      }, {})
+    ).map(([fachName, themenbereichMap]) => ({
+      fachName,
+      themenbereiche: Object.entries(themenbereichMap).map(([themenbereich, items]) => ({
+        key: `${fachName}-${themenbereich}`,
         themenbereich,
-        fachName,
-        items: fachItems,
-      }));
-    });
+        items,
+      })),
+    }));
 
     return (
       <div className="app-shell">
         <main className="layout">
           <section className="content-column">
-            <header className="hero">
+            <header className={`hero ${hasSearched ? "hero-compact" : ""}`}>
               <h1>Lehrplan 21 Suche</h1>
               <p>
                 Beschreibe kurz deine Unterrichtsidee und finde passende Kompetenzen.
@@ -395,25 +416,31 @@ class App extends Component {
                   onKeyDown={this.handleKeyDown}
                   placeholder="z. B. Bruchrechnen mit Gruppenarbeit in der 5. Klasse"
                   value={queryText}
+                  className={queryValidationError ? "input-error" : ""}
                   aria-label="Suchanfrage"
                 />
-                <button onClick={() => this.search()} aria-label="Suche starten">
-                  Suchen
+                <button onClick={() => this.search()} aria-label="Suche starten" className="search-icon-button">
+                  <svg className="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.8" />
+                    <line x1="16" y1="16" x2="20.5" y2="20.5" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
+                  </svg>
                 </button>
               </div>
 
-              <div className="prompt-suggestions">
-                {promptSuggestions.map((prompt) => (
-                  <button
-                    key={prompt}
-                    className="prompt-chip"
-                    onClick={() => this.applyPromptSuggestion(prompt)}
-                    aria-label={`Beispielsuche ${prompt}`}
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
+              {!hasSearched && (
+                <div className="prompt-suggestions">
+                  {promptSuggestions.map((prompt) => (
+                    <button
+                      key={prompt}
+                      className="prompt-chip"
+                      onClick={() => this.applyPromptSuggestion(prompt)}
+                      aria-label={`Beispielsuche ${prompt}`}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
             </header>
 
             <section className="filters-inline" aria-label="Filter">
@@ -486,9 +513,13 @@ class App extends Component {
 
             <section className="results-panel" aria-live="polite">
             <div className="results-header">
-              <h2>Ergebnisse</h2>
-              {hasSearched && !searchError && !isLoading && (
-                <span>{results.length} Treffer</span>
+              {hasSearched && (
+                <>
+                  <h2>Ergebnisse</h2>
+                  {!searchError && !isLoading && (
+                    <span>{results.length} Treffer</span>
+                  )}
+                </>
               )}
             </div>
 
@@ -496,34 +527,41 @@ class App extends Component {
             {searchError && <p className="status-message error">{searchError}</p>}
 
             {!isLoading && !searchError && results.length > 0 && (
-              <div className="results-groups">
-                {groupedSections.map((group) => (
-                  <section className="result-group" key={group.key}>
-                    <div className="result-group-header">
-                      <div className="result-group-title-wrap">
-                        <span
-                          className="group-fach-pill"
-                          style={{ "--fach-color": this.getFachColor(group.fachName) }}
-                        >
-                          {group.fachName}
-                        </span>
-                        <h3>{group.themenbereich}</h3>
-                      </div>
+              <div className={`results-groups ${revealResults ? "results-fade-in" : ""}`}>
+                {fachSections.map((fachSection) => (
+                  <section
+                    className="fach-section"
+                    key={fachSection.fachName}
+                    style={{ "--fach-color": this.getFachColor(fachSection.fachName) }}
+                  >
+                    <div className="fach-section-header">
+                      <span className="group-fach-pill">{fachSection.fachName}</span>
                     </div>
-                    <div className="results-grid">
-                      {group.items.map((result) => (
-                        <SearchResult
-                          key={result.id}
-                          fach={result.metadata.fach}
-                          zyklus={result.metadata.zyklus}
-                          zyklusColor={this.getZyklusColor(result.metadata.zyklus)}
-                          getZyklusColorByPart={this.getZyklusColor}
-                          themenbereich={result.metadata.themenbereich}
-                          code={result.metadata.code}
-                          text={result.text}
-                          url={result.metadata.url}
-                          queryText={queryText}
-                        />
+                    <div className="fach-section-content">
+                      {fachSection.themenbereiche.map((group) => (
+                        <section className="result-group" key={group.key}>
+                          <div className="result-group-header">
+                            <div className="result-group-title-wrap">
+                              <h3>{group.themenbereich}</h3>
+                            </div>
+                          </div>
+                          <div className="results-grid">
+                            {group.items.map((result) => (
+                              <SearchResult
+                                key={result.id}
+                                fach={result.metadata.fach}
+                                zyklus={result.metadata.zyklus}
+                                zyklusColor={this.getZyklusColor(result.metadata.zyklus)}
+                                getZyklusColorByPart={this.getZyklusColor}
+                                themenbereich={result.metadata.themenbereich}
+                                code={result.metadata.code}
+                                text={result.text}
+                                url={result.metadata.url}
+                                queryText={queryText}
+                              />
+                            ))}
+                          </div>
+                        </section>
                       ))}
                     </div>
                   </section>

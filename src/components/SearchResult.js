@@ -89,31 +89,31 @@ class SearchResult extends Component {
     const zyklusParts = this.parseZyklusParts(zyklus);
     const borderColors = zyklusParts.map((part) => this.props.getZyklusColorByPart(part)).filter(Boolean);
     const uniqueBorderColors = Array.from(new Set(borderColors));
-    const borderGradient = (() => {
+    const markerGradient = (() => {
       if (uniqueBorderColors.length === 0) {
         return null;
       }
       if (uniqueBorderColors.length === 1) {
-        return `linear-gradient(to right, ${uniqueBorderColors[0]} 0 100%)`;
+        return uniqueBorderColors[0];
       }
       if (uniqueBorderColors.length === 2) {
-        return `linear-gradient(to right, ${uniqueBorderColors[0]} 0 50%, ${uniqueBorderColors[1]} 50% 100%)`;
+        return `linear-gradient(to bottom, ${uniqueBorderColors[0]} 0 50%, ${uniqueBorderColors[1]} 50% 100%)`;
       }
-      return `linear-gradient(to right, ${uniqueBorderColors[0]} 0 33.33%, ${uniqueBorderColors[1]} 33.33% 66.66%, ${uniqueBorderColors[2]} 66.66% 100%)`;
+      return `linear-gradient(to bottom, ${uniqueBorderColors[0]} 0 33.33%, ${uniqueBorderColors[1]} 33.33% 66.66%, ${uniqueBorderColors[2]} 66.66% 100%)`;
     })();
-    const cardStyle = borderGradient
+    const cardStyle = markerGradient
       ? {
-          backgroundImage: `linear-gradient(#0f0f0f, #0f0f0f), ${borderGradient}`,
-          backgroundOrigin: "border-box",
-          backgroundClip: "padding-box, border-box",
-          border: "2px solid transparent",
+          "--zyklus-marker": markerGradient,
         }
       : undefined;
 
     return (
       <article className="result-card" style={cardStyle}>
-        <div className="result-card-top">
-          {code && <span className="result-code-text">{code}</span>}
+        <div className="result-card-layout">
+          <div className="result-card-left">
+            {code && <span className="result-code-text">{code}</span>}
+            <p className="result-text">{this.renderHighlightedText(text, queryText)}</p>
+          </div>
           <div className="result-actions">
             <button
               className="copy-button"
@@ -145,8 +145,6 @@ class SearchResult extends Component {
             )}
           </div>
         </div>
-
-        <p className="result-text">{this.renderHighlightedText(text, queryText)}</p>
       </article>
     );
   }
