@@ -234,9 +234,12 @@ class App extends Component {
         },
       }),
     })
-      .then((response) => {
+      .then(async (response) => {
         if (!response.ok) {
-          throw new Error("Network response was not ok");
+          const snippet = await response.text().catch(() => "");
+          throw new Error(
+            `HTTP ${response.status}: ${snippet.slice(0, 160)}`
+          );
         }
         return response.json();
       })
@@ -286,10 +289,15 @@ class App extends Component {
         }, remaining);
       })
       .catch((err) => {
+        const target = apiUrl("/search");
         if (process.env.NODE_ENV === "development") {
           // eslint-disable-next-line no-console
-          console.error("Suche fehlgeschlagen:", err);
+          console.error("Suche fehlgeschlagen:", target, err);
         }
+        const tech =
+          process.env.NODE_ENV === "development" && err?.message
+            ? ` Technisch: ${err.message}`
+            : "";
         const elapsed = Date.now() - searchStartedAt;
         const remaining = Math.max(0, 500 - elapsed);
         setTimeout(() => {
@@ -297,7 +305,9 @@ class App extends Component {
             isLoading: false,
             hasSearched: true,
             searchError:
-              "API nicht erreichbar. Backend starten (cd backend && python server.py, Standard Port 5001) oder REACT_APP_API_BASE_URL in .env setzen.",
+              `Keine Verbindung zum Backend (${API_ROOT}). ` +
+              `Terminal: cd backend && python server.py (Port 5001). ` +
+              `Nach Änderung an .env: npm start neu starten.${tech}`,
             revealResults: false,
           }, this.persistSearchState);
         }, remaining);
@@ -516,7 +526,7 @@ class App extends Component {
               </div>
             </header>
 
-            <section className="filters-inline" aria-label="Filter">
+            <section className="filters-inline" id="filter-panel" aria-label="Filter">
               <div className="quick-filters">
                 <div className="chip-group minimal-group filter-toolbar">
                   <div className="filter-toolbar-row">
