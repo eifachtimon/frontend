@@ -6,11 +6,10 @@ import "./App.css";
 const STORAGE_KEY = "lp21-search-state-v2";
 
 /**
- * Standard: direktes Backend (Flask, CORS *). So funktioniert die Suche auch,
- * wenn kein CRA-Proxy greift (falscher Port, build lokal, anderes Tool).
- * Überschreiben: REACT_APP_API_BASE_URL (Vercel/Render) oder z. B. :5001.
+ * Standard: Port 5001 — auf macOS nutzt der AirPlay-Empfänger oft TCP 5000.
+ * Überschreiben: REACT_APP_API_BASE_URL (z. B. Render-URL in Produktion).
  */
-const API_ROOT = (process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5000").replace(
+const API_ROOT = (process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5001").replace(
   /\/$/,
   ""
 );
@@ -298,7 +297,7 @@ class App extends Component {
             isLoading: false,
             hasSearched: true,
             searchError:
-              "API nicht erreichbar. Backend starten (z. B. cd backend && python server.py auf Port 5000) oder in .env REACT_APP_API_BASE_URL anpassen.",
+              "API nicht erreichbar. Backend starten (cd backend && python server.py, Standard Port 5001) oder REACT_APP_API_BASE_URL in .env setzen.",
             revealResults: false,
           }, this.persistSearchState);
         }, remaining);
