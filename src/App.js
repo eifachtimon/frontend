@@ -1,4 +1,5 @@
 import SearchResult from "./components/SearchResult";
+import CompetencyChainView from "./components/CompetencyChainView";
 import React, { Component } from "react";
 import "./App.css";
 
@@ -113,6 +114,7 @@ class App extends Component {
       searchError: "",
       queryValidationError: false,
       revealResults: false,
+      chainView: null,
     };
     this.searchDebounceTimer = null;
   }
@@ -134,7 +136,7 @@ class App extends Component {
   applyPromptSuggestion = (prompt) => {
     this.setState({ queryText: prompt }, () => {
       this.persistSearchState();
-      this.search({ silent: true });
+      this.search();
     });
   };
 
@@ -165,7 +167,7 @@ class App extends Component {
         },
         () => {
           if (queryText.trim()) {
-            this.search({ silent: true });
+            this.search();
           }
         }
       );
@@ -195,12 +197,11 @@ class App extends Component {
     }
 
     this.searchDebounceTimer = setTimeout(() => {
-      this.search({ silent: true });
+      this.search();
     }, 260);
   };
 
-  search = (options = {}) => {
-    const { silent = false } = options;
+  search = () => {
     const { queryText, fach, zyklus } = this.state;
     const searchStartedAt = Date.now();
 
@@ -251,12 +252,27 @@ class App extends Component {
           : Array.isArray(data?.metadatas)
             ? data.metadatas
             : [];
+        const responseIds = Array.isArray(data?.ids?.[0])
+          ? data.ids[0]
+          : Array.isArray(data?.ids)
+            ? data.ids
+            : [];
 
-        const results = documents.map((item, index) => ({
-          id: `${metadatas[index]?.uid || "result"}-${index}`,
-          text: item,
-          metadata: metadatas[index] || {},
-        }));
+        const results = documents.map((item, index) => {
+          const meta = metadatas[index] || {};
+          const documentUid = responseIds[index] || meta.uid || null;
+          const stableKey =
+            typeof documentUid === "string" && documentUid.trim()
+              ? documentUid.trim()
+              : `${meta.uid || "result"}-${index}`;
+          return {
+            id: stableKey,
+            documentUid: typeof documentUid === "string" ? documentUid.trim() : documentUid,
+            text: item,
+            metadata: meta,
+            prefetchedChain: meta._competency_chain || null,
+          };
+        });
 
         const elapsed = Date.now() - searchStartedAt;
         const remaining = Math.max(0, 500 - elapsed);
@@ -352,6 +368,70 @@ class App extends Component {
     return zyklusColors[value] || "#9f9f9f";
   };
 
+  handleOpenCompetencyChain = (rawUid, prefetchedChain) => {
+    const uid =
+      typeof rawUid === "string"
+        ? rawUid.trim()
+        : rawUid != null
+          ? String(rawUid).trim()
+          : "";
+    if (prefetchedChain && prefetchedChain.current) {
+      this.setState({
+        chainView: { loading: false, error: null, data: prefetchedChain },
+      });
+      return;
+    }
+    if (!uid) {
+      return;
+    }
+    this.setState({ chainView: { loading: true, error: null, data: null } });
+    fetch(`${API_BASE_URL}/competency-chain/${encodeURIComponent(uid)}`)
+      .then((response) => {
+        if (response.status === 404) {
+          throw new Error("not_found");
+        }
+        if (!response.ok) {
+          throw new Error("network");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        this.setState({ chainView: { loading: false, error: null, data } });
+      })
+      .catch((error) => {
+        const message =
+          error.message === "not_found"
+            ? "Für diese Kompetenz wurde kein Aufbau-Kontext gefunden."
+            : "Der Aufbau-Kontext konnte nicht geladen werden.";
+        this.setState({ chainView: { loading: false, error: message, data: null } });
+      });
+  };
+
+  handleCloseCompetencyChain = () => {
+    this.setState({ chainView: null });
+  };
+
+  handleChainSelectNeighbor = (nextUid) => {
+    const { chainView } = this.state;
+    const fullChain = chainView && chainView.data && chainView.data.full_chain;
+    if (fullChain && Array.isArray(fullChain) && nextUid) {
+      const idx = fullChain.findIndex((step) => step && step.uid === nextUid);
+      if (idx !== -1) {
+        const data = {
+          previous: idx > 0 ? fullChain[idx - 1] : null,
+          current: fullChain[idx],
+          next: idx < fullChain.length - 1 ? fullChain[idx + 1] : null,
+          full_chain: fullChain,
+        };
+        this.setState({
+          chainView: { loading: false, error: null, data },
+        });
+        return;
+      }
+    }
+    this.handleOpenCompetencyChain(nextUid);
+  };
+
   render() {
     const {
       queryText,
@@ -364,6 +444,7 @@ class App extends Component {
       searchError,
       queryValidationError,
       revealResults,
+      chainView,
     } = this.state;
     const allowedFachValues = zyklus.length > 0
       ? new Set(zyklus.flatMap((item) => fachByZyklus[item] || []))
@@ -445,88 +526,124 @@ class App extends Component {
 
             <section className="filters-inline" aria-label="Filter">
               <div className="quick-filters">
-                <div className="chip-group minimal-group zyklus-group">
-                  <div className="zyklus-row">
-                    <p className="chip-group-title">Zyklus</p>
-                    <div className="zyklus-boxes">
-                      {[1, 2, 3].map((value) => {
-                        const key = String(value);
-                        const isActive = zyklus.includes(key);
-                        return (
-                          <button
-                            key={`zyklus-box-${key}`}
-                            className={`zyklus-box ${isActive ? "active" : ""}`}
-                          style={{ "--chip-accent": this.getZyklusColor(key) }}
-                            onClick={() => this.toggleZyklusBox(value)}
-                            aria-label={`Zyklus ${key} ${isActive ? "deaktivieren" : "aktivieren"}`}
-                          >
-                            {key}
-                          </button>
-                        );
-                      })}
+                <div className="chip-group minimal-group filter-toolbar">
+                  <div className="filter-toolbar-row">
+                    <div className="filter-cluster filter-cluster-zyklus">
+                      <p className="chip-group-title" id="filter-label-zyklus">
+                        Zyklus
+                      </p>
+                      <div className="zyklus-boxes" role="group" aria-labelledby="filter-label-zyklus">
+                        {[1, 2, 3].map((value) => {
+                          const key = String(value);
+                          const isActive = zyklus.includes(key);
+                          return (
+                            <button
+                              key={`zyklus-box-${key}`}
+                              type="button"
+                              className={`zyklus-box ${isActive ? "active" : ""}`}
+                              style={{ "--chip-accent": this.getZyklusColor(key) }}
+                              onClick={() => this.toggleZyklusBox(value)}
+                              aria-label={`Zyklus ${key} ${isActive ? "deaktivieren" : "aktivieren"}`}
+                            >
+                              {key}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <button
-                      className={`fach-toggle-button ${showFachFilters ? "open" : ""}`}
-                      onClick={this.toggleFachFilters}
-                      aria-label="Fachfilter ein- oder ausklappen"
-                    >
-                      Fächer <span className="caret" aria-hidden="true">▾</span>
-                    </button>
+                    <div className="filter-cluster filter-cluster-fach">
+                      <p className="chip-group-title" id="filter-label-fach">
+                        Fächer
+                      </p>
+                      <button
+                        type="button"
+                        className={`fach-expand-toggle ${showFachFilters ? "open" : ""}`}
+                        onClick={this.toggleFachFilters}
+                        aria-expanded={showFachFilters}
+                        aria-controls="fach-picker-panel"
+                        aria-label={
+                          showFachFilters ? "Fächerliste schließen" : "Fächerliste öffnen"
+                        }
+                      >
+                        <span className="caret" aria-hidden="true">
+                          ▾
+                        </span>
+                      </button>
+                      {selectedFachChips.length > 0 ? (
+                        <div className="selected-fach-inline">
+                          {selectedFachChips.map((chip) => (
+                            <button
+                              key={`selected-${chip.value}`}
+                              type="button"
+                              className="active-filter-chip active-filter-chip--compact"
+                              style={{ "--chip-accent": this.getFachColor(chip.value) }}
+                              title={chip.label}
+                              onClick={() => this.removeFilterChip("fach", chip.value)}
+                              aria-label={`${chip.label} entfernen`}
+                            >
+                              {chip.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  {selectedFachChips.length > 0 && (
-                    <div className="selected-fach-chips">
-                      {selectedFachChips.map((chip) => (
-                        <button
-                          key={`selected-${chip.value}`}
-                          className="active-filter-chip"
-                          style={{ "--chip-accent": this.getFachColor(chip.value) }}
-                          onClick={() => this.removeFilterChip("fach", chip.value)}
-                          aria-label={`${chip.label} entfernen`}
-                        >
-                          {chip.label}
-                        </button>
-                      ))}
+                  <div
+                    id="fach-picker-panel"
+                    className={`fach-picker-panel ${showFachFilters ? "is-open" : ""}`}
+                    aria-hidden={!showFachFilters}
+                  >
+                    <div className="fach-picker-panel-inner">
+                      <div className="chip-row fach-picker-row">
+                        {fachChips.map((chip) => {
+                          const isActive = this.isChipActive(chip);
+                          return (
+                            <button
+                              key={`${chip.type}-${chip.value}`}
+                              type="button"
+                              tabIndex={showFachFilters ? 0 : -1}
+                              className={`quick-chip ${isActive ? "active" : ""}`}
+                              style={{ "--chip-accent": this.getFachColor(chip.value) }}
+                              onClick={() => this.handleChipClick(chip)}
+                              aria-label={`${chip.label} ${isActive ? "deaktivieren" : "aktivieren"}`}
+                            >
+                              {chip.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
-
-                {showFachFilters && (
-                  <div className="chip-row fach-picker-row">
-                    {fachChips.map((chip) => {
-                      const isActive = this.isChipActive(chip);
-                      return (
-                        <button
-                          key={`${chip.type}-${chip.value}`}
-                          className={`quick-chip ${isActive ? "active" : ""}`}
-                          style={{ "--chip-accent": this.getFachColor(chip.value) }}
-                          onClick={() => this.handleChipClick(chip)}
-                          aria-label={`${chip.label} ${isActive ? "deaktivieren" : "aktivieren"}`}
-                        >
-                          {chip.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             </section>
 
             <section className="results-panel" aria-live="polite">
-            <div className="results-header">
-              {hasSearched && (
-                <>
-                  <h2>Ergebnisse</h2>
-                  {!searchError && !isLoading && (
-                    <span>{results.length} Treffer</span>
-                  )}
-                </>
-              )}
-            </div>
+            {hasSearched ? (
+              <div className="results-header">
+                <h2>Ergebnisse</h2>
+                {!searchError && !isLoading && (
+                  <span>{results.length} Treffer</span>
+                )}
+              </div>
+            ) : null}
 
             {isLoading && <p className="status-message">Suche läuft ...</p>}
             {searchError && <p className="status-message error">{searchError}</p>}
 
-            {!isLoading && !searchError && results.length > 0 && (
+            {chainView ? (
+              <CompetencyChainView
+                loading={Boolean(chainView.loading)}
+                error={chainView.error}
+                chainData={chainView.data}
+                onBack={this.handleCloseCompetencyChain}
+                onSelectNeighbor={this.handleChainSelectNeighbor}
+                getZyklusColor={this.getZyklusColor}
+                getFachColor={this.getFachColor}
+              />
+            ) : null}
+
+            {!chainView && !isLoading && !searchError && results.length > 0 && (
               <div className={`results-groups ${revealResults ? "results-fade-in" : ""}`}>
                 {fachSections.map((fachSection) => (
                   <section
@@ -558,6 +675,9 @@ class App extends Component {
                                 text={result.text}
                                 url={result.metadata.url}
                                 queryText={queryText}
+                                competencyUid={result.documentUid || result.metadata.uid}
+                                prefetchedChain={result.prefetchedChain}
+                                onOpenCompetencyChain={this.handleOpenCompetencyChain}
                               />
                             ))}
                           </div>

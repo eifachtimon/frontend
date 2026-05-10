@@ -51,6 +51,29 @@ class SearchResult extends Component {
     return Array.from(new Set(matches));
   };
 
+  handleCardActivate = () => {
+    const { competencyUid, prefetchedChain, onOpenCompetencyChain } = this.props;
+    if (!onOpenCompetencyChain) {
+      return;
+    }
+    const uid =
+      competencyUid ||
+      (prefetchedChain && prefetchedChain.current && prefetchedChain.current.uid) ||
+      null;
+    if (!prefetchedChain && !uid) {
+      return;
+    }
+    onOpenCompetencyChain(uid, prefetchedChain);
+  };
+
+  handleCardKeyDown = (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    this.handleCardActivate();
+  };
+
   renderHighlightedText = (text, queryText) => {
     if (!text) {
       return "";
@@ -84,8 +107,13 @@ class SearchResult extends Component {
   };
 
   render() {
-    const { zyklus, code, text, url, queryText } = this.props;
+    const { zyklus, code, text, url, queryText, competencyUid, prefetchedChain, onOpenCompetencyChain } =
+      this.props;
     const { copied } = this.state;
+    const canOpenChain = Boolean(
+      onOpenCompetencyChain &&
+        (prefetchedChain?.current || competencyUid)
+    );
     const zyklusParts = this.parseZyklusParts(zyklus);
     const borderColors = zyklusParts.map((part) => this.props.getZyklusColorByPart(part)).filter(Boolean);
     const uniqueBorderColors = Array.from(new Set(borderColors));
@@ -110,7 +138,18 @@ class SearchResult extends Component {
     return (
       <article className="result-card" style={cardStyle}>
         <div className="result-card-layout">
-          <div className="result-card-left">
+          <div
+            className={`result-card-left ${canOpenChain ? "result-card-left-interactive" : ""}`}
+            role={canOpenChain ? "button" : undefined}
+            tabIndex={canOpenChain ? 0 : undefined}
+            onClick={canOpenChain ? this.handleCardActivate : undefined}
+            onKeyDown={canOpenChain ? this.handleCardKeyDown : undefined}
+            aria-label={
+              canOpenChain
+                ? "Kompetenz im Aufbau-Kontext anzeigen"
+                : undefined
+            }
+          >
             {code && <span className="result-code-text">{code}</span>}
             <p className="result-text">{this.renderHighlightedText(text, queryText)}</p>
           </div>
