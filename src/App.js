@@ -3,8 +3,14 @@ import CompetencyChainView from "./components/CompetencyChainView";
 import React, { Component } from "react";
 import "./App.css";
 
-const STORAGE_KEY = "lp21-search-state-v1";
-const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5000").replace(/\/$/, "");
+const STORAGE_KEY = "lp21-search-state-v2";
+
+/** Leer = gleicher Origin / CRA-Proxy (npm start → Requests an :3000 werden nach :5000 weitergeleitet). */
+const API_ROOT = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
+const apiUrl = (path) => {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return API_ROOT ? `${API_ROOT}${normalized}` : normalized;
+};
 const promptSuggestions = [
   "Bruchrechnen in der 5. Klasse",
   "Unterrichtsidee zu Körperausdruck in Musik",
@@ -221,7 +227,7 @@ class App extends Component {
       this.persistSearchState
     );
 
-    fetch(`${API_BASE_URL}/search`, {
+    fetch(apiUrl("/search"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -375,7 +381,10 @@ class App extends Component {
         : rawUid != null
           ? String(rawUid).trim()
           : "";
-    if (prefetchedChain && prefetchedChain.current) {
+    const embedded =
+      prefetchedChain &&
+      (prefetchedChain.current || prefetchedChain["current"]);
+    if (embedded) {
       this.setState({
         chainView: { loading: false, error: null, data: prefetchedChain },
       });
@@ -385,7 +394,7 @@ class App extends Component {
       return;
     }
     this.setState({ chainView: { loading: true, error: null, data: null } });
-    fetch(`${API_BASE_URL}/competency-chain/${encodeURIComponent(uid)}`)
+    fetch(apiUrl(`/competency-chain/${encodeURIComponent(uid)}`))
       .then((response) => {
         if (response.status === 404) {
           throw new Error("not_found");
@@ -676,7 +685,8 @@ class App extends Component {
                                 url={result.metadata.url}
                                 queryText={queryText}
                                 competencyUid={result.documentUid || result.metadata.uid}
-                                prefetchedChain={result.prefetchedChain}
+                                prefetchedChain={result.prefetchedChain || result.metadata._competency_chain}
+                                metadata={result.metadata}
                                 onOpenCompetencyChain={this.handleOpenCompetencyChain}
                               />
                             ))}

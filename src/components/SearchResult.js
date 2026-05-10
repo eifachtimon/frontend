@@ -52,18 +52,19 @@ class SearchResult extends Component {
   };
 
   handleCardActivate = () => {
-    const { competencyUid, prefetchedChain, onOpenCompetencyChain } = this.props;
+    const { competencyUid, prefetchedChain, metadata, onOpenCompetencyChain } = this.props;
     if (!onOpenCompetencyChain) {
       return;
     }
+    const chain = prefetchedChain || (metadata && metadata._competency_chain);
     const uid =
       competencyUid ||
-      (prefetchedChain && prefetchedChain.current && prefetchedChain.current.uid) ||
+      (chain && chain.current && chain.current.uid) ||
       null;
-    if (!prefetchedChain && !uid) {
+    if (!chain?.current && !uid) {
       return;
     }
-    onOpenCompetencyChain(uid, prefetchedChain);
+    onOpenCompetencyChain(uid, chain);
   };
 
   handleCardKeyDown = (event) => {
@@ -107,12 +108,21 @@ class SearchResult extends Component {
   };
 
   render() {
-    const { zyklus, code, text, url, queryText, competencyUid, prefetchedChain, onOpenCompetencyChain } =
-      this.props;
+    const {
+      zyklus,
+      code,
+      text,
+      url,
+      queryText,
+      competencyUid,
+      prefetchedChain,
+      metadata,
+      onOpenCompetencyChain,
+    } = this.props;
     const { copied } = this.state;
+    const chainData = prefetchedChain || metadata?._competency_chain;
     const canOpenChain = Boolean(
-      onOpenCompetencyChain &&
-        (prefetchedChain?.current || competencyUid)
+      onOpenCompetencyChain && (chainData?.current || competencyUid)
     );
     const zyklusParts = this.parseZyklusParts(zyklus);
     const borderColors = zyklusParts.map((part) => this.props.getZyklusColorByPart(part)).filter(Boolean);
