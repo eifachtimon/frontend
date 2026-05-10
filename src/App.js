@@ -6,17 +6,28 @@ import "./App.css";
 const STORAGE_KEY = "lp21-search-state-v2";
 
 /**
- * Standard: Port 5001 — auf macOS nutzt der AirPlay-Empfänger oft TCP 5000.
- * Überschreiben: REACT_APP_API_BASE_URL (z. B. Render-URL in Produktion).
+ * Lokal: In .env.development ist REACT_APP_API_BASE_URL=http://127.0.0.1:5001 gesetzt
+ * (direkt Flask; vermeidet macOS-Konflikte mit Port 3000/AirTunes und Dev-Proxy).
+ * Ohne diese Variable im Dev nutzt die App optional den gleichen Host + src/setupProxy.js.
+ * Produktion: REACT_APP_API_BASE_URL auf die gehostete API setzen.
  */
-const API_ROOT = (process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5001").replace(
-  /\/$/,
-  ""
-);
+const rawApiBase = process.env.REACT_APP_API_BASE_URL;
+const API_ROOT =
+  rawApiBase != null && String(rawApiBase).trim() !== ""
+    ? String(rawApiBase).replace(/\/$/, "")
+    : process.env.NODE_ENV === "development"
+      ? ""
+      : "http://127.0.0.1:5001";
+
 const apiUrl = (path) => {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${API_ROOT}${normalized}`;
 };
+
+const backendDisplayLabel =
+  API_ROOT === ""
+    ? "npm-Dev-Proxy → Port 5001"
+    : API_ROOT;
 const fachOptions = [
   { value: 'Italienisch', label: 'Italienisch' },
   { value: 'Französisch', label: 'Französisch' },
@@ -106,6 +117,15 @@ const zyklusColors = {
   "23": "rgb(119, 171, 144)",
 };
 
+/** Ein Suchlauf = ein Profil; Kurzerklärung oberhalb der Trefferliste (nicht auf jeder Karte). */
+const QUERY_PROFILE_HELP = {
+  planning_complex:
+    "Ausführliche Frage: Es fliessen mehr Kontextsignale ein (Bedeutungsnähe, Varianten, Metadaten).",
+  lookup_short:
+    "Kurze Eingabe: Stichworttreffer und kompakte Bedeutungsnähe sind relativ stärker gewichtet.",
+  standard: "Ausgewogene Kombination aus Bedeutungsnähe, Stichworttreffern und Fach-/Intent-Signalen.",
+};
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -121,31 +141,25 @@ class App extends Component {
       queryValidationError: false,
       revealResults: false,
       chainView: null,
+      /** Aus den Suchmetadaten (_query_profile), nur zur Erklärung des Rankings */
+      searchQueryProfile: null,
+      /** Nur Dev: null | true | false — GET /health gegen API_ROOT */
+      devBackendReachable: null,
     };
     this.searchDebounceTimer = null;
   }
 
-  handleChange = (event) => {
-    const nextValue = event.target.value;
-    this.setState({
-      [event.target.id]: nextValue,
-      queryValidationError: event.target.id === "queryText" ? false : this.state.queryValidationError,
-    }, this.persistSearchState);
-  };
-
-  handleKeyDown = (event) => {
-    if (event.key === "Enter") {
-      this.search();
-    }
-  };
-
-  componentWillUnmount() {
-    if (this.searchDebounceTimer) {
-      clearTimeout(this.searchDebounceTimer);
-    }
-  }
-
   componentDidMount() {
+    if (process.env.NODE_ENV === "development") {
+      this.refreshDevBackendReachable();
+      this.handleVisibilityForHealth = () => {
+        if (document.visibilityState === "visible") {
+          this.refreshDevBackendReachable();
+        }
+      };
+      document.addEventListener("visibilitychange", this.handleVisibilityForHealth);
+    }
+
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) {
@@ -172,6 +186,79 @@ class App extends Component {
       );
     } catch (_error) {
       // Ignore corrupted local storage and continue with defaults.
+    }
+  }
+
+  refreshDevBackendReachable = () => {
+    if (process.env.NODE_ENV !== "development") {
+      return;
+    }
+    fetch(apiUrl("/health"), { method: "GET" })
+      .then((response) => {
+        this.setState({ devBackendReachable: response.ok });
+      })
+      .catch(() => {
+        this.setState({ devBackendReachable: false });
+      });
+  };
+
+  renderLocalDevWarnings = () => {
+    if (process.env.NODE_ENV !== "development") {
+      return null;
+    }
+    const port = window.location.port;
+    const host = window.location.hostname;
+    const onWrongDevPort =
+      (host === "localhost" || host === "127.0.0.1") && port === "3000";
+
+    if (onWrongDevPort) {
+      return (
+        <div className="dev-warning dev-warning--critical" role="alert">
+          <p className="dev-warning-title">Falsche Adresse (macOS / AirTunes)</p>
+          <p className="dev-warning-body">
+            Unter Port <strong>3000</strong> schlägt die Suche oft mit HTTP 403 fehl. Diese App läuft im Dev-Modus auf{" "}
+            <strong>http://localhost:3002</strong> — dieses Tab hier schließen und die richtige URL öffnen.
+          </p>
+        </div>
+      );
+    }
+
+    const { devBackendReachable } = this.state;
+    if (devBackendReachable === false) {
+      return (
+        <div className="dev-warning dev-warning--backend" role="status">
+          <p className="dev-warning-title">Backend nicht erreichbar</p>
+          <p className="dev-warning-body">
+            Erwartet unter <code>{API_ROOT || "(gleiche Origin)"}</code>. Terminal:{" "}
+            <code>{`cd backend && python3 server.py`}</code> (Port 5001). Tab zurück/fokussieren oder Seite neu laden.
+          </p>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  handleChange = (event) => {
+    const nextValue = event.target.value;
+    this.setState({
+      [event.target.id]: nextValue,
+      queryValidationError: event.target.id === "queryText" ? false : this.state.queryValidationError,
+    }, this.persistSearchState);
+  };
+
+  handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      this.search();
+    }
+  };
+
+  componentWillUnmount() {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+    if (this.handleVisibilityForHealth) {
+      document.removeEventListener("visibilitychange", this.handleVisibilityForHealth);
     }
   }
 
@@ -216,6 +303,7 @@ class App extends Component {
         showFachFilters: false,
         queryValidationError: false,
         revealResults: false,
+        searchQueryProfile: null,
       },
       this.persistSearchState
     );
@@ -276,6 +364,11 @@ class App extends Component {
           };
         });
 
+        const searchQueryProfile =
+          typeof metadatas[0]?._query_profile === "string"
+            ? metadatas[0]._query_profile
+            : null;
+
         const elapsed = Date.now() - searchStartedAt;
         const remaining = Math.max(0, 500 - elapsed);
         setTimeout(() => {
@@ -285,6 +378,7 @@ class App extends Component {
             hasSearched: true,
             searchError: "",
             revealResults: true,
+            searchQueryProfile,
           }, this.persistSearchState);
         }, remaining);
       })
@@ -294,21 +388,42 @@ class App extends Component {
           // eslint-disable-next-line no-console
           console.error("Suche fehlgeschlagen:", target, err);
         }
+        const detail = err?.message || "";
+        const httpStatusMatch = detail.match(/^HTTP (\d{3})/);
         const tech =
-          process.env.NODE_ENV === "development" && err?.message
-            ? ` Technisch: ${err.message}`
+          process.env.NODE_ENV === "development" && detail
+            ? ` Technisch: ${detail}`
             : "";
         const elapsed = Date.now() - searchStartedAt;
         const remaining = Math.max(0, 500 - elapsed);
+        const looksLikeConnectionRefused =
+          !httpStatusMatch &&
+          (/failed to fetch|networkerror|load failed|refused|connection reset|nicht erreichbar/i.test(
+            detail
+          ) ||
+            err?.name === "TypeError");
+        const backendHint =
+          `Backend starten: Terminal → cd backend && python3 server.py (lauscht auf Port 5001). ` +
+          `Test: curl -s http://127.0.0.1:5001/health → {"status":"ok"}.`;
+        const frontendHint =
+          process.env.NODE_ENV === "development"
+            ? ` Lädt die Seite selbst nicht (Browser ERR_CONNECTION_REFUSED auf :3002)? → cd frontend && npm start (Port 3002).`
+            : "";
+        const connectionHint =
+          `${backendHint} Nach Änderung an .env: npm start neu starten.${frontendHint}`;
+        const errorBody = httpStatusMatch
+          ? `Antwort HTTP ${httpStatusMatch[1]} vom Backend — oft läuft auf Port 5001 nicht diese Flask-App, oder ein anderer Dienst antwortet. ` +
+            `Prüfen: curl -s http://127.0.0.1:5001/health muss {"status":"ok"} liefern. ${connectionHint}${tech}`
+          : looksLikeConnectionRefused
+            ? `Keine Verbindung zum API-Server (${backendDisplayLabel}) — typisch wenn Flask nicht läuft oder die URL nicht stimmt (ERR_CONNECTION_REFUSED / Failed to fetch). ${connectionHint}${tech}`
+            : `Keine Verbindung zum Backend (${backendDisplayLabel}). ${connectionHint}${tech}`;
         setTimeout(() => {
           this.setState({
             isLoading: false,
             hasSearched: true,
-            searchError:
-              `Keine Verbindung zum Backend (${API_ROOT}). ` +
-              `Terminal: cd backend && python server.py (Port 5001). ` +
-              `Nach Änderung an .env: npm start neu starten.${tech}`,
+            searchError: errorBody,
             revealResults: false,
+            searchQueryProfile: null,
           }, this.persistSearchState);
         }, remaining);
       });
@@ -382,6 +497,63 @@ class App extends Component {
     return zyklusColors[value] || "#9f9f9f";
   };
 
+  /**
+   * Fehlende Querverweise zur aktuellen Stufe nachladen (Backend ohne network_links in /competency-chain).
+   */
+  enrichChainDataWithNetworkApi = async (chainPayload) => {
+    if (!chainPayload?.current?.uid) {
+      return chainPayload;
+    }
+    const focusUid = chainPayload.current.uid;
+    if (
+      Array.isArray(chainPayload.current.network_links) &&
+      chainPayload.current.network_links.length > 0
+    ) {
+      const has = chainPayload._has_network === true || chainPayload.current.network_links.length > 0;
+      return {
+        ...chainPayload,
+        _has_network: chainPayload._has_network ?? has,
+      };
+    }
+    const tryUrls = [
+      apiUrl(`/api/competency-network/${encodeURIComponent(focusUid)}`),
+      apiUrl(`/competency-network/${encodeURIComponent(focusUid)}`),
+    ];
+
+    for (const url of tryUrls) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          continue;
+        }
+        const net = await response.json();
+        const outgoing = net && net.outgoing;
+        if (!Array.isArray(outgoing) || outgoing.length === 0) {
+          continue;
+        }
+        const links = outgoing.map((o) => ({
+          uid: o.uid,
+          code: o.code,
+          fach: o.fach,
+        }));
+        const fullChain = Array.isArray(chainPayload.full_chain)
+          ? chainPayload.full_chain.map((step) =>
+              step && step.uid === focusUid ? { ...step, network_links: links } : step
+            )
+          : chainPayload.full_chain;
+        return {
+          ...chainPayload,
+          _has_network: true,
+          current: { ...chainPayload.current, network_links: links },
+          full_chain: fullChain,
+        };
+      } catch (_err) {
+        continue;
+      }
+    }
+    return chainPayload;
+  };
+
   handleOpenCompetencyChain = (rawUid, prefetchedChain) => {
     const uid =
       typeof rawUid === "string"
@@ -389,19 +561,33 @@ class App extends Component {
         : rawUid != null
           ? String(rawUid).trim()
           : "";
-    const embedded =
-      prefetchedChain &&
-      (prefetchedChain.current || prefetchedChain["current"]);
-    if (embedded) {
-      this.setState({
-        chainView: { loading: false, error: null, data: prefetchedChain },
-      });
-      return;
-    }
     if (!uid) {
       return;
     }
-    this.setState({ chainView: { loading: true, error: null, data: null } });
+
+    const highlightAnchorUid = uid;
+
+    const embedded =
+      prefetchedChain &&
+      (prefetchedChain.current || prefetchedChain["current"]);
+
+    // Kurz eingebettete Daten zeigen, dann immer frisch laden — damit u.a.
+    // network_links und _has_network aus der aktuellen API garantiert sind.
+    if (embedded) {
+      this.setState({
+        chainView: {
+          loading: false,
+          error: null,
+          data: prefetchedChain,
+          highlightAnchorUid,
+        },
+      });
+    } else {
+      this.setState({
+        chainView: { loading: true, error: null, data: null, highlightAnchorUid },
+      });
+    }
+
     fetch(apiUrl(`/competency-chain/${encodeURIComponent(uid)}`))
       .then((response) => {
         if (response.status === 404) {
@@ -412,15 +598,48 @@ class App extends Component {
         }
         return response.json();
       })
+      .then((data) => this.enrichChainDataWithNetworkApi(data))
       .then((data) => {
-        this.setState({ chainView: { loading: false, error: null, data } });
+        this.setState((prev) => ({
+          chainView: prev.chainView
+            ? {
+                ...prev.chainView,
+                loading: false,
+                error: null,
+                data,
+              }
+            : {
+                loading: false,
+                error: null,
+                data,
+                highlightAnchorUid,
+              },
+        }));
       })
       .catch((error) => {
         const message =
           error.message === "not_found"
             ? "Für diese Kompetenz wurde kein Aufbau-Kontext gefunden."
             : "Der Aufbau-Kontext konnte nicht geladen werden.";
-        this.setState({ chainView: { loading: false, error: message, data: null } });
+        if (embedded) {
+          this.setState({
+            chainView: {
+              loading: false,
+              error: message,
+              data: prefetchedChain,
+              highlightAnchorUid,
+            },
+          });
+        } else {
+          this.setState({
+            chainView: {
+              loading: false,
+              error: message,
+              data: null,
+              highlightAnchorUid,
+            },
+          });
+        }
       });
   };
 
@@ -434,14 +653,23 @@ class App extends Component {
     if (fullChain && Array.isArray(fullChain) && nextUid) {
       const idx = fullChain.findIndex((step) => step && step.uid === nextUid);
       if (idx !== -1) {
+        const cur = fullChain[idx];
         const data = {
           previous: idx > 0 ? fullChain[idx - 1] : null,
-          current: fullChain[idx],
+          current: cur,
           next: idx < fullChain.length - 1 ? fullChain[idx + 1] : null,
           full_chain: fullChain,
+          _has_network: Boolean(cur && cur.network_links && cur.network_links.length > 0),
         };
-        this.setState({
-          chainView: { loading: false, error: null, data },
+        this.enrichChainDataWithNetworkApi(data).then((enriched) => {
+          this.setState({
+            chainView: {
+              ...chainView,
+              loading: false,
+              error: null,
+              data: enriched,
+            },
+          });
         });
         return;
       }
@@ -462,6 +690,7 @@ class App extends Component {
       queryValidationError,
       revealResults,
       chainView,
+      searchQueryProfile,
     } = this.state;
     const allowedFachValues = zyklus.length > 0
       ? new Set(zyklus.flatMap((item) => fachByZyklus[item] || []))
@@ -498,6 +727,7 @@ class App extends Component {
 
     return (
       <div className="app-shell">
+        {this.renderLocalDevWarnings()}
         <main className="layout">
           <section className="content-column">
             <header className={`hero ${hasSearched ? "hero-compact" : ""}`}>
@@ -512,7 +742,7 @@ class App extends Component {
                   id="queryText"
                   onChange={this.handleChange}
                   onKeyDown={this.handleKeyDown}
-                  placeholder="z. B. Bruchrechnen mit Gruppenarbeit in der 5. Klasse"
+                  placeholder="Stichwort, Unterrichtsidee oder Kompetenzcode (z. B. NT.5.2.a)"
                   value={queryText}
                   className={queryValidationError ? "input-error" : ""}
                   aria-label="Suchanfrage"
@@ -588,31 +818,31 @@ class App extends Component {
                           ))}
                         </div>
                       ) : null}
-                    </div>
-                  </div>
-                  <div
-                    id="fach-picker-panel"
-                    className={`fach-picker-panel ${showFachFilters ? "is-open" : ""}`}
-                    aria-hidden={!showFachFilters}
-                  >
-                    <div className="fach-picker-panel-inner">
-                      <div className="chip-row fach-picker-row">
-                        {fachChips.map((chip) => {
-                          const isActive = this.isChipActive(chip);
-                          return (
-                            <button
-                              key={`${chip.type}-${chip.value}`}
-                              type="button"
-                              tabIndex={showFachFilters ? 0 : -1}
-                              className={`quick-chip ${isActive ? "active" : ""}`}
-                              style={{ "--chip-accent": this.getFachColor(chip.value) }}
-                              onClick={() => this.handleChipClick(chip)}
-                              aria-label={`${chip.label} ${isActive ? "deaktivieren" : "aktivieren"}`}
-                            >
-                              {chip.label}
-                            </button>
-                          );
-                        })}
+                      <div
+                        id="fach-picker-panel"
+                        className={`fach-picker-panel ${showFachFilters ? "is-open" : ""}`}
+                        aria-hidden={!showFachFilters}
+                      >
+                        <div className="fach-picker-panel-inner">
+                          <div className="chip-row fach-picker-row">
+                            {fachChips.map((chip) => {
+                              const isActive = this.isChipActive(chip);
+                              return (
+                                <button
+                                  key={`${chip.type}-${chip.value}`}
+                                  type="button"
+                                  tabIndex={showFachFilters ? 0 : -1}
+                                  className={`quick-chip ${isActive ? "active" : ""}`}
+                                  style={{ "--chip-accent": this.getFachColor(chip.value) }}
+                                  onClick={() => this.handleChipClick(chip)}
+                                  aria-label={`${chip.label} ${isActive ? "deaktivieren" : "aktivieren"}`}
+                                >
+                                  {chip.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -627,6 +857,14 @@ class App extends Component {
                 {!searchError && !isLoading && (
                   <span>{results.length} Treffer</span>
                 )}
+                {!searchError &&
+                  !isLoading &&
+                  searchQueryProfile &&
+                  QUERY_PROFILE_HELP[searchQueryProfile] ? (
+                  <p className="search-profile-hint">
+                    {QUERY_PROFILE_HELP[searchQueryProfile]}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -638,10 +876,14 @@ class App extends Component {
                 loading={Boolean(chainView.loading)}
                 error={chainView.error}
                 chainData={chainView.data}
+                highlightAnchorUid={chainView.highlightAnchorUid}
                 onBack={this.handleCloseCompetencyChain}
                 onSelectNeighbor={this.handleChainSelectNeighbor}
-                getZyklusColor={this.getZyklusColor}
+                getZyklusColorByPart={this.getZyklusColor}
                 getFachColor={this.getFachColor}
+                getCompetencyNetworkUrl={(uid) =>
+                  apiUrl(`/api/competency-network/${encodeURIComponent(uid)}`)
+                }
               />
             ) : null}
 
@@ -681,6 +923,11 @@ class App extends Component {
                                 prefetchedChain={result.prefetchedChain || result.metadata._competency_chain}
                                 metadata={result.metadata}
                                 onOpenCompetencyChain={this.handleOpenCompetencyChain}
+                                getCompetencyChainUrl={(uid) =>
+                                  apiUrl(
+                                    `/api/competency-chain/${encodeURIComponent(uid)}`
+                                  )
+                                }
                               />
                             ))}
                           </div>

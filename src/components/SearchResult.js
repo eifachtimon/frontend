@@ -1,8 +1,18 @@
 import React, { Component } from "react";
 
+const PRIMARY_MATCH_LABELS = {
+  competency_code: "Kompetenzcode",
+  semantic_vector: "Themenvariante",
+  vector: "Bedeutungsnähe",
+  keyword: "Stichwort im Text",
+};
+
 class SearchResult extends Component {
   state = {
     copied: false,
+    expandedNetworkUid: null,
+    linkedDetailOverrideByUid: {},
+    linkedDetailLoadingUid: null,
   };
 
   handleOpenUrl = (url) => {
@@ -51,7 +61,7 @@ class SearchResult extends Component {
     return Array.from(new Set(matches));
   };
 
-  handleCardActivate = () => {
+  handleCardActivate = (event) => {
     const { competencyUid, prefetchedChain, metadata, onOpenCompetencyChain } = this.props;
     if (!onOpenCompetencyChain) {
       return;
@@ -72,7 +82,151 @@ class SearchResult extends Component {
       return;
     }
     event.preventDefault();
-    this.handleCardActivate();
+    this.handleCardActivate(event);
+  };
+
+  resolveNetworkLinks = () => {
+    const { prefetchedChain, metadata } = this.props;
+    const chainData = prefetchedChain || metadata?._competency_chain;
+    const raw = chainData?.current?.network_links;
+    return Array.isArray(raw) ? raw : [];
+  };
+
+  resolveExpandedLink = () => {
+    const { expandedNetworkUid, linkedDetailOverrideByUid } = this.state;
+    if (!expandedNetworkUid) {
+      return null;
+    }
+    const links = this.resolveNetworkLinks();
+    const base = links.find((l) => l && l.uid === expandedNetworkUid);
+    if (!base) {
+      return null;
+    }
+    const extra = linkedDetailOverrideByUid[expandedNetworkUid];
+    return extra ? { ...base, ...extra } : base;
+  };
+
+  fetchLinkedDetailIfNeeded = (link) => {
+    const { getCompetencyChainUrl } = this.props;
+    const uid = link && link.uid;
+    if (!uid || link.text || !getCompetencyChainUrl) {
+      return;
+    }
+    this.setState({ linkedDetailLoadingUid: uid });
+    fetch(getCompetencyChainUrl(uid))
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("skip");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        const cur = data && data.current;
+        if (!cur) {
+          this.setState({ linkedDetailLoadingUid: null });
+          return;
+        }
+        this.setState((prev) => ({
+          linkedDetailLoadingUid: null,
+          linkedDetailOverrideByUid: {
+            ...prev.linkedDetailOverrideByUid,
+            [uid]: {
+              code: cur.code,
+              text: cur.text,
+              fach: cur.fach,
+            },
+          },
+        }));
+      })
+      .catch(() => {
+        this.setState({ linkedDetailLoadingUid: null });
+      });
+  };
+
+  handleLinkedCompetencyToggle = (event, link) => {
+    event.stopPropagation();
+    const uid = link && link.uid;
+    if (!uid) {
+      return;
+    }
+    const closing = this.state.expandedNetworkUid === uid;
+    const nextExpanded = closing ? null : uid;
+    this.setState(
+      { expandedNetworkUid: nextExpanded, linkedDetailLoadingUid: null },
+      () => {
+        if (nextExpanded === uid && !link.text) {
+          this.fetchLinkedDetailIfNeeded(link);
+        }
+      }
+    );
+  };
+
+  handleLinkedCompetencyKeyDown = (event, link) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    this.handleLinkedCompetencyToggle(event, link);
+  };
+
+  formatNetworkLinkLabel = (lnk) => {
+    const parts = [lnk.code, lnk.fach].filter(Boolean);
+    return parts.length > 0 ? parts.join(" · ") : lnk.uid || "Verknüpfung";
+  };
+
+  renderResultMetaLine = (metadata) => {
+    if (!metadata) {
+      return null;
+    }
+
+    const rank = metadata._result_rank;
+    const primaryKey = metadata._primary_match_channel;
+    const score = metadata._score;
+    const variantHits = metadata._query_variant_hits;
+    const keywordHits = metadata._keyword_hits;
+
+    const segments = [];
+
+    if (typeof rank === "number" && rank > 0) {
+      segments.push(`Rang ${rank}`);
+    }
+
+    if (primaryKey && PRIMARY_MATCH_LABELS[primaryKey]) {
+      segments.push(PRIMARY_MATCH_LABELS[primaryKey]);
+    }
+
+    if (typeof score === "number" && Number.isFinite(score)) {
+      segments.push(Number(score).toFixed(3));
+    }
+
+    if (segments.length === 0) {
+      return null;
+    }
+
+    const extras = [];
+    if (typeof variantHits === "number" && variantHits >= 2) {
+      extras.push("mehrere Suchvarianten");
+    }
+    if (typeof keywordHits === "number" && keywordHits >= 5) {
+      extras.push(`${keywordHits} Stichwörter`);
+    }
+
+    const main = segments.join(" · ");
+    const line = extras.length > 0 ? `${main} · ${extras.join(", ")}` : main;
+
+    const titleParts = [
+      "Reihenfolge und Gewichtung dieser einen Kompetenz in den Suchergebnissen.",
+      primaryKey && PRIMARY_MATCH_LABELS[primaryKey]
+        ? `Hauptsignal: ${PRIMARY_MATCH_LABELS[primaryKey]}.`
+        : null,
+    ].filter(Boolean);
+
+    return (
+      <p className="result-meta-line" title={titleParts.join(" ")} aria-live="polite">
+        {line}
+      </p>
+    );
   };
 
   renderHighlightedText = (text, queryText) => {
@@ -119,7 +273,7 @@ class SearchResult extends Component {
       metadata,
       onOpenCompetencyChain,
     } = this.props;
-    const { copied } = this.state;
+    const { copied, expandedNetworkUid, linkedDetailLoadingUid } = this.state;
     const chainData = prefetchedChain || metadata?._competency_chain;
     const canOpenChain = Boolean(
       onOpenCompetencyChain && (chainData?.current || competencyUid)
@@ -145,6 +299,9 @@ class SearchResult extends Component {
         }
       : undefined;
 
+    const networkLinks = this.resolveNetworkLinks();
+    const expandedLink = this.resolveExpandedLink();
+
     return (
       <article className="result-card" style={cardStyle}>
         <div className="result-card-layout">
@@ -160,7 +317,95 @@ class SearchResult extends Component {
                 : undefined
             }
           >
-            {code && <span className="result-code-text">{code}</span>}
+            {(code || expandedLink || networkLinks.length > 0) && (
+              <div className="result-code-peer-row">
+                <div className="result-code-peer-left">
+                  {(code || expandedLink) && (
+                    <>
+                      {code ? (
+                        <span className="result-code-text">{code}</span>
+                      ) : null}
+                      {expandedLink ? (
+                        <span className="result-linked-peer-wrap">
+                          {code ? (
+                            <span
+                              className="result-code-peer-sep"
+                              aria-hidden="true"
+                            >
+                              ·
+                            </span>
+                          ) : null}
+                          {linkedDetailLoadingUid === expandedLink.uid &&
+                          !expandedLink.text ? (
+                            <span className="result-linked-peer-loading">
+                              lädt …
+                            </span>
+                          ) : (
+                            <>
+                              {expandedLink.code ? (
+                                <span className="result-linked-peer-code">
+                                  {expandedLink.code}
+                                </span>
+                              ) : null}
+                              {expandedLink.text ? (
+                                <span className="result-linked-peer-text">
+                                  {expandedLink.text}
+                                </span>
+                              ) : null}
+                            </>
+                          )}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+                {networkLinks.length > 0 ? (
+                  <ul
+                    className="result-network-links-inline"
+                    aria-label="Offizielle Querverweise zu anderen Kompetenzstufen"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    {networkLinks.map((lnk) => {
+                      const active = expandedNetworkUid === lnk.uid;
+                      return (
+                        <li key={lnk.uid}>
+                          <button
+                            type="button"
+                            className={`result-network-link-ref ${active ? "result-network-link-ref--active" : ""}`}
+                            onClick={(e) =>
+                              this.handleLinkedCompetencyToggle(e, lnk)
+                            }
+                            onKeyDown={(e) =>
+                              this.handleLinkedCompetencyKeyDown(e, lnk)
+                            }
+                            aria-expanded={active}
+                            aria-label={`Verknüpfte Kompetenz: ${this.formatNetworkLinkLabel(lnk)}`}
+                          >
+                            <svg
+                              className="result-network-link-icon"
+                              viewBox="0 0 24 24"
+                              width="14"
+                              height="14"
+                              aria-hidden="true"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M17 7h-4v2h4c1.65 0 3 1.35 3 3s-1.35 3-3 3h-4v2h4c2.76 0 5-2.24 5-5s-2.24-5-5-5zm-6 8H7c-1.65 0-3-1.35-3-3s1.35-3 3-3h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-2z"
+                              />
+                            </svg>
+                            <span className="result-network-link-label">
+                              {this.formatNetworkLinkLabel(lnk)}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </div>
+            )}
+            {this.renderResultMetaLine(metadata)}
             <p className="result-text">{this.renderHighlightedText(text, queryText)}</p>
           </div>
           <div className="result-actions">
