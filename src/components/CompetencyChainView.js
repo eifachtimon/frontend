@@ -54,9 +54,15 @@ class CompetencyChainView extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const uid = this.props.chainData?.current?.uid;
-    const prevUid = prevProps.chainData?.current?.uid;
-    if (uid && uid !== prevUid) {
+    const cur = this.props.chainData?.current;
+    const key =
+      (cur?.doc_key && String(cur.doc_key).trim()) || cur?.uid || undefined;
+    const prevCur = prevProps.chainData?.current;
+    const prevKey =
+      (prevCur?.doc_key && String(prevCur.doc_key).trim()) ||
+      prevCur?.uid ||
+      undefined;
+    if (key && key !== prevKey) {
       this.scheduleScrollToSelected();
     }
 
@@ -68,9 +74,7 @@ class CompetencyChainView extends Component {
       this.scheduleScrollToSelected();
     }
 
-    const nextUid = this.props.chainData?.current?.uid;
-    const prevChainUid = prevProps.chainData?.current?.uid;
-    if (nextUid !== prevChainUid && nextUid) {
+    if (key !== prevKey && key) {
       this.setState({ networkHintsByUid: {} });
     }
 
@@ -240,13 +244,50 @@ class CompetencyChainView extends Component {
     );
   };
 
+  handleChainBookmarkClick = (event, item) => {
+    event.stopPropagation();
+    const { onToggleBookmarkStep } = this.props;
+    if (!item || typeof onToggleBookmarkStep !== "function") {
+      return;
+    }
+    const bookmarkId =
+      (item.doc_key != null && String(item.doc_key).trim()) ||
+      (item.uid != null && String(item.uid).trim()) ||
+      "";
+    if (!bookmarkId) {
+      return;
+    }
+    onToggleBookmarkStep(item);
+  };
+
+  handleChainBookmarkKeyDown = (event, item) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.stopPropagation();
+    event.preventDefault();
+    this.handleChainBookmarkClick(event, item);
+  };
+
   renderChainActions = (item) => {
     const { copiedUid } = this.state;
+    const { bookmarkUids, onToggleBookmarkStep } = this.props;
     const copyKey = item.uid || "__anon__";
     const copied = copiedUid === copyKey;
+    const showBookmark = typeof onToggleBookmarkStep === "function";
+    const bookmarkId =
+      (item.doc_key != null && String(item.doc_key).trim()) ||
+      (item.uid != null && String(item.uid).trim()) ||
+      "";
+    const isBookmarked =
+      showBookmark &&
+      bookmarkId &&
+      bookmarkUids instanceof Set &&
+      bookmarkUids.has(bookmarkId);
+
     return (
       <div
-        className="result-actions"
+        className={`result-actions ${showBookmark ? "result-actions--bookmark-layout" : ""}`}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
@@ -264,6 +305,31 @@ class CompetencyChainView extends Component {
             />
           </svg>
         </button>
+        {showBookmark ? (
+          <button
+            type="button"
+            className={`bookmark-toggle-button ${isBookmarked ? "bookmark-toggle-button--active" : ""}`}
+            onClick={(e) => this.handleChainBookmarkClick(e, item)}
+            onKeyDown={(e) => this.handleChainBookmarkKeyDown(e, item)}
+            aria-pressed={Boolean(isBookmarked)}
+            aria-label={isBookmarked ? "Von Merkliste entfernen" : "Kompetenz merken"}
+            title={isBookmarked ? "Von Merkliste entfernen" : "Merken"}
+          >
+            <svg className="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+              {isBookmarked ? (
+                <path
+                  fill="currentColor"
+                  d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"
+                />
+              ) : (
+                <path
+                  fill="currentColor"
+                  d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"
+                />
+              )}
+            </svg>
+          </button>
+        ) : null}
         {item.url ? (
           <button
             type="button"
@@ -296,8 +362,12 @@ class CompetencyChainView extends Component {
 
   handleFullChainStepActivate = (uid) => {
     const { chainData, onSelectNeighbor } = this.props;
-    const currentUid = chainData && chainData.current && chainData.current.uid;
-    if (!uid || uid === currentUid || !onSelectNeighbor) {
+    const cur = chainData && chainData.current;
+    const currentKey =
+      (cur && cur.doc_key && String(cur.doc_key).trim()) ||
+      (cur && cur.uid) ||
+      "";
+    if (!uid || uid === currentKey || !onSelectNeighbor) {
       return;
     }
     onSelectNeighbor(uid);
@@ -324,6 +394,13 @@ class CompetencyChainView extends Component {
       return null;
     }
     const currentUid = chainData.current && chainData.current.uid;
+    const currentDocKey =
+      chainData.current &&
+      chainData.current.doc_key &&
+      String(chainData.current.doc_key).trim()
+        ? String(chainData.current.doc_key).trim()
+        : "";
+    const currentKey = currentDocKey || currentUid;
     const anchor = chainData.current || fullChain[0];
     const contextFach = anchor && anchor.fach;
     const contextThema = anchor && anchor.themenbereich;
@@ -353,9 +430,15 @@ class CompetencyChainView extends Component {
             if (!item) {
               return null;
             }
-            const isCurrent = Boolean(currentUid && item.uid === currentUid);
+            const itemKey =
+              (item.doc_key && String(item.doc_key).trim()) || item.uid;
+            const isCurrent = Boolean(
+              currentKey && itemKey && itemKey === currentKey
+            );
             const isHighlightAnchor = Boolean(
-              highlightAnchorUid && item.uid && item.uid === highlightAnchorUid
+              highlightAnchorUid &&
+                itemKey &&
+                itemKey === highlightAnchorUid
             );
             const markerStyle = buildZyklusMarkerStyle(item.zyklus, getZyklusColorByPart);
 
@@ -404,7 +487,21 @@ class CompetencyChainView extends Component {
   };
 
   render() {
-    const { loading, error, chainData } = this.props;
+    const {
+      loading,
+      error,
+      chainData,
+      backButtonLabel,
+      backButtonAriaLabel,
+    } = this.props;
+
+    const headingRaw =
+      chainData &&
+      typeof chainData.chain_heading === "string" &&
+      chainData.chain_heading.trim()
+        ? chainData.chain_heading.trim()
+        : "";
+    const panelTitle = headingRaw || "Aufbau-Kontext";
 
     return (
       <section className="competency-chain-panel" aria-labelledby="chain-panel-title">
@@ -413,12 +510,21 @@ class CompetencyChainView extends Component {
             type="button"
             className="chain-back-button"
             onClick={this.handleBackClick}
-            aria-label="Zurück zur Suchergebnisliste"
+            aria-label={
+              typeof backButtonAriaLabel === "string" && backButtonAriaLabel.trim()
+                ? backButtonAriaLabel.trim()
+                : "Zurück zur Suchergebnisliste"
+            }
           >
-            ← Zurück zur Suche
+            {typeof backButtonLabel === "string" && backButtonLabel.trim()
+              ? backButtonLabel.trim()
+              : "← Zurück zur Suche"}
           </button>
-          <h2 id="chain-panel-title" className="chain-panel-title">
-            Aufbau-Kontext
+          <h2
+            id="chain-panel-title"
+            className={`chain-panel-title ${headingRaw ? "chain-panel-title--from-lehrplan" : ""}`}
+          >
+            {panelTitle}
           </h2>
         </div>
 

@@ -1,12 +1,5 @@
 import React, { Component } from "react";
 
-const PRIMARY_MATCH_LABELS = {
-  competency_code: "Kompetenzcode",
-  semantic_vector: "Themenvariante",
-  vector: "Bedeutungsnähe",
-  keyword: "Stichwort im Text",
-};
-
 class SearchResult extends Component {
   state = {
     copied: false,
@@ -67,10 +60,19 @@ class SearchResult extends Component {
       return;
     }
     const chain = prefetchedChain || (metadata && metadata._competency_chain);
-    const uid =
-      competencyUid ||
-      (chain && chain.current && chain.current.uid) ||
-      null;
+    const chainDocKey =
+      chain?.current?.doc_key != null && String(chain.current.doc_key).trim()
+        ? String(chain.current.doc_key).trim()
+        : "";
+    const chainUid =
+      chain?.current?.uid != null && String(chain.current.uid).trim()
+        ? String(chain.current.uid).trim()
+        : "";
+    const docUid =
+      competencyUid != null && String(competencyUid).trim()
+        ? String(competencyUid).trim()
+        : "";
+    const uid = chainDocKey || chainUid || docUid || null;
     if (!chain?.current && !uid) {
       return;
     }
@@ -83,6 +85,24 @@ class SearchResult extends Component {
     }
     event.preventDefault();
     this.handleCardActivate(event);
+  };
+
+  handleBookmarkClick = (event) => {
+    event.stopPropagation();
+    const { bookmarkUid, onToggleBookmark } = this.props;
+    if (!bookmarkUid || !onToggleBookmark) {
+      return;
+    }
+    onToggleBookmark();
+  };
+
+  handleBookmarkKeyDown = (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.stopPropagation();
+    event.preventDefault();
+    this.handleBookmarkClick(event);
   };
 
   resolveNetworkLinks = () => {
@@ -175,60 +195,6 @@ class SearchResult extends Component {
     return parts.length > 0 ? parts.join(" · ") : lnk.uid || "Verknüpfung";
   };
 
-  renderResultMetaLine = (metadata) => {
-    if (!metadata) {
-      return null;
-    }
-
-    const rank = metadata._result_rank;
-    const primaryKey = metadata._primary_match_channel;
-    const score = metadata._score;
-    const variantHits = metadata._query_variant_hits;
-    const keywordHits = metadata._keyword_hits;
-
-    const segments = [];
-
-    if (typeof rank === "number" && rank > 0) {
-      segments.push(`Rang ${rank}`);
-    }
-
-    if (primaryKey && PRIMARY_MATCH_LABELS[primaryKey]) {
-      segments.push(PRIMARY_MATCH_LABELS[primaryKey]);
-    }
-
-    if (typeof score === "number" && Number.isFinite(score)) {
-      segments.push(Number(score).toFixed(3));
-    }
-
-    if (segments.length === 0) {
-      return null;
-    }
-
-    const extras = [];
-    if (typeof variantHits === "number" && variantHits >= 2) {
-      extras.push("mehrere Suchvarianten");
-    }
-    if (typeof keywordHits === "number" && keywordHits >= 5) {
-      extras.push(`${keywordHits} Stichwörter`);
-    }
-
-    const main = segments.join(" · ");
-    const line = extras.length > 0 ? `${main} · ${extras.join(", ")}` : main;
-
-    const titleParts = [
-      "Reihenfolge und Gewichtung dieser einen Kompetenz in den Suchergebnissen.",
-      primaryKey && PRIMARY_MATCH_LABELS[primaryKey]
-        ? `Hauptsignal: ${PRIMARY_MATCH_LABELS[primaryKey]}.`
-        : null,
-    ].filter(Boolean);
-
-    return (
-      <p className="result-meta-line" title={titleParts.join(" ")} aria-live="polite">
-        {line}
-      </p>
-    );
-  };
-
   renderHighlightedText = (text, queryText) => {
     if (!text) {
       return "";
@@ -272,6 +238,9 @@ class SearchResult extends Component {
       prefetchedChain,
       metadata,
       onOpenCompetencyChain,
+      bookmarkUid,
+      isBookmarked,
+      onToggleBookmark,
     } = this.props;
     const { copied, expandedNetworkUid, linkedDetailLoadingUid } = this.state;
     const chainData = prefetchedChain || metadata?._competency_chain;
@@ -301,6 +270,8 @@ class SearchResult extends Component {
 
     const networkLinks = this.resolveNetworkLinks();
     const expandedLink = this.resolveExpandedLink();
+    const showBookmark =
+      Boolean(bookmarkUid) && typeof onToggleBookmark === "function";
 
     return (
       <article className="result-card" style={cardStyle}>
@@ -405,10 +376,11 @@ class SearchResult extends Component {
                 ) : null}
               </div>
             )}
-            {this.renderResultMetaLine(metadata)}
             <p className="result-text">{this.renderHighlightedText(text, queryText)}</p>
           </div>
-          <div className="result-actions">
+          <div
+            className={`result-actions ${showBookmark ? "result-actions--bookmark-layout" : ""}`}
+          >
             <button
               className="copy-button"
               onClick={this.handleCopy}
@@ -422,8 +394,34 @@ class SearchResult extends Component {
                 />
               </svg>
             </button>
-            {url && (
+            {showBookmark ? (
               <button
+                type="button"
+                className={`bookmark-toggle-button ${isBookmarked ? "bookmark-toggle-button--active" : ""}`}
+                onClick={this.handleBookmarkClick}
+                onKeyDown={this.handleBookmarkKeyDown}
+                aria-pressed={Boolean(isBookmarked)}
+                aria-label={isBookmarked ? "Von Merkliste entfernen" : "Kompetenz merken"}
+                title={isBookmarked ? "Von Merkliste entfernen" : "Merken"}
+              >
+                <svg className="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  {isBookmarked ? (
+                    <path
+                      fill="currentColor"
+                      d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"
+                    />
+                  ) : (
+                    <path
+                      fill="currentColor"
+                      d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"
+                    />
+                  )}
+                </svg>
+              </button>
+            ) : null}
+            {url ? (
+              <button
+                type="button"
                 className="source-button"
                 onClick={() => this.handleOpenUrl(url)}
                 aria-label="Quelle in neuem Tab öffnen"
@@ -436,7 +434,7 @@ class SearchResult extends Component {
                   />
                 </svg>
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </article>

@@ -11,7 +11,7 @@ const BACKEND = process.env.PROXY_TARGET || "http://127.0.0.1:5001";
 module.exports = function setupProxy(app) {
   app.use(
     createProxyMiddleware(
-      ["/search", "/health", "/competency-chain", "/competency-network", "/api"],
+      ["/search", "/health", "/competency-chain", "/competency-network", "/curriculum-overview", "/api"],
       {
         target: BACKEND,
         changeOrigin: true,

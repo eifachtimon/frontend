@@ -1,7 +1,31 @@
 import SearchResult from "./components/SearchResult";
 import CompetencyChainView from "./components/CompetencyChainView";
+import CurriculumMapOverlay from "./components/CurriculumMapOverlay";
 import React, { Component } from "react";
 import "./App.css";
+import {
+  clearRecentCompetencies,
+  pushRecentCompetency,
+  readRecentCompetencies,
+  truncateCompetencyLabel,
+} from "./recentCompetencyHistory";
+import {
+  addFolder,
+  bookmarkExists,
+  clearBookmarksStorage,
+  DEFAULT_FOLDER_ID,
+  deleteFolderMergeIntoDefault,
+  folderToPlainTextForWord,
+  loadBookmarkStore,
+  moveBookmark,
+  removeBookmarkAndSave,
+  renameFolder,
+  replaceBookmarkStore,
+  sanitizeFileBaseName,
+  totalBookmarkCount,
+  uidSetFromStore,
+  upsertBookmarkInDefaultFolder,
+} from "./competencyBookmarks";
 
 const STORAGE_KEY = "lp21-search-state-v2";
 
@@ -117,15 +141,6 @@ const zyklusColors = {
   "23": "rgb(119, 171, 144)",
 };
 
-/** Ein Suchlauf = ein Profil; Kurzerklärung oberhalb der Trefferliste (nicht auf jeder Karte). */
-const QUERY_PROFILE_HELP = {
-  planning_complex:
-    "Ausführliche Frage: Es fliessen mehr Kontextsignale ein (Bedeutungsnähe, Varianten, Metadaten).",
-  lookup_short:
-    "Kurze Eingabe: Stichworttreffer und kompakte Bedeutungsnähe sind relativ stärker gewichtet.",
-  standard: "Ausgewogene Kombination aus Bedeutungsnähe, Stichworttreffern und Fach-/Intent-Signalen.",
-};
-
 class App extends Component {
   constructor(props) {
     super(props);
@@ -141,12 +156,24 @@ class App extends Component {
       queryValidationError: false,
       revealResults: false,
       chainView: null,
-      /** Aus den Suchmetadaten (_query_profile), nur zur Erklärung des Rankings */
-      searchQueryProfile: null,
+      /** „Zuletzt angesehen“ — synchron zu localStorage */
+      recentCompetencies: [],
+      bookmarkStore: loadBookmarkStore(),
+      bookmarkDrawerOpen: false,
+      /** Nach „Leeren“: Snapshot für Rückgängig */
+      bookmarkUndoSnapshot: null,
+      /** Drag-and-Drop Zielordner (Highlight) */
+      bookmarkDropTargetFolderId: null,
+      /** Landkarte-Overlay (Fach → Thema → Ketten) */
+      curriculumMapOpen: false,
       /** Nur Dev: null | true | false — GET /health gegen API_ROOT */
       devBackendReachable: null,
     };
     this.searchDebounceTimer = null;
+    this.bookmarkDrawerEscapeHandler = null;
+    this.bookmarkUndoTimerId = null;
+    /** Verhindert, dass ein älterer /competency-chain-Fetch die ChainView überschreibt. */
+    this._chainViewRequestId = 0;
   }
 
   componentDidMount() {
@@ -186,6 +213,39 @@ class App extends Component {
       );
     } catch (_error) {
       // Ignore corrupted local storage and continue with defaults.
+    }
+
+    try {
+      this.setState({
+        recentCompetencies: readRecentCompetencies(),
+        bookmarkStore: loadBookmarkStore(),
+      });
+    } catch (_e) {
+      // ignore
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.bookmarkDrawerOpen !== this.state.bookmarkDrawerOpen) {
+      if (this.state.bookmarkDrawerOpen) {
+        this.bookmarkDrawerEscapeHandler = (event) => {
+          if (event.key === "Escape") {
+            this.setState({ bookmarkDrawerOpen: false });
+          }
+        };
+        document.addEventListener("keydown", this.bookmarkDrawerEscapeHandler);
+      } else if (this.bookmarkDrawerEscapeHandler) {
+        document.removeEventListener(
+          "keydown",
+          this.bookmarkDrawerEscapeHandler
+        );
+        this.bookmarkDrawerEscapeHandler = null;
+      }
+      if (typeof document !== "undefined" && document.body) {
+        document.body.style.overflow = this.state.bookmarkDrawerOpen
+          ? "hidden"
+          : "";
+      }
     }
   }
 
@@ -260,6 +320,20 @@ class App extends Component {
     if (this.handleVisibilityForHealth) {
       document.removeEventListener("visibilitychange", this.handleVisibilityForHealth);
     }
+    if (this.bookmarkDrawerEscapeHandler) {
+      document.removeEventListener(
+        "keydown",
+        this.bookmarkDrawerEscapeHandler
+      );
+      this.bookmarkDrawerEscapeHandler = null;
+    }
+    if (this.bookmarkUndoTimerId) {
+      clearTimeout(this.bookmarkUndoTimerId);
+      this.bookmarkUndoTimerId = null;
+    }
+    if (typeof document !== "undefined" && document.body) {
+      document.body.style.overflow = "";
+    }
   }
 
   persistSearchState = () => {
@@ -303,7 +377,6 @@ class App extends Component {
         showFachFilters: false,
         queryValidationError: false,
         revealResults: false,
-        searchQueryProfile: null,
       },
       this.persistSearchState
     );
@@ -364,11 +437,6 @@ class App extends Component {
           };
         });
 
-        const searchQueryProfile =
-          typeof metadatas[0]?._query_profile === "string"
-            ? metadatas[0]._query_profile
-            : null;
-
         const elapsed = Date.now() - searchStartedAt;
         const remaining = Math.max(0, 500 - elapsed);
         setTimeout(() => {
@@ -378,7 +446,6 @@ class App extends Component {
             hasSearched: true,
             searchError: "",
             revealResults: true,
-            searchQueryProfile,
           }, this.persistSearchState);
         }, remaining);
       })
@@ -423,7 +490,6 @@ class App extends Component {
             hasSearched: true,
             searchError: errorBody,
             revealResults: false,
-            searchQueryProfile: null,
           }, this.persistSearchState);
         }, remaining);
       });
@@ -500,6 +566,30 @@ class App extends Component {
   /**
    * Fehlende Querverweise zur aktuellen Stufe nachladen (Backend ohne network_links in /competency-chain).
    */
+  recordRecentCompetencyView = (partial) => {
+    const next = pushRecentCompetency(partial);
+    this.setState({ recentCompetencies: next });
+  };
+
+  resolveRecentLabelForOpen = (uid, prefetchedChain, recentContext) => {
+    const embedded =
+      prefetchedChain &&
+      (prefetchedChain.current || prefetchedChain["current"]);
+    if (recentContext && recentContext.label) {
+      return truncateCompetencyLabel(recentContext.label, 120);
+    }
+    if (embedded && embedded.text) {
+      return truncateCompetencyLabel(embedded.text, 120);
+    }
+    if (recentContext && recentContext.code) {
+      return String(recentContext.code).trim();
+    }
+    if (embedded && embedded.code) {
+      return String(embedded.code).trim();
+    }
+    return uid;
+  };
+
   enrichChainDataWithNetworkApi = async (chainPayload) => {
     if (!chainPayload?.current?.uid) {
       return chainPayload;
@@ -554,7 +644,7 @@ class App extends Component {
     return chainPayload;
   };
 
-  handleOpenCompetencyChain = (rawUid, prefetchedChain) => {
+  handleOpenCompetencyChain = (rawUid, prefetchedChain, recentContext) => {
     const uid =
       typeof rawUid === "string"
         ? rawUid.trim()
@@ -565,11 +655,32 @@ class App extends Component {
       return;
     }
 
+    const requestId = ++this._chainViewRequestId;
+
     const highlightAnchorUid = uid;
 
     const embedded =
       prefetchedChain &&
       (prefetchedChain.current || prefetchedChain["current"]);
+    const label = this.resolveRecentLabelForOpen(uid, prefetchedChain, recentContext);
+    const code =
+      recentContext && recentContext.code != null
+        ? String(recentContext.code).trim() || undefined
+        : embedded && embedded.code != null
+          ? String(embedded.code).trim() || undefined
+          : undefined;
+    const fach =
+      recentContext && recentContext.fach != null
+        ? String(recentContext.fach).trim() || undefined
+        : embedded && embedded.fach != null
+          ? String(embedded.fach).trim() || undefined
+          : undefined;
+    this.recordRecentCompetencyView({
+      uid,
+      code,
+      fach,
+      label: label || uid,
+    });
 
     // Kurz eingebettete Daten zeigen, dann immer frisch laden — damit u.a.
     // network_links und _has_network aus der aktuellen API garantiert sind.
@@ -600,6 +711,9 @@ class App extends Component {
       })
       .then((data) => this.enrichChainDataWithNetworkApi(data))
       .then((data) => {
+        if (requestId !== this._chainViewRequestId) {
+          return;
+        }
         this.setState((prev) => ({
           chainView: prev.chainView
             ? {
@@ -617,6 +731,9 @@ class App extends Component {
         }));
       })
       .catch((error) => {
+        if (requestId !== this._chainViewRequestId) {
+          return;
+        }
         const message =
           error.message === "not_found"
             ? "Für diese Kompetenz wurde kein Aufbau-Kontext gefunden."
@@ -651,7 +768,12 @@ class App extends Component {
     const { chainView } = this.state;
     const fullChain = chainView && chainView.data && chainView.data.full_chain;
     if (fullChain && Array.isArray(fullChain) && nextUid) {
-      const idx = fullChain.findIndex((step) => step && step.uid === nextUid);
+      const idx = fullChain.findIndex(
+        (step) =>
+          step &&
+          ((step.doc_key && step.doc_key === nextUid) ||
+            (step.uid && step.uid === nextUid))
+      );
       if (idx !== -1) {
         const cur = fullChain[idx];
         const data = {
@@ -661,6 +783,17 @@ class App extends Component {
           full_chain: fullChain,
           _has_network: Boolean(cur && cur.network_links && cur.network_links.length > 0),
         };
+        const stepUid = (cur && cur.uid) || nextUid;
+        const stepLabel =
+          truncateCompetencyLabel(cur && cur.text, 120) ||
+          (cur && cur.code ? String(cur.code).trim() : "") ||
+          stepUid;
+        this.recordRecentCompetencyView({
+          uid: stepUid,
+          code: cur && cur.code ? String(cur.code).trim() : undefined,
+          fach: cur && cur.fach ? String(cur.fach).trim() : undefined,
+          label: stepLabel,
+        });
         this.enrichChainDataWithNetworkApi(data).then((enriched) => {
           this.setState({
             chainView: {
@@ -677,6 +810,356 @@ class App extends Component {
     this.handleOpenCompetencyChain(nextUid);
   };
 
+  handleClearRecentHistory = () => {
+    clearRecentCompetencies();
+    this.setState({ recentCompetencies: [] });
+  };
+
+  handleOpenFromRecent = (entry) => {
+    if (!entry || !entry.uid) {
+      return;
+    }
+    this.handleOpenCompetencyChain(entry.uid, null, {
+      code: entry.code,
+      fach: entry.fach,
+      label: entry.label,
+    });
+    this.setState({ bookmarkDrawerOpen: false });
+  };
+
+  formatRecentTimestamp = (ts) => {
+    if (typeof ts !== "number" || !Number.isFinite(ts)) {
+      return "";
+    }
+    try {
+      const d = new Date(ts);
+      const now = new Date();
+      const sameDay =
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate();
+      if (sameDay) {
+        return d.toLocaleTimeString("de-CH", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+      return d.toLocaleString("de-CH", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (_e) {
+      return "";
+    }
+  };
+
+  /**
+   * UID für Kartenklick / Chain — zuerst aus eingebetteter Kette (wie Backend lookup für diesen Treffer),
+   * dann Chroma-/Metadaten-IDs.
+   */
+  resolveCompetencyOpenUidFromResult = (result) => {
+    if (!result) {
+      return null;
+    }
+    const chain =
+      result.prefetchedChain || result.metadata?._competency_chain;
+    const fromDocKey =
+      chain?.current?.doc_key != null && String(chain.current.doc_key).trim()
+        ? String(chain.current.doc_key).trim()
+        : "";
+    const fromChainUid =
+      chain?.current?.uid != null && String(chain.current.uid).trim()
+        ? String(chain.current.uid).trim()
+        : "";
+    const fromDoc =
+      result.documentUid != null && String(result.documentUid).trim()
+        ? String(result.documentUid).trim()
+        : "";
+    const fromMeta =
+      result.metadata?.uid != null && String(result.metadata.uid).trim()
+        ? String(result.metadata.uid).trim()
+        : "";
+    return fromDocKey || fromChainUid || fromDoc || fromMeta || null;
+  };
+
+  resolveBookmarkUidFromResult = (result) => {
+    const chain =
+      result.prefetchedChain || result.metadata?._competency_chain;
+    const fromDocKey =
+      chain?.current?.doc_key != null && String(chain.current.doc_key).trim()
+        ? String(chain.current.doc_key).trim()
+        : "";
+    const fromChainUid =
+      chain && chain.current && chain.current.uid
+        ? String(chain.current.uid).trim()
+        : "";
+    const fromDoc =
+      result.documentUid != null && String(result.documentUid).trim()
+        ? String(result.documentUid).trim()
+        : "";
+    const fromMeta =
+      result.metadata && result.metadata.uid != null
+        ? String(result.metadata.uid).trim()
+        : "";
+    return fromDocKey || fromDoc || fromMeta || fromChainUid || null;
+  };
+
+  handleToggleBookmarkEntry = (partial) => {
+    const uid =
+      partial && typeof partial.uid === "string"
+        ? partial.uid.trim()
+        : partial && partial.uid != null
+          ? String(partial.uid).trim()
+          : "";
+    if (!uid) {
+      return;
+    }
+    const { bookmarkStore } = this.state;
+    if (bookmarkExists(uid, bookmarkStore)) {
+      this.setState({
+        bookmarkStore: removeBookmarkAndSave(uid, bookmarkStore),
+      });
+    } else {
+      this.setState({
+        bookmarkStore: upsertBookmarkInDefaultFolder(partial, bookmarkStore),
+      });
+    }
+  };
+
+  handleToggleBookmarkFromChainStep = (item) => {
+    if (!item) {
+      return;
+    }
+    const bookmarkId =
+      (item.doc_key != null && String(item.doc_key).trim()) ||
+      (item.uid != null && String(item.uid).trim()) ||
+      "";
+    if (!bookmarkId) {
+      return;
+    }
+    this.handleToggleBookmarkEntry({
+      uid: bookmarkId,
+      label: truncateCompetencyLabel(item.text || item.code || bookmarkId, 200),
+      code: item.code,
+      fach: item.fach,
+      zyklus: item.zyklus,
+      themenbereich: item.themenbereich,
+    });
+  };
+
+  handleOpenBookmarkDrawer = () => {
+    this.setState({ bookmarkDrawerOpen: true });
+  };
+
+  handleCloseBookmarkDrawer = () => {
+    this.setState({ bookmarkDrawerOpen: false });
+  };
+
+  handleOverlayPointerClose = (event) => {
+    if (event.target === event.currentTarget) {
+      this.handleCloseBookmarkDrawer();
+    }
+  };
+
+  handleClearBookmarksWithUndo = () => {
+    const snapshot = JSON.parse(JSON.stringify(this.state.bookmarkStore));
+    clearBookmarksStorage();
+    if (this.bookmarkUndoTimerId) {
+      clearTimeout(this.bookmarkUndoTimerId);
+    }
+    this.setState({
+      bookmarkStore: loadBookmarkStore(),
+      bookmarkUndoSnapshot: snapshot,
+    });
+    this.bookmarkUndoTimerId = setTimeout(() => {
+      this.bookmarkUndoTimerId = null;
+      this.setState({ bookmarkUndoSnapshot: null });
+    }, 10000);
+  };
+
+  handleBookmarkUndoClear = () => {
+    if (this.bookmarkUndoTimerId) {
+      clearTimeout(this.bookmarkUndoTimerId);
+      this.bookmarkUndoTimerId = null;
+    }
+    const snap = this.state.bookmarkUndoSnapshot;
+    if (!snap) {
+      this.setState({ bookmarkUndoSnapshot: null });
+      return;
+    }
+    this.setState({
+      bookmarkStore: replaceBookmarkStore(snap),
+      bookmarkUndoSnapshot: null,
+    });
+  };
+
+  handleRemoveBookmarkFromList = (uid) => {
+    this.setState({
+      bookmarkStore: removeBookmarkAndSave(uid, this.state.bookmarkStore),
+    });
+  };
+
+  handleAddFolderClick = () => {
+    const name = window.prompt("Name für den neuen Ordner:", "Neuer Ordner");
+    if (name == null) {
+      return;
+    }
+    const trimmed = String(name).trim();
+    if (!trimmed) {
+      return;
+    }
+    this.setState({
+      bookmarkStore: addFolder(this.state.bookmarkStore, trimmed),
+    });
+  };
+
+  handleRenameFolderClick = (folderId, currentName) => {
+    const name = window.prompt("Ordner umbenennen:", currentName);
+    if (name == null) {
+      return;
+    }
+    const trimmed = String(name).trim();
+    if (!trimmed) {
+      return;
+    }
+    this.setState({
+      bookmarkStore: renameFolder(this.state.bookmarkStore, folderId, trimmed),
+    });
+  };
+
+  handleDeleteFolderClick = (folderId) => {
+    if (folderId === DEFAULT_FOLDER_ID) {
+      return;
+    }
+    if (
+      !window.confirm(
+        "Ordner löschen? Alle Kompetenzen werden in den Standardordner verschoben."
+      )
+    ) {
+      return;
+    }
+    this.setState({
+      bookmarkStore: deleteFolderMergeIntoDefault(this.state.bookmarkStore, folderId),
+    });
+  };
+
+  handleBookmarkDragStart = (event, uid, folderId) => {
+    event.dataTransfer.setData(
+      "application/x-lp21-bookmark",
+      JSON.stringify({ uid, folderId })
+    );
+    event.dataTransfer.setData("text/plain", uid);
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  handleBookmarkDragEnd = () => {
+    this.setState({ bookmarkDropTargetFolderId: null });
+  };
+
+  handleBookmarkDragOverFolder = (event, folderId) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    this.setState({ bookmarkDropTargetFolderId: folderId });
+  };
+
+  handleBookmarkDragLeaveFolder = (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      this.setState({ bookmarkDropTargetFolderId: null });
+    }
+  };
+
+  handleDropOnFolderBody = (event, targetFolderId) => {
+    event.preventDefault();
+    event.stopPropagation();
+    let payload = null;
+    try {
+      payload = JSON.parse(
+        event.dataTransfer.getData("application/x-lp21-bookmark")
+      );
+    } catch (_e) {
+      return;
+    }
+    if (!payload || !payload.uid) {
+      return;
+    }
+    const next = moveBookmark(
+      this.state.bookmarkStore,
+      payload.uid,
+      targetFolderId,
+      null
+    );
+    this.setState({
+      bookmarkStore: next,
+      bookmarkDropTargetFolderId: null,
+    });
+  };
+
+  handleDropOnFolderItem = (event, targetFolderId, beforeUid) => {
+    event.preventDefault();
+    event.stopPropagation();
+    let payload = null;
+    try {
+      payload = JSON.parse(
+        event.dataTransfer.getData("application/x-lp21-bookmark")
+      );
+    } catch (_e) {
+      return;
+    }
+    if (!payload || !payload.uid) {
+      return;
+    }
+    if (payload.uid === beforeUid) {
+      return;
+    }
+    const next = moveBookmark(
+      this.state.bookmarkStore,
+      payload.uid,
+      targetFolderId,
+      beforeUid
+    );
+    this.setState({
+      bookmarkStore: next,
+      bookmarkDropTargetFolderId: null,
+    });
+  };
+
+  handleCopyFolderPlain = async (folder) => {
+    const text = folderToPlainTextForWord(folder);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_err) {
+      window.prompt("Kopieren nicht möglich. Text markieren und kopieren:", text);
+    }
+  };
+
+  handleDownloadFolderTxt = (folder) => {
+    const text = folderToPlainTextForWord(folder);
+    const blob = new Blob(["\uFEFF", text], {
+      type: "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${sanitizeFileBaseName(folder.name)}.txt`;
+    anchor.rel = "noopener";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  handleOpenChainFromBookmark = (entry) => {
+    if (!entry || !entry.uid) {
+      return;
+    }
+    this.handleOpenCompetencyChain(entry.uid, null, {
+      code: entry.code,
+      fach: entry.fach,
+      label: entry.label,
+    });
+    this.setState({ bookmarkDrawerOpen: false });
+  };
+
   render() {
     const {
       queryText,
@@ -690,8 +1173,22 @@ class App extends Component {
       queryValidationError,
       revealResults,
       chainView,
-      searchQueryProfile,
+      recentCompetencies,
+      bookmarkStore,
+      bookmarkDrawerOpen,
+      bookmarkUndoSnapshot,
+      bookmarkDropTargetFolderId,
+      curriculumMapOpen,
     } = this.state;
+    const bookmarkIdSet = uidSetFromStore(bookmarkStore);
+    const bookmarkTotal = totalBookmarkCount(bookmarkStore);
+    const foldersOrdered =
+      bookmarkStore && Array.isArray(bookmarkStore.folders)
+        ? [
+            ...bookmarkStore.folders.filter((f) => f.id === DEFAULT_FOLDER_ID),
+            ...bookmarkStore.folders.filter((f) => f.id !== DEFAULT_FOLDER_ID),
+          ]
+        : [];
     const allowedFachValues = zyklus.length > 0
       ? new Set(zyklus.flatMap((item) => fachByZyklus[item] || []))
       : new Set();
@@ -728,10 +1225,325 @@ class App extends Component {
     return (
       <div className="app-shell">
         {this.renderLocalDevWarnings()}
+        <button
+          type="button"
+          className="bookmark-drawer-fab"
+          onClick={this.handleOpenBookmarkDrawer}
+          aria-expanded={bookmarkDrawerOpen}
+          aria-controls="bookmark-drawer-panel"
+          aria-haspopup="dialog"
+          aria-label="Seitenleiste öffnen: Merkliste und zuletzt angesehen"
+        >
+          <svg className="bookmark-drawer-fab-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"
+            />
+          </svg>
+          {bookmarkTotal > 0 ? (
+            <span className="bookmark-drawer-fab-badge">{bookmarkTotal}</span>
+          ) : null}
+        </button>
+
+        <div
+          className={`bookmark-drawer-overlay ${bookmarkDrawerOpen ? "is-open" : ""}`}
+          aria-hidden={!bookmarkDrawerOpen}
+          onClick={this.handleOverlayPointerClose}
+          role="presentation"
+        />
+
+        <aside
+          id="bookmark-drawer-panel"
+          className={`bookmark-drawer ${bookmarkDrawerOpen ? "is-open" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sidebar-drawer-heading"
+          aria-hidden={!bookmarkDrawerOpen}
+        >
+          <div className="bookmark-drawer-inner">
+            <h2 id="sidebar-drawer-heading" className="bookmark-drawer-sr-only">
+              Merkliste und zuletzt angesehen
+            </h2>
+            <header className="bookmark-drawer-header bookmark-drawer-header--solo">
+              <button
+                type="button"
+                className="bookmark-drawer-close"
+                onClick={this.handleCloseBookmarkDrawer}
+                aria-label="Seitenleiste schließen"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="bookmark-drawer-scroll">
+              <section
+                className="bookmark-drawer-section"
+                aria-labelledby="merkliste-heading"
+              >
+                <div className="bookmark-drawer-section-head">
+                  <h3 className="bookmark-drawer-section-title" id="merkliste-heading">
+                    Merkliste
+                  </h3>
+                  <div className="bookmark-drawer-section-tools">
+                    <button
+                      type="button"
+                      className="bookmark-section-tool-btn clear-button bookmark-add-folder-btn"
+                      onClick={this.handleAddFolderClick}
+                      aria-label="Neuen Ordner hinzufügen"
+                    >
+                      <span className="bookmark-add-folder-plus" aria-hidden="true">
+                        +
+                      </span>{" "}
+                      Ordner
+                    </button>
+                    <button
+                      type="button"
+                      className="bookmark-section-tool-btn recent-history-clear clear-button"
+                      onClick={this.handleClearBookmarksWithUndo}
+                      disabled={bookmarkTotal === 0}
+                      aria-label="Gesamte Merkliste leeren"
+                    >
+                      Leeren
+                    </button>
+                  </div>
+                </div>
+
+                {foldersOrdered.map((folder) => (
+                  <section
+                    key={folder.id}
+                    className={`bookmark-folder ${bookmarkDropTargetFolderId === folder.id ? "bookmark-folder--drop" : ""}`}
+                    onDragOver={(event) =>
+                      this.handleBookmarkDragOverFolder(event, folder.id)
+                    }
+                    onDragLeave={this.handleBookmarkDragLeaveFolder}
+                    onDrop={(event) => this.handleDropOnFolderBody(event, folder.id)}
+                  >
+                    <div className="bookmark-folder-head">
+                      <h4 className="bookmark-folder-name">{folder.name}</h4>
+                      <div className="bookmark-folder-actions">
+                        <button
+                          type="button"
+                          className="bookmark-folder-link"
+                          onClick={() =>
+                            this.handleRenameFolderClick(folder.id, folder.name)
+                          }
+                        >
+                          Umbenennen
+                        </button>
+                        <button
+                          type="button"
+                          className="bookmark-folder-link"
+                          onClick={() => this.handleCopyFolderPlain(folder)}
+                          disabled={!folder.items || folder.items.length === 0}
+                        >
+                          Liste kopieren
+                        </button>
+                        <button
+                          type="button"
+                          className="bookmark-folder-link"
+                          onClick={() => this.handleDownloadFolderTxt(folder)}
+                          disabled={!folder.items || folder.items.length === 0}
+                        >
+                          Textdatei
+                        </button>
+                        {folder.id !== DEFAULT_FOLDER_ID ? (
+                          <button
+                            type="button"
+                            className="bookmark-folder-link bookmark-folder-link--danger"
+                            onClick={() => this.handleDeleteFolderClick(folder.id)}
+                          >
+                            Ordner löschen
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <ul className="bookmark-folder-list">
+                      {!folder.items || folder.items.length === 0 ? (
+                        <li className="bookmark-folder-placeholder">
+                          Noch leer — Einträge hierher ziehen
+                        </li>
+                      ) : (
+                        folder.items.map((entry) => {
+                          const metaLine = [entry.code, entry.fach]
+                            .filter(Boolean)
+                            .join(" · ");
+                          return (
+                            <li key={entry.uid}>
+                              <div className="bookmark-drawer-row bookmark-drawer-row--with-drag">
+                                <button
+                                  type="button"
+                                  className="bookmark-drag-handle"
+                                  draggable
+                                  onDragStart={(event) =>
+                                    this.handleBookmarkDragStart(
+                                      event,
+                                      entry.uid,
+                                      folder.id
+                                    )
+                                  }
+                                  onDragEnd={this.handleBookmarkDragEnd}
+                                  aria-label={`${entry.label}: Ziehen zum Verschieben`}
+                                  title="Ziehen zum Verschieben"
+                                >
+                                  <span aria-hidden="true">⠿</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="bookmark-drawer-row-main"
+                                  onClick={() =>
+                                    this.handleOpenChainFromBookmark(entry)
+                                  }
+                                  onDragOver={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                  }}
+                                  onDrop={(event) =>
+                                    this.handleDropOnFolderItem(
+                                      event,
+                                      folder.id,
+                                      entry.uid
+                                    )
+                                  }
+                                >
+                                  <span className="bookmark-drawer-row-label">
+                                    {entry.label}
+                                  </span>
+                                  {metaLine ? (
+                                    <span className="bookmark-drawer-row-meta">
+                                      {metaLine}
+                                    </span>
+                                  ) : null}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="bookmark-drawer-row-remove"
+                                  onClick={() =>
+                                    this.handleRemoveBookmarkFromList(entry.uid)
+                                  }
+                                  aria-label={`${entry.label} von Merkliste entfernen`}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+                  </section>
+                ))}
+
+                {bookmarkTotal === 0 ? (
+                  <p className="bookmark-drawer-empty">
+                    Noch keine Kompetenzen gemerkt.
+                  </p>
+                ) : null}
+              </section>
+
+              <section
+                className="bookmark-drawer-section bookmark-drawer-section--divider"
+                aria-labelledby="recent-heading"
+              >
+                <div className="bookmark-drawer-section-head">
+                  <h3 className="bookmark-drawer-section-title" id="recent-heading">
+                    Zuletzt angesehen
+                  </h3>
+                  <button
+                    type="button"
+                    className="bookmark-section-tool-btn recent-history-clear clear-button"
+                    onClick={this.handleClearRecentHistory}
+                    disabled={recentCompetencies.length === 0}
+                    aria-label="Zuletzt angesehen leeren"
+                  >
+                    Verlauf leeren
+                  </button>
+                </div>
+
+                {recentCompetencies.length === 0 ? (
+                  <p className="bookmark-drawer-empty bookmark-drawer-empty--tight">
+                    Noch keine Einträge.
+                  </p>
+                ) : (
+                  <ul className="bookmark-drawer-list bookmark-drawer-list--recentsidebar">
+                    {recentCompetencies.map((entry) => {
+                      const metaLine = [entry.code, entry.fach]
+                        .filter(Boolean)
+                        .join(" · ");
+                      const timeStr = this.formatRecentTimestamp(entry.ts);
+                      const aria = [
+                        "Kompetenz im Aufbau-Kontext öffnen:",
+                        entry.label,
+                        metaLine,
+                        timeStr,
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
+                      return (
+                        <li key={entry.uid}>
+                          <button
+                            type="button"
+                            className="recent-history-item recent-history-item--in-drawer"
+                            onClick={() => this.handleOpenFromRecent(entry)}
+                            aria-label={aria}
+                          >
+                            <span className="recent-history-item-main">
+                              <span className="recent-history-item-label">
+                                {entry.label}
+                              </span>
+                              {metaLine ? (
+                                <span className="recent-history-item-meta">
+                                  {metaLine}
+                                </span>
+                              ) : null}
+                            </span>
+                            {timeStr ? (
+                              <time
+                                className="recent-history-item-time"
+                                dateTime={new Date(entry.ts).toISOString()}
+                              >
+                                {timeStr}
+                              </time>
+                            ) : null}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            </div>
+          </div>
+        </aside>
+
+        {bookmarkUndoSnapshot != null ? (
+          <div className="bookmark-undo-bar" role="status">
+            <span className="bookmark-undo-text">Merkliste geleert.</span>
+            <button
+              type="button"
+              className="bookmark-undo-button"
+              onClick={this.handleBookmarkUndoClear}
+            >
+              Rückgängig
+            </button>
+          </div>
+        ) : null}
+
         <main className="layout">
           <section className="content-column">
             <header className={`hero ${hasSearched ? "hero-compact" : ""}`}>
-              <h1>Lehrplan 21 Suche</h1>
+              <div className="hero-title-row">
+                <h1 id="app-main-title">Lehrplan 21 Suche</h1>
+                <button
+                  type="button"
+                  className="hero-map-link"
+                  onClick={() => this.setState({ curriculumMapOpen: true })}
+                  aria-expanded={curriculumMapOpen}
+                  aria-controls="curriculum-map-root"
+                >
+                  (Karte)
+                </button>
+              </div>
               <p>
                 Beschreibe kurz deine Unterrichtsidee und finde passende Kompetenzen.
               </p>
@@ -857,14 +1669,6 @@ class App extends Component {
                 {!searchError && !isLoading && (
                   <span>{results.length} Treffer</span>
                 )}
-                {!searchError &&
-                  !isLoading &&
-                  searchQueryProfile &&
-                  QUERY_PROFILE_HELP[searchQueryProfile] ? (
-                  <p className="search-profile-hint">
-                    {QUERY_PROFILE_HELP[searchQueryProfile]}
-                  </p>
-                ) : null}
               </div>
             ) : null}
 
@@ -884,6 +1688,8 @@ class App extends Component {
                 getCompetencyNetworkUrl={(uid) =>
                   apiUrl(`/api/competency-network/${encodeURIComponent(uid)}`)
                 }
+                bookmarkUids={bookmarkIdSet}
+                onToggleBookmarkStep={this.handleToggleBookmarkFromChainStep}
               />
             ) : null}
 
@@ -907,7 +1713,10 @@ class App extends Component {
                             </div>
                           </div>
                           <div className="results-grid">
-                            {group.items.map((result) => (
+                            {group.items.map((result) => {
+                              const bookmarkUid =
+                                this.resolveBookmarkUidFromResult(result);
+                              return (
                               <SearchResult
                                 key={result.id}
                                 fach={result.metadata.fach}
@@ -919,17 +1728,51 @@ class App extends Component {
                                 text={result.text}
                                 url={result.metadata.url}
                                 queryText={queryText}
-                                competencyUid={result.documentUid || result.metadata.uid}
+                                competencyUid={this.resolveCompetencyOpenUidFromResult(result)}
                                 prefetchedChain={result.prefetchedChain || result.metadata._competency_chain}
                                 metadata={result.metadata}
-                                onOpenCompetencyChain={this.handleOpenCompetencyChain}
+                                bookmarkUid={bookmarkUid || undefined}
+                                isBookmarked={Boolean(
+                                  bookmarkUid && bookmarkIdSet.has(bookmarkUid)
+                                )}
+                                onToggleBookmark={
+                                  bookmarkUid
+                                    ? () =>
+                                        this.handleToggleBookmarkEntry({
+                                          uid: bookmarkUid,
+                                          label: truncateCompetencyLabel(
+                                            result.text ||
+                                              result.metadata.code ||
+                                              bookmarkUid,
+                                            200
+                                          ),
+                                          code: result.metadata.code,
+                                          fach: result.metadata.fach,
+                                          zyklus: result.metadata.zyklus,
+                                          themenbereich: result.metadata.themenbereich,
+                                        })
+                                    : undefined
+                                }
+                                onOpenCompetencyChain={(uid, prefetchedChain) =>
+                                  this.handleOpenCompetencyChain(uid, prefetchedChain, {
+                                    code: result.metadata.code,
+                                    fach: result.metadata.fach,
+                                    label: truncateCompetencyLabel(
+                                      result.text ||
+                                        result.metadata.code ||
+                                        uid,
+                                      120
+                                    ),
+                                  })
+                                }
                                 getCompetencyChainUrl={(uid) =>
                                   apiUrl(
                                     `/api/competency-chain/${encodeURIComponent(uid)}`
                                   )
                                 }
                               />
-                            ))}
+                              );
+                            })}
                           </div>
                         </section>
                       ))}
@@ -945,6 +1788,18 @@ class App extends Component {
             </section>
           </section>
         </main>
+
+        <CurriculumMapOverlay
+          isOpen={curriculumMapOpen}
+          onClose={() => this.setState({ curriculumMapOpen: false })}
+          apiUrl={apiUrl}
+          getFachColor={this.getFachColor}
+          getZyklusColorByPart={this.getZyklusColor}
+          enrichChainDataWithNetworkApi={this.enrichChainDataWithNetworkApi}
+          onRecordRecentView={this.recordRecentCompetencyView}
+          bookmarkUids={bookmarkIdSet}
+          onBookmarkToggle={this.handleToggleBookmarkEntry}
+        />
       </div>
     );
   }
