@@ -5,18 +5,19 @@ import "./App.css";
 
 const STORAGE_KEY = "lp21-search-state-v2";
 
-/** Leer = gleicher Origin / CRA-Proxy (npm start → Requests an :3000 werden nach :5000 weitergeleitet). */
-const API_ROOT = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
+/**
+ * Standard: direktes Backend (Flask, CORS *). So funktioniert die Suche auch,
+ * wenn kein CRA-Proxy greift (falscher Port, build lokal, anderes Tool).
+ * Überschreiben: REACT_APP_API_BASE_URL (Vercel/Render) oder z. B. :5001.
+ */
+const API_ROOT = (process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5000").replace(
+  /\/$/,
+  ""
+);
 const apiUrl = (path) => {
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  return API_ROOT ? `${API_ROOT}${normalized}` : normalized;
+  return `${API_ROOT}${normalized}`;
 };
-const promptSuggestions = [
-  "Bruchrechnen in der 5. Klasse",
-  "Unterrichtsidee zu Körperausdruck in Musik",
-  "Projekt zu nachhaltigem Konsum im Zyklus 3",
-];
-
 const fachOptions = [
   { value: 'Italienisch', label: 'Italienisch' },
   { value: 'Französisch', label: 'Französisch' },
@@ -137,13 +138,6 @@ class App extends Component {
     if (event.key === "Enter") {
       this.search();
     }
-  };
-
-  applyPromptSuggestion = (prompt) => {
-    this.setState({ queryText: prompt }, () => {
-      this.persistSearchState();
-      this.search();
-    });
   };
 
   componentWillUnmount() {
@@ -292,14 +286,19 @@ class App extends Component {
           }, this.persistSearchState);
         }, remaining);
       })
-      .catch(() => {
+      .catch((err) => {
+        if (process.env.NODE_ENV === "development") {
+          // eslint-disable-next-line no-console
+          console.error("Suche fehlgeschlagen:", err);
+        }
         const elapsed = Date.now() - searchStartedAt;
         const remaining = Math.max(0, 500 - elapsed);
         setTimeout(() => {
           this.setState({
             isLoading: false,
             hasSearched: true,
-            searchError: "API nicht erreichbar oder Fehler bei der Suche.",
+            searchError:
+              "API nicht erreichbar. Backend starten (z. B. cd backend && python server.py auf Port 5000) oder in .env REACT_APP_API_BASE_URL anpassen.",
             revealResults: false,
           }, this.persistSearchState);
         }, remaining);
@@ -516,21 +515,6 @@ class App extends Component {
                   </svg>
                 </button>
               </div>
-
-              {!hasSearched && (
-                <div className="prompt-suggestions">
-                  {promptSuggestions.map((prompt) => (
-                    <button
-                      key={prompt}
-                      className="prompt-chip"
-                      onClick={() => this.applyPromptSuggestion(prompt)}
-                      aria-label={`Beispielsuche ${prompt}`}
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-              )}
             </header>
 
             <section className="filters-inline" aria-label="Filter">
