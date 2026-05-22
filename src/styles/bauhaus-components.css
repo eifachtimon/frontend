@@ -1,0 +1,193 @@
+/**
+ * Bauhaus reusable primitives (buttons, cards, nav chrome).
+ */
+
+/* —— Buttons —— */
+.bh-btn,
+.planning-btn,
+.search-bar button[type="submit"],
+.search-bar button.search-submit,
+.bookmark-undo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--bh-font);
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  padding: 10px 16px;
+  border: var(--bh-border-w) solid var(--bh-border);
+  border-radius: var(--bh-radius-none);
+  box-shadow: var(--bh-shadow-sm);
+  cursor: pointer;
+  transition:
+    transform var(--bh-transition),
+    box-shadow var(--bh-transition),
+    background var(--bh-transition),
+    opacity var(--bh-transition);
+}
+
+.bh-btn:active,
+.planning-btn:active,
+.search-bar button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.bh-btn:focus-visible,
+.planning-btn:focus-visible,
+.search-bar button:focus-visible {
+  outline: 2px solid var(--bh-blue);
+  outline-offset: 3px;
+}
+
+.bh-btn--red,
+.planning-btn--primary {
+  background: var(--bh-red);
+  color: var(--bh-white);
+}
+
+.bh-btn--red:hover,
+.planning-btn--primary:hover {
+  background: #b81c1c;
+}
+
+.bh-btn--blue,
+.planning-btn--secondary {
+  background: var(--bh-blue);
+  color: var(--bh-white);
+}
+
+.bh-btn--yellow {
+  background: var(--bh-yellow);
+  color: var(--bh-fg);
+}
+
+.bh-btn--outline,
+.planning-btn--ghost {
+  background: var(--bh-white);
+  color: var(--bh-fg);
+}
+
+.bh-btn--outline:hover,
+.planning-btn--ghost:hover {
+  background: var(--bh-muted);
+}
+
+.bh-btn--pill {
+  border-radius: var(--bh-radius-full);
+}
+
+/* —— Cards —— */
+.bh-card {
+  position: relative;
+  background: var(--bh-white);
+  border: var(--bh-border-w-lg) solid var(--bh-border);
+  box-shadow: var(--bh-shadow-lg);
+  padding: var(--space-4);
+  transition: transform var(--bh-transition);
+}
+
+.bh-card:hover {
+  transform: translateY(-2px);
+}
+
+.bh-card::after {
+  content: "";
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 10px;
+  height: 10px;
+  background: var(--bh-red);
+  border: var(--bh-border-w) solid var(--bh-border);
+}
+
+.bh-card--blue::after {
+  background: var(--bh-blue);
+  border-radius: var(--bh-radius-full);
+}
+
+.bh-card--yellow::after {
+  background: var(--bh-yellow);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  border: none;
+}
+
+/* —— Typography utilities —— */
+.bh-display {
+  font-family: var(--bh-font);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: var(--bh-fg);
+}
+
+.bh-label {
+  font-family: var(--bh-font);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--bh-fg);
+}
+
+/* —— Geometric brand mark —— */
+.bh-brand-shapes {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 10px;
+}
+
+.bh-shape {
+  display: block;
+  border: var(--bh-border-w) solid var(--bh-border);
+  flex-shrink: 0;
+}
+
+.bh-shape--circle {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--bh-radius-full);
+  background: var(--bh-red);
+}
+
+.bh-shape--square {
+  width: 12px;
+  height: 12px;
+  background: var(--bh-blue);
+}
+
+.bh-shape--triangle {
+  width: 0;
+  height: 0;
+  border: none;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 12px solid var(--bh-yellow);
+  background: transparent;
+}
+
+/* —— Section bands —— */
+.bh-band {
+  border-bottom: var(--bh-border-w-lg) solid var(--bh-border);
+}
+
+.bh-band--yellow {
+  background: var(--bh-yellow);
+}
+
+.bh-band--blue {
+  background: var(--bh-blue);
+  color: var(--bh-white);
+}
+
+.bh-band--red {
+  background: var(--bh-red);
+  color: var(--bh-white);
+}

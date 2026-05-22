@@ -1,20 +1,6 @@
-/* Planung — Dark Mode, minimalistisch (angeglichen an LP21-Suche) */
+/* Planung — Bauhaus (tokens in styles/bauhaus-tokens.css) */
 
 .app-shell.planning-surface {
-  --plan-bg: #0b0b0b;
-  --plan-elevated: #111111;
-  --plan-card: #161616;
-  --plan-card-hover: #1c1c1c;
-  --plan-border: #2a2a2a;
-  --plan-border-subtle: #1e1e1e;
-  --plan-text: #ececec;
-  --plan-text-muted: #9a9a9a;
-  --plan-text-subtle: #6e6e6e;
-  --plan-accent: #edd100;
-  --plan-accent-bg: #1e1c10;
-  --plan-link: #8eb8ff;
-  --plan-radius: 12px;
-  --plan-radius-sm: 8px;
   min-height: 100vh;
   background: var(--plan-bg);
   color: var(--plan-text);
@@ -1974,9 +1960,9 @@
   gap: var(--space-4);
   margin-bottom: var(--space-5);
   padding: var(--space-5);
-  border-radius: 14px;
-  border: 1px solid var(--plan-border);
-  background: linear-gradient(135deg, #141414 0%, #1a1a10 100%);
+  border-radius: var(--bh-radius-none, 0);
+  border: var(--bh-border-w-lg, 4px) solid var(--plan-border);
+  background: var(--bh-yellow, #f0c020);
 }
 
 .planning-primary-cta--empty {

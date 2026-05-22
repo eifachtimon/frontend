@@ -1,0 +1,438 @@
+/**
+ * Bauhaus overrides — aligns legacy App / planning / calendar CSS to tokens.
+ * Load last in the bundle.
+ */
+
+html {
+  background: var(--bh-bg);
+}
+
+body,
+#root {
+  margin: 0;
+  font-family: var(--bh-font);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--bh-bg);
+  color: var(--bh-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Canvas texture */
+.app-shell,
+.planning-surface,
+.cal-page--fullscreen {
+  background-color: var(--bh-bg);
+  background-image: var(--bh-dot-pattern);
+  background-size: var(--bh-dot-size);
+  color: var(--bh-fg);
+}
+
+.app-shell {
+  max-width: 80rem;
+}
+
+/* —— Top navigation —— */
+.app-top-nav {
+  background: var(--bh-white);
+  border-bottom: var(--bh-border-w-lg) solid var(--bh-border);
+  backdrop-filter: none;
+  box-shadow: var(--bh-shadow-sm);
+}
+
+.app-top-nav-brand {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 900;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: var(--bh-fg) !important;
+}
+
+.app-top-nav-brand:hover {
+  color: var(--bh-blue) !important;
+}
+
+.app-top-nav-link {
+  color: var(--bh-fg);
+  border: var(--bh-border-w) solid transparent;
+  border-radius: var(--bh-radius-full);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+}
+
+.app-top-nav-link:hover {
+  color: var(--bh-blue) !important;
+  background: var(--bh-muted);
+}
+
+.app-top-nav-link--active {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border);
+  box-shadow: var(--bh-shadow-sm);
+}
+
+/* —— Search hero —— */
+.hero:not(.hero-compact) h1,
+.hero.hero-compact h1,
+#app-main-title {
+  font-family: var(--bh-font);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  color: var(--bh-fg);
+}
+
+.hero:not(.hero-compact) p {
+  color: var(--text-muted);
+}
+
+.hero-map-link {
+  border: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-blue);
+  color: var(--bh-white) !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.72rem;
+  padding: 8px 12px;
+  border-radius: var(--bh-radius-none);
+  box-shadow: var(--bh-shadow-sm);
+}
+
+.hero-map-link:hover {
+  background: #0d3699;
+}
+
+/* —— Search bar —— */
+.search-bar input[type="text"],
+.search-bar input {
+  background: var(--bh-white);
+  color: var(--bh-fg);
+  border: var(--bh-border-w-lg) solid var(--bh-border);
+  border-radius: var(--bh-radius-none);
+  box-shadow: var(--bh-shadow-sm);
+  font-family: var(--bh-font);
+  font-weight: 500;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--bh-blue);
+  box-shadow: var(--bh-shadow-md);
+}
+
+.search-bar button {
+  background: var(--bh-red) !important;
+  color: var(--bh-white) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+}
+
+/* —— Chips & filters —— */
+.quick-chip,
+.filter-chip,
+.template-chip {
+  border: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-white);
+  color: var(--bh-fg);
+  border-radius: var(--bh-radius-full);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  box-shadow: 3px 3px 0 0 var(--bh-fg);
+}
+
+.quick-chip--active,
+.filter-chip--active,
+.template-chip--active {
+  background: var(--bh-yellow);
+}
+
+/* —— Result cards —— */
+.result-card {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  border-radius: var(--bh-radius-none) !important;
+  box-shadow: var(--bh-shadow-lg) !important;
+  transition: transform var(--bh-transition);
+}
+
+.result-card:hover {
+  transform: translateY(-2px);
+}
+
+.result-text,
+.result-code-text {
+  color: var(--bh-fg) !important;
+}
+
+.result-code-text {
+  font-weight: 700;
+}
+
+.text-highlight,
+mark.text-highlight {
+  background: var(--bh-yellow);
+  color: var(--bh-fg);
+}
+
+.copy-button,
+.source-button,
+.bookmark-toggle-button,
+.add-to-vorhaben-btn {
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  border-radius: var(--bh-radius-none) !important;
+  box-shadow: 3px 3px 0 0 var(--bh-fg) !important;
+}
+
+.bookmark-toggle-button--active {
+  background: var(--bh-yellow) !important;
+}
+
+.add-to-vorhaben-btn {
+  background: var(--bh-blue) !important;
+  color: var(--bh-white) !important;
+}
+
+/* —— Chain & map —— */
+.competency-chain-panel,
+.chain-aufbau-card {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  border-radius: var(--bh-radius-none) !important;
+  box-shadow: var(--bh-shadow-lg) !important;
+}
+
+.curriculum-map-page {
+  background: var(--bh-bg) !important;
+}
+
+.curriculum-map-header--page {
+  background: var(--bh-white) !important;
+  border-bottom: var(--bh-border-w-lg) solid var(--bh-border) !important;
+}
+
+.curriculum-map-close,
+.map-outline-tool-btn {
+  border: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-white);
+  color: var(--bh-fg);
+  font-weight: 700;
+  text-transform: uppercase;
+  box-shadow: var(--bh-shadow-sm);
+}
+
+/* —— Bookmark drawer —— */
+.bookmark-drawer-fab {
+  background: var(--bh-red) !important;
+  border: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-md) !important;
+  border-radius: var(--bh-radius-full) !important;
+}
+
+.bookmark-drawer-panel {
+  background: var(--bh-white) !important;
+  border-left: var(--bh-border-w-lg) solid var(--bh-border) !important;
+}
+
+/* —— Planning —— */
+.planning-context-bar {
+  background: var(--bh-white);
+  border: var(--bh-border-w-lg) solid var(--bh-border);
+  padding: var(--space-3);
+  box-shadow: var(--bh-shadow-sm);
+}
+
+.planning-context-link--active {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+}
+
+.planning-primary-cta {
+  background: var(--bh-yellow) !important;
+  border: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-lg) !important;
+  border-radius: var(--bh-radius-none) !important;
+}
+
+.planning-today-card,
+.planning-create-card,
+.planning-onboarding,
+.vorhaben-card,
+.planning-hub-entry,
+.jahresplan-month-card,
+.lektion-entwurf-card,
+.lektion-card,
+.planning-panel,
+.report-organizer {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  border-radius: var(--bh-radius-none) !important;
+  box-shadow: var(--bh-shadow-lg) !important;
+  color: var(--bh-fg);
+}
+
+.planning-onboarding {
+  border-style: dashed !important;
+}
+
+.vorhaben-stepper-link--active,
+.vorhaben-stepper-link--current {
+  background: var(--bh-yellow) !important;
+  border-color: var(--bh-border) !important;
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface input:not([type="checkbox"]):not([type="radio"]),
+.planning-surface textarea,
+.planning-surface select {
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  border-radius: var(--bh-radius-none) !important;
+  box-shadow: 3px 3px 0 0 var(--bh-fg);
+}
+
+/* —— Calendar —— */
+.cal-page-toolbar {
+  background: var(--bh-white) !important;
+  border-bottom: var(--bh-border-w-lg) solid var(--bh-border) !important;
+}
+
+.cal-toolbar-title,
+.cal-toolbar-back {
+  color: var(--bh-fg);
+  font-weight: 700;
+}
+
+.cal-fullcalendar-host--modern .fc,
+.cal-fullcalendar-host .fc {
+  font-family: var(--bh-font);
+}
+
+.cal-fullcalendar-host .fc-button {
+  border-radius: 0 !important;
+  box-shadow: 3px 3px 0 0 var(--bh-fg) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 0.72rem !important;
+}
+
+.cal-fullcalendar-host .fc-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+
+.cal-fullcalendar-host--modern .fc-theme-standard td,
+.cal-fullcalendar-host--modern .fc-theme-standard th {
+  border-color: var(--bh-fg);
+}
+
+.cal-modal {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-lg) !important;
+  border-radius: var(--bh-radius-none) !important;
+}
+
+/* —— Dev warnings —— */
+.dev-warning {
+  background: var(--bh-white);
+  border: var(--bh-border-w-lg) solid var(--bh-border);
+  box-shadow: var(--bh-shadow-sm);
+  color: var(--bh-fg);
+}
+
+.dev-warning-title,
+.dev-warning-body {
+  color: var(--bh-fg);
+}
+
+/* —— Toast —— */
+.app-toast--vorhaben {
+  background: var(--bh-white);
+  border: var(--bh-border-w-lg) solid var(--bh-border);
+  color: var(--bh-fg);
+  box-shadow: var(--bh-shadow-lg);
+  font-weight: 700;
+}
+
+/* —— Modal add vorhaben —— */
+.add-to-vorhaben-modal {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-lg) !important;
+  color: var(--bh-fg);
+}
+
+.add-to-vorhaben-pick {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+}
+
+.add-to-vorhaben-create {
+  background: var(--bh-red) !important;
+  color: var(--bh-white) !important;
+}
+
+/* —— Group headers —— */
+.group-fach-pill {
+  background: var(--bh-blue) !important;
+  color: var(--bh-white) !important;
+  border: var(--bh-border-w) solid var(--bh-border);
+  border-radius: var(--bh-radius-full);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.result-group h3 {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+/* —— Landkarte explorer tiles —— */
+.curriculum-map-subject-chip,
+.curriculum-map-strip-chip,
+.map-subject-card {
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border-radius: var(--bh-radius-none) !important;
+  box-shadow: var(--bh-shadow-sm) !important;
+  font-weight: 700;
+}
+
+.curriculum-map-subject-chip:hover,
+.map-subject-card:hover {
+  transform: translateY(-2px);
+}
+
+.bookmark-drawer-row,
+.bookmark-folder-list {
+  border-color: var(--bh-border);
+}
+
+.lesson-draft-link {
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  box-shadow: 3px 3px 0 0 var(--bh-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-card:hover,
+  .bh-card:hover,
+  .planning-btn:active {
+    transform: none;
+  }
+}

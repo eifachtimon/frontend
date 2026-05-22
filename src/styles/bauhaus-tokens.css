@@ -1,0 +1,86 @@
+/**
+ * Bauhaus design tokens — single source of truth.
+ * Legacy --plan-* / --text-* vars bridge existing CSS to this palette.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap");
+
+:root {
+  color-scheme: light;
+
+  /* —— Bauhaus palette —— */
+  --bh-bg: #f0f0f0;
+  --bh-fg: #121212;
+  --bh-red: #d02020;
+  --bh-blue: #1040c0;
+  --bh-yellow: #f0c020;
+  --bh-white: #ffffff;
+  --bh-muted: #e0e0e0;
+  --bh-yellow-pale: #fff9c4;
+
+  /* —— Geometry & chrome —— */
+  --bh-font: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --bh-border: var(--bh-fg);
+  --bh-border-w: 2px;
+  --bh-border-w-lg: 4px;
+  --bh-radius-none: 0;
+  --bh-radius-full: 9999px;
+  --bh-shadow-sm: 4px 4px 0 0 var(--bh-fg);
+  --bh-shadow-md: 6px 6px 0 0 var(--bh-fg);
+  --bh-shadow-lg: 8px 8px 0 0 var(--bh-fg);
+  --bh-transition: 200ms ease-out;
+  --bh-dot-pattern: radial-gradient(var(--bh-fg) 1.5px, transparent 1.5px);
+  --bh-dot-size: 20px 20px;
+
+  /* —— Spacing (shared with app) —— */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* —— Bridge: search / App.css —— */
+  --text-muted: #444444;
+  --text-subtle: #555555;
+  --border-subtle: var(--bh-fg);
+  --radius-input: 0;
+  --radius-chip: var(--bh-radius-full);
+  --shell-pad-x: clamp(1rem, 4.5vw, 2rem);
+  --shell-pad-y: clamp(1.25rem, 4vw, 2.5rem);
+  --app-content-max-width: 860px;
+
+  /* —— Bridge: planning / calendar —— */
+  --plan-bg: var(--bh-bg);
+  --plan-elevated: var(--bh-white);
+  --plan-card: var(--bh-white);
+  --plan-card-hover: var(--bh-muted);
+  --plan-border: var(--bh-fg);
+  --plan-border-subtle: var(--bh-fg);
+  --plan-text: var(--bh-fg);
+  --plan-text-muted: #444444;
+  --plan-text-subtle: #666666;
+  --plan-accent: var(--bh-yellow);
+  --plan-accent-bg: var(--bh-yellow-pale);
+  --plan-link: var(--bh-blue);
+  --plan-radius: var(--bh-radius-none);
+  --plan-radius-sm: var(--bh-radius-none);
+
+  /* FullCalendar */
+  --fc-border-color: var(--bh-fg);
+  --fc-button-bg-color: var(--bh-blue);
+  --fc-button-border-color: var(--bh-fg);
+  --fc-button-text-color: var(--bh-white);
+  --fc-button-hover-bg-color: #0d3699;
+  --fc-page-bg-color: var(--bh-white);
+  --fc-neutral-bg-color: var(--bh-muted);
+  --fc-today-bg-color: var(--bh-yellow-pale);
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --bh-border-w: 4px;
+    --bh-shadow-sm: 4px 4px 0 0 var(--bh-fg);
+    --bh-shadow-lg: 8px 8px 0 0 var(--bh-fg);
+  }
+}

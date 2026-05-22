@@ -7,10 +7,19 @@ const navItems = [
   { to: APP_ROUTES.planung, label: "Mein Unterricht", end: false },
 ];
 
+const BauhausBrandMark = () => (
+  <span className="bh-brand-shapes" aria-hidden="true">
+    <span className="bh-shape bh-shape--circle" />
+    <span className="bh-shape bh-shape--square" />
+    <span className="bh-shape bh-shape--triangle" />
+  </span>
+);
+
 const AppTopNav = () => (
-  <nav className="app-top-nav" aria-label="Hauptnavigation">
+  <nav className="app-top-nav bh-band" aria-label="Hauptnavigation">
     <div className="app-top-nav-inner">
       <NavLink to={APP_ROUTES.search} className="app-top-nav-brand" end>
+        <BauhausBrandMark />
         Lehrplan 21
       </NavLink>
       <ul className="app-top-nav-list">

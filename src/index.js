@@ -1,8 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import './styles/bauhaus-tokens.css';
+import './styles/bauhaus-components.css';
 import './index.css';
 import AppRouter from './AppRouter';
+import './styles/bauhaus-overrides.css';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
