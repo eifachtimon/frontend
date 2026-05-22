@@ -1,4 +1,6 @@
 import React, { Component } from "react";
+import AddToVorhabenControl from "./AddToVorhabenControl";
+import LessonDraftLink from "./LessonDraftLink";
 
 class SearchResult extends Component {
   state = {
@@ -72,7 +74,12 @@ class SearchResult extends Component {
       competencyUid != null && String(competencyUid).trim()
         ? String(competencyUid).trim()
         : "";
-    const uid = chainDocKey || chainUid || docUid || null;
+    const lp21FromMeta =
+      metadata?.lp21_row_index != null &&
+      String(metadata.lp21_row_index).trim() !== ""
+        ? `lp21:${String(metadata.lp21_row_index).trim()}`
+        : "";
+    const uid = chainDocKey || chainUid || docUid || lp21FromMeta || null;
     if (!chain?.current && !uid) {
       return;
     }
@@ -195,6 +202,17 @@ class SearchResult extends Component {
     return parts.length > 0 ? parts.join(" · ") : lnk.uid || "Verknüpfung";
   };
 
+  /** Mehrere Kompetenztexte (Backend: \\n\\n) für Darstellung mit Trennstrich. */
+  splitMergedDocumentSegments = (raw) => {
+    if (raw == null || raw === "") {
+      return [];
+    }
+    return String(raw)
+      .split(/\n\s*\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
   renderHighlightedText = (text, queryText) => {
     if (!text) {
       return "";
@@ -241,6 +259,12 @@ class SearchResult extends Component {
       bookmarkUid,
       isBookmarked,
       onToggleBookmark,
+      lessonDraftUid,
+      lessonDraftCode,
+      lessonDraftFach,
+      lessonDraftText,
+      competencyEntry,
+      onAddedToVorhaben,
     } = this.props;
     const { copied, expandedNetworkUid, linkedDetailLoadingUid } = this.state;
     const chainData = prefetchedChain || metadata?._competency_chain;
@@ -272,6 +296,14 @@ class SearchResult extends Component {
     const expandedLink = this.resolveExpandedLink();
     const showBookmark =
       Boolean(bookmarkUid) && typeof onToggleBookmark === "function";
+    const showVorhabenAction = Boolean(competencyEntry);
+    const actionsLayoutClass =
+      showBookmark && showVorhabenAction
+        ? "result-actions--full"
+        : showBookmark
+          ? "result-actions--bookmark-layout"
+          : "";
+    const textSegments = this.splitMergedDocumentSegments(text);
 
     return (
       <article className="result-card" style={cardStyle}>
@@ -376,10 +408,27 @@ class SearchResult extends Component {
                 ) : null}
               </div>
             )}
-            <p className="result-text">{this.renderHighlightedText(text, queryText)}</p>
+            {textSegments.length <= 1 ? (
+              <p className="result-text">
+                {this.renderHighlightedText(textSegments[0] || text || "", queryText)}
+              </p>
+            ) : (
+              <div className="result-text-merge-stack">
+                {textSegments.map((seg, si) => (
+                  <React.Fragment key={`result-text-seg-${si}`}>
+                    {si > 0 ? (
+                      <hr className="result-text-merge-sep" aria-hidden="true" />
+                    ) : null}
+                    <p className="result-text result-text--merge-block">
+                      {this.renderHighlightedText(seg, queryText)}
+                    </p>
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
           </div>
           <div
-            className={`result-actions ${showBookmark ? "result-actions--bookmark-layout" : ""}`}
+            className={`result-actions ${actionsLayoutClass}`.trim()}
           >
             <button
               className="copy-button"
@@ -419,6 +468,13 @@ class SearchResult extends Component {
                 </svg>
               </button>
             ) : null}
+            {competencyEntry ? (
+              <AddToVorhabenControl
+                entry={competencyEntry}
+                className="result-add-vorhaben"
+                onAdded={onAddedToVorhaben}
+              />
+            ) : null}
             {url ? (
               <button
                 type="button"
@@ -434,6 +490,15 @@ class SearchResult extends Component {
                   />
                 </svg>
               </button>
+            ) : null}
+            {lessonDraftUid ? (
+              <LessonDraftLink
+                uid={lessonDraftUid}
+                code={lessonDraftCode}
+                fach={lessonDraftFach}
+                text={lessonDraftText}
+                className="lesson-draft-link result-lesson-draft-link"
+              />
             ) : null}
           </div>
         </div>

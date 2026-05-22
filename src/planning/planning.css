@@ -1,0 +1,2142 @@
+/* Planung — Dark Mode, minimalistisch (angeglichen an LP21-Suche) */
+
+.app-shell.planning-surface {
+  --plan-bg: #0b0b0b;
+  --plan-elevated: #111111;
+  --plan-card: #161616;
+  --plan-card-hover: #1c1c1c;
+  --plan-border: #2a2a2a;
+  --plan-border-subtle: #1e1e1e;
+  --plan-text: #ececec;
+  --plan-text-muted: #9a9a9a;
+  --plan-text-subtle: #6e6e6e;
+  --plan-accent: #edd100;
+  --plan-accent-bg: #1e1c10;
+  --plan-link: #8eb8ff;
+  --plan-radius: 12px;
+  --plan-radius-sm: 8px;
+  min-height: 100vh;
+  background: var(--plan-bg);
+  color: var(--plan-text);
+}
+
+.planning-surface * {
+  box-sizing: border-box;
+}
+
+.planning-surface a {
+  color: var(--plan-link);
+  text-decoration: none;
+}
+
+.planning-surface a:hover {
+  color: #b8d4ff;
+}
+
+.planning-surface input:not([type="checkbox"]):not([type="radio"]),
+.planning-surface textarea,
+.planning-surface select {
+  color: var(--plan-text);
+  background: var(--plan-elevated);
+  border: 1px solid var(--plan-border);
+  border-radius: var(--plan-radius-sm);
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.planning-surface input:focus,
+.planning-surface textarea:focus,
+.planning-surface select:focus {
+  outline: none;
+  border-color: #4a4a4a;
+}
+
+.planning-surface input::placeholder,
+.planning-surface textarea::placeholder {
+  color: var(--plan-text-subtle);
+  opacity: 1;
+}
+
+.planning-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.planning-hub-main,
+.vorhaben-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--shell-pad-x) var(--space-6);
+}
+
+.vorhaben-main--woche {
+  max-width: min(96vw, 1480px);
+}
+
+.planning-hub-header h1,
+.vorhaben-title-input {
+  margin: 0 0 var(--space-2);
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.planning-hub-lead {
+  margin: 0 0 var(--space-5);
+  color: var(--plan-text-muted, #666);
+  line-height: 1.5;
+}
+
+.planning-create-card {
+  padding: var(--space-4);
+  border-radius: 12px;
+  border: 1px solid var(--plan-border, #e0e0e0);
+  background: var(--plan-card, #fafafa);
+  margin-bottom: var(--space-5);
+}
+
+.planning-create-card h2 {
+  margin: 0 0 var(--space-3);
+  font-size: 1rem;
+  color: var(--plan-text, #1a1a1a);
+}
+
+.planning-create-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.planning-create-row select,
+.planning-create-row input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.planning-create-row input {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.planning-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.planning-btn--primary {
+  background: #1e1e1e;
+  color: #edd100;
+  border-color: #3a3a3a;
+}
+
+.planning-btn--primary:hover:not(:disabled) {
+  background: #2a2a2a;
+}
+
+.planning-btn--secondary {
+  background: var(--plan-card);
+  border-color: var(--plan-border);
+  color: var(--plan-text);
+}
+
+.planning-btn--ghost {
+  background: transparent;
+  border-color: var(--plan-border);
+  color: var(--plan-text-muted);
+}
+
+.planning-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.planning-empty {
+  color: #777;
+  line-height: 1.5;
+}
+
+.vorhaben-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .vorhaben-card-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.vorhaben-card {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--plan-border);
+  border-radius: var(--plan-radius);
+  background: var(--plan-card);
+  overflow: hidden;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.vorhaben-card:hover {
+  border-color: #3a3a3a;
+  background: var(--plan-card-hover);
+}
+
+.vorhaben-card-link {
+  flex: 1;
+  padding: var(--space-4);
+  text-decoration: none;
+  color: inherit;
+}
+
+.vorhaben-card-link:hover h3 {
+  color: var(--plan-accent);
+}
+
+.vorhaben-card h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 1.05rem;
+}
+
+.vorhaben-card-meta,
+.vorhaben-card-stats {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #777;
+}
+
+.vorhaben-card-delete {
+  flex-shrink: 0;
+  padding: 0 12px;
+  border: none;
+  border-left: 1px solid var(--plan-border);
+  background: transparent;
+  color: var(--plan-text-subtle);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.vorhaben-card-delete:hover {
+  color: #f08080;
+  background: rgba(255, 80, 80, 0.08);
+}
+
+.planning-hub-footer {
+  margin-top: var(--space-5);
+  font-size: 0.88rem;
+  color: var(--plan-text-muted);
+}
+
+.planning-hub-footer a {
+  color: var(--plan-link);
+}
+
+/* Vorhaben detail */
+.vorhaben-title-input {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid #e8e8e8;
+  padding: 4px 0;
+  font-family: inherit;
+  background: transparent;
+}
+
+.vorhaben-title-input:focus {
+  outline: none;
+  border-bottom-color: #333;
+}
+
+.vorhaben-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.vorhaben-meta-row input {
+  flex: 1;
+  min-width: 8rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.vorhaben-meta-short {
+  max-width: 8rem;
+}
+
+/* Report organizer (expanded panel) */
+.report-organizer {
+  margin-top: var(--space-2);
+  padding: var(--space-4);
+  border-radius: 0 0 var(--plan-radius-sm) var(--plan-radius-sm);
+  border: 1px solid var(--plan-border);
+  border-top: none;
+  background: var(--plan-card);
+}
+
+.report-organizer-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  margin-bottom: var(--space-3);
+}
+
+.report-organizer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.report-suggestion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.report-suggestion-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #eee;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.report-suggestion-detail {
+  display: block;
+  color: #777;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+/* Panels */
+.planning-panel {
+  margin-top: var(--space-2);
+}
+
+.planning-panel--split,
+.woche-board-wrap {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 900px) {
+  .planning-panel--split {
+    grid-template-columns: 1fr 11rem;
+  }
+}
+
+.planning-field {
+  margin-bottom: var(--space-4);
+}
+
+.planning-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--plan-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.planning-field textarea,
+.planning-field input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--plan-radius-sm);
+  border: 1px solid var(--plan-border);
+  background: var(--plan-elevated);
+  color: var(--plan-text);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.planning-phase-list {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+}
+
+.planning-phase-item {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  align-items: flex-start;
+}
+
+.planning-phase-num {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: #1a1a1a;
+  color: #edd100;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.planning-phase-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.planning-icon-btn {
+  border: none;
+  background: transparent;
+  color: #888;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.planning-icon-btn--small {
+  font-size: 1rem;
+}
+
+.planning-fieldset-competencies {
+  border: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+}
+
+.planning-milestone-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.planning-milestone-row input[type="text"] {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+/* Ritual palette */
+.ritual-palette {
+  border: 1px solid var(--plan-border);
+  border-radius: var(--plan-radius-sm);
+  padding: var(--space-3);
+  background: var(--plan-elevated);
+  align-self: start;
+}
+
+.ritual-palette-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+}
+
+.ritual-palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ritual-palette-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border: 1px solid var(--plan-border);
+  border-radius: var(--plan-radius-sm);
+  background: var(--plan-card);
+  color: var(--plan-text);
+  font-family: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ritual-palette-btn:hover {
+  border-color: #3a3a3a;
+  background: var(--plan-card-hover);
+}
+
+.ritual-palette-dur {
+  color: #888;
+  flex-shrink: 0;
+}
+
+/* Woche */
+.woche-toolbar {
+  margin-bottom: var(--space-4);
+}
+
+.woche-kw-title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.1rem;
+}
+
+.woche-board-wrap--timeline {
+  display: grid;
+  grid-template-columns: 1fr minmax(10rem, 13rem);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .woche-board-wrap--timeline {
+    grid-template-columns: 1fr;
+  }
+}
+
+.woche-timeline-scroll {
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.woche-timeline {
+  min-width: 52rem;
+}
+
+.woche-timeline-header {
+  display: grid;
+  grid-template-columns: 3.25rem repeat(5, minmax(9.5rem, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.woche-time-corner {
+  min-height: 1px;
+}
+
+.woche-day-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--plan-radius-sm);
+  border: 1px solid var(--plan-border);
+  background: var(--plan-card);
+  color: var(--plan-text);
+}
+
+.woche-day-header--today {
+  border-color: var(--plan-accent);
+  background: var(--plan-accent-bg);
+}
+
+.woche-day-header-weekday {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.woche-day-header-date {
+  font-size: 0.78rem;
+  color: var(--plan-text-muted);
+  width: 100%;
+}
+
+.woche-day-header-sum {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--plan-elevated);
+  color: var(--plan-text-muted);
+}
+
+.woche-day-header--today .woche-day-header-sum {
+  background: var(--plan-accent);
+  color: #0b0b0b;
+}
+
+.woche-day-add-sonder {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--plan-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.woche-day-add-sonder:hover {
+  color: var(--plan-accent);
+}
+
+.woche-timeline-body {
+  display: grid;
+  grid-template-columns: 3.25rem repeat(5, minmax(9.5rem, 1fr));
+  gap: 6px;
+  align-items: stretch;
+}
+
+.woche-time-rail {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0 4px 5.5rem 0;
+  min-height: 28rem;
+}
+
+.woche-time-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--plan-text-subtle);
+  text-align: right;
+  line-height: 1;
+}
+
+.woche-day-column--timeline {
+  position: relative;
+  min-height: 28rem;
+  padding: 0;
+  border-radius: var(--plan-radius-sm);
+  border: 1px solid var(--plan-border);
+  background: var(--plan-card);
+  color: var(--plan-text);
+  overflow: hidden;
+}
+
+.woche-day-column--today {
+  border-color: rgba(237, 209, 0, 0.45);
+  background: rgba(237, 209, 0, 0.04);
+}
+
+.woche-day-column--drag-over {
+  border-color: var(--plan-accent);
+  box-shadow: inset 0 0 0 1px var(--plan-accent);
+}
+
+.woche-day-grid-lines {
+  position: absolute;
+  inset: 0 0 5.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.woche-grid-line {
+  border-top: 1px solid var(--plan-border-subtle);
+  height: 0;
+}
+
+.woche-day-scheduled {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 0;
+  bottom: 5.5rem;
+  pointer-events: none;
+}
+
+.woche-day-scheduled .woche-card {
+  pointer-events: auto;
+}
+
+.woche-card--draggable {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  margin: 0;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  background: var(--plan-elevated);
+  color: var(--plan-text);
+  border: 1px solid var(--plan-border);
+  cursor: grab;
+  z-index: 2;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.woche-card--draggable:active {
+  cursor: grabbing;
+  opacity: 0.85;
+}
+
+.woche-card--floating {
+  position: static;
+}
+
+.woche-card-time {
+  font-weight: 700;
+  color: var(--plan-accent);
+  font-size: 0.62rem;
+}
+
+.woche-card-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.woche-card--lektion {
+  border-color: rgba(142, 184, 255, 0.35);
+  background: rgba(142, 184, 255, 0.1);
+}
+
+.woche-card--ritual {
+  border-color: rgba(124, 184, 124, 0.35);
+  background: rgba(124, 184, 124, 0.12);
+}
+
+.woche-card-remove {
+  border: none;
+  background: transparent;
+  color: var(--plan-text-subtle);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.woche-card-remove:hover {
+  color: #f08080;
+}
+
+.woche-day-unscheduled {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 4.5rem;
+  overflow-y: auto;
+  z-index: 3;
+}
+
+.woche-day-column--timeline .woche-day-notiz {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  width: auto;
+  border: 1px solid var(--plan-border);
+  background: var(--plan-elevated);
+  color: var(--plan-text);
+  z-index: 4;
+}
+
+.woche-day-column--timeline .woche-sonder {
+  position: relative;
+  z-index: 5;
+  margin: 4px;
+}
+
+.woche-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.woche-lektion-pool {
+  padding: var(--space-3);
+  border-radius: var(--plan-radius-sm);
+  border: 1px solid var(--plan-border);
+  background: var(--plan-card);
+}
+
+.woche-lektion-pool-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--plan-text-muted);
+}
+
+.woche-lektion-pool-hint {
+  margin: 0 0 var(--space-2);
+  font-size: 0.72rem;
+  color: var(--plan-text-subtle);
+  line-height: 1.35;
+}
+
+.woche-lektion-pool-empty {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.woche-lektion-pool-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.woche-lektion-pool-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--plan-radius-sm);
+  border: 1px solid var(--plan-border);
+  background: var(--plan-elevated);
+  color: var(--plan-text);
+  font-family: inherit;
+  font-size: 0.78rem;
+  cursor: grab;
+  text-align: left;
+}
+
+.woche-lektion-pool-item:active {
+  cursor: grabbing;
+}
+
+.woche-lektion-pool-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.woche-lektion-pool-dur {
+  color: var(--plan-text-subtle);
+  flex-shrink: 0;
+}
+
+.lektion-card--draggable {
+  cursor: grab;
+}
+
+.lektion-card--draggable:active {
+  cursor: grabbing;
+}
+
+.ritual-palette-btn[draggable="true"] {
+  cursor: grab;
+}
+
+.woche-day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.woche-day-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.woche-sonder {
+  display: block;
+  font-size: 0.68rem;
+  padding: 3px 6px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  background: rgba(237, 209, 0, 0.15);
+  color: #edd100;
+}
+
+.woche-sonder--ausflug {
+  background: rgba(124, 184, 124, 0.2);
+  color: #9fd49f;
+}
+
+.woche-sonder--elterninfo {
+  background: rgba(107, 159, 212, 0.2);
+  color: #8eb8ff;
+}
+
+/* Legacy list layout entfernt — Timeline nutzt .woche-card--draggable */
+
+.woche-card-dur {
+  color: var(--plan-text-muted);
+}
+
+.woche-day-notiz {
+  width: 100%;
+  font-size: 0.75rem;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--plan-border);
+  background: var(--plan-elevated);
+  color: var(--plan-text);
+  resize: vertical;
+  font-family: inherit;
+}
+
+.woche-ritual-quick {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px 6px;
+  font-size: 0.65rem;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.woche-erinnerungen {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  border-radius: var(--plan-radius-sm);
+  background: var(--plan-accent-bg);
+  border: 1px solid rgba(237, 209, 0, 0.25);
+}
+
+.woche-erinnerungen h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 0.85rem;
+}
+
+.woche-erinnerungen ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.woche-erinnerungen li.is-done {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.planning-hint {
+  font-size: 0.78rem;
+  color: #888;
+  margin-top: var(--space-3);
+}
+
+.planning-kbd-hint {
+  font-size: 0.72rem;
+  color: var(--plan-text-subtle);
+  margin-left: 0.5rem;
+}
+
+.planning-kbd-hint kbd,
+.woche-cal-hint kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--plan-border);
+  background: var(--plan-elevated);
+  font-size: 0.68rem;
+  font-family: inherit;
+  color: var(--plan-text-muted);
+}
+
+.lektion-card--focused {
+  outline: 1px solid var(--plan-accent);
+  outline-offset: 2px;
+}
+
+.lektion-ablauf-item--focused {
+  background: var(--plan-accent-bg);
+  border-radius: 4px;
+}
+
+/* Lektionen */
+.lektion-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.planning-subtitle {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.lektion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.lektion-card {
+  padding: var(--space-4);
+  border: 1px solid var(--plan-border);
+  border-radius: var(--plan-radius);
+  background: var(--plan-card);
+}
+
+.lektion-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.lektion-title-input {
+  flex: 1;
+  min-width: 10rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-bottom: 1px solid #ddd;
+  padding: 4px 0;
+  font-family: inherit;
+  background: transparent;
+}
+
+.lektion-ablauf {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+}
+
+.lektion-ablauf li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--plan-border-subtle);
+  font-size: 0.88rem;
+  color: var(--plan-text);
+}
+
+.lektion-block-dur {
+  color: #888;
+  margin-left: auto;
+}
+
+.lektion-time-sum {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0 0 var(--space-2);
+}
+
+.lektion-ritual-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: var(--space-2);
+}
+
+.planning-link-entwurf {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--plan-link);
+}
+
+/* —— UX polish —— */
+
+.planning-save-toast {
+  position: fixed;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #1a1a1a;
+  color: #edd100;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  animation: planning-toast-in 0.25s ease;
+}
+
+@keyframes planning-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.vorhaben-stepper-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  margin: 0 calc(-1 * var(--shell-pad-x)) var(--space-4);
+  padding: var(--space-2) var(--shell-pad-x);
+  background: rgba(11, 11, 11, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--plan-border-subtle);
+}
+
+.vorhaben-stepper-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.vorhaben-stepper-item {
+  position: relative;
+  flex: 1;
+  min-width: 7.5rem;
+}
+
+.vorhaben-stepper-connector {
+  display: none;
+}
+
+@media (min-width: 720px) {
+  .vorhaben-stepper-item:not(:last-child) .vorhaben-stepper-connector {
+    display: block;
+    position: absolute;
+    top: 1.1rem;
+    left: calc(100% - 4px);
+    width: 12px;
+    height: 2px;
+    background: #ddd;
+    z-index: 0;
+  }
+}
+
+.vorhaben-stepper-link {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--plan-radius-sm);
+  text-decoration: none;
+  border: 1px solid var(--plan-border);
+  background: var(--plan-card);
+  color: var(--plan-text);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.vorhaben-stepper-link:hover {
+  border-color: #3a3a3a;
+  background: var(--plan-card-hover);
+}
+
+.vorhaben-stepper-link--active {
+  border-color: var(--plan-accent);
+  background: var(--plan-accent-bg);
+  color: var(--plan-text);
+}
+
+.vorhaben-stepper-link--active .vorhaben-stepper-hint {
+  color: #aaa;
+}
+
+.vorhaben-stepper-step {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: #e8e8e8;
+  color: #444;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vorhaben-stepper-link--active .vorhaben-stepper-step {
+  background: #edd100;
+  color: #111;
+}
+
+.vorhaben-stepper-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.vorhaben-stepper-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.vorhaben-stepper-hint {
+  font-size: 0.65rem;
+  color: #888;
+  font-weight: 500;
+}
+
+.vorhaben-stepper-badge {
+  flex-shrink: 0;
+  min-width: 1.25rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #edd100;
+  color: #111;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.vorhaben-stepper-link--active .vorhaben-stepper-badge {
+  background: var(--plan-accent);
+  color: #0b0b0b;
+}
+
+.report-organizer-wrap {
+  margin-bottom: var(--space-4);
+}
+
+.report-organizer-toggle {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 14px;
+  border-radius: var(--plan-radius-sm);
+  border: 1px solid var(--plan-border);
+  background: var(--plan-card);
+  color: var(--plan-text);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.report-organizer-toggle:hover {
+  background: var(--plan-card-hover);
+  border-color: #3a3a3a;
+}
+
+.report-organizer-toggle-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.report-organizer-toggle-hint {
+  flex: 1;
+  font-size: 0.8rem;
+  color: #777;
+  min-width: 10rem;
+}
+
+.report-organizer-chevron {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.report-organizer-applied {
+  margin: var(--space-2) 0 0;
+  font-size: 0.82rem;
+  color: #2d6a3e;
+  font-weight: 600;
+}
+
+.report-organizer-mini-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.template-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--space-3);
+}
+
+.template-chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--plan-border);
+  background: var(--plan-card);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--plan-text-muted);
+}
+
+.template-chip--active {
+  background: var(--plan-accent-bg);
+  border-color: var(--plan-accent);
+  color: var(--plan-accent);
+}
+
+.planning-empty-state {
+  padding: var(--space-5);
+  text-align: center;
+  border: 1px dashed var(--plan-border);
+  border-radius: var(--plan-radius);
+  background: var(--plan-elevated);
+}
+
+.planning-empty-state-hint {
+  color: #777;
+  margin-bottom: var(--space-4);
+}
+
+.vorhaben-card-time {
+  color: #999;
+}
+
+.vorhaben-card-quick {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-left: 1px solid #eee;
+}
+
+.vorhaben-quick-link {
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: #4a6fa5;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.vorhaben-quick-link:hover {
+  background: #f5f8fc;
+}
+
+.vorhaben-card-delete {
+  padding: 10px;
+  border: none;
+  border-top: 1px solid #eee;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.vorhaben-card-delete:hover {
+  color: #b33;
+  background: #fff5f5;
+}
+
+.vorhaben-panel-area {
+  animation: panel-fade 0.2s ease;
+}
+
+@keyframes panel-fade {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.woche-toolbar-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.woche-kw-year {
+  font-weight: 500;
+  color: var(--plan-text-muted);
+  margin-left: 0.35rem;
+}
+
+.woche-today-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--plan-accent-bg);
+  border: 1px solid rgba(237, 209, 0, 0.4);
+  color: var(--plan-accent);
+}
+
+/* Sub-Navigation Planung */
+.planning-sub-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--plan-border, #ddd);
+}
+
+.planning-sub-nav-link {
+  padding: 8px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--plan-text-muted, #555);
+  border: 1px solid transparent;
+}
+
+.planning-sub-nav-link:hover {
+  color: var(--plan-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.planning-sub-nav-link--active {
+  color: #0b0b0b;
+  background: var(--plan-accent);
+  border-color: var(--plan-accent);
+}
+
+/* Hub Einstiegskarten */
+.planning-hub-entries {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+@media (max-width: 900px) {
+  .planning-hub-entries {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .planning-hub-entries {
+    grid-template-columns: 1fr;
+  }
+}
+
+.planning-hub-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-4);
+  border-radius: 12px;
+  border: 1px solid var(--plan-border, #ddd);
+  background: var(--plan-card, #fff);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.planning-hub-entry:hover {
+  border-color: #3a3a3a;
+  background: var(--plan-card-hover);
+}
+
+.planning-hub-entry-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--plan-text);
+}
+
+.planning-hub-entry-desc {
+  font-size: 0.8rem;
+  color: var(--plan-text-muted);
+}
+
+.planning-hub-entry--jahr {
+  border-left: 3px solid #6b9fd4;
+}
+
+.planning-hub-entry--monat {
+  border-left: 3px solid #7cb87c;
+}
+
+.planning-hub-entry--kalender {
+  border-left: 3px solid #8eb8ff;
+}
+
+.planning-hub-entry--vorhaben {
+  border-left: 3px solid var(--plan-accent);
+}
+
+/* Jahresplan */
+.kalender-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.kalender-year-nav,
+.kalender-month-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.kalender-year-label {
+  font-weight: 700;
+  min-width: 5rem;
+  text-align: center;
+}
+
+.jahresplan-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 900px) {
+  .jahresplan-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .jahresplan-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.jahresplan-month-card {
+  padding: var(--space-3);
+  border-radius: 10px;
+  border: 1px solid var(--plan-border, #ddd);
+  background: var(--plan-card, #fff);
+}
+
+.jahresplan-month-card--current {
+  border-color: #edd100;
+  box-shadow: 0 0 0 1px #edd100;
+}
+
+.jahresplan-month-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.jahresplan-month-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--plan-text, #1a1a1a);
+}
+
+.jahresplan-month-year {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--plan-text-muted, #888);
+  margin-left: 4px;
+}
+
+.jahresplan-now-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--plan-accent-bg);
+  color: var(--plan-accent);
+}
+
+.jahresplan-month-focus {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--space-2);
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--plan-border, #ccc);
+  font-size: 0.82rem;
+}
+
+.jahresplan-month-meta {
+  margin: 0 0 var(--space-2);
+  font-size: 0.72rem;
+  color: var(--plan-text-muted, #777);
+}
+
+.jahresplan-month-open {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Monatsplan */
+.monatsplan-week-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.monatsplan-week-row {
+  padding: var(--space-4);
+  border-radius: 10px;
+  border: 1px solid var(--plan-border, #ddd);
+  background: var(--plan-card, #fff);
+}
+
+.monatsplan-week-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.monatsplan-kw-badge {
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: #edd100;
+}
+
+.monatsplan-kw-year {
+  font-weight: 500;
+  font-size: 0.75rem;
+  margin-left: 4px;
+  color: #ccc;
+}
+
+.monatsplan-vorhaben-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.monatsplan-vorhaben-chip {
+  font-size: 0.78rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #eef5fc;
+  text-decoration: none;
+  color: #1e4a6e;
+  font-weight: 600;
+}
+
+.monatsplan-no-vorhaben {
+  font-size: 0.78rem;
+  color: var(--plan-text-muted, #888);
+}
+
+.monatsplan-week-focus {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--space-2);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--plan-border, #ccc);
+}
+
+.monatsplan-vorhaben-select-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.monatsplan-vorhaben-select-wrap select {
+  flex: 1;
+  min-width: 12rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.monatsplan-week-open {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vorhaben-circularity-hint {
+  margin: 0 0 var(--space-3);
+  font-size: 0.82rem;
+  color: var(--plan-text-muted, #666);
+}
+
+.vorhaben-circularity-hint a {
+  font-weight: 600;
+}
+
+.ritual-palette-hint {
+  margin: 0 0 var(--space-2);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--plan-text-muted, #777);
+}
+
+.planning-surface .ritual-palette-hint {
+  color: var(--plan-text-muted);
+}
+
+/* —— Phasen-Banner, Stundenentwurf, Kompetenz-Picker (Dark) —— */
+
+.planning-surface .planning-phase-banner {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--plan-radius-sm);
+  border: 1px solid rgba(142, 184, 255, 0.2);
+  background: rgba(142, 184, 255, 0.06);
+}
+
+.planning-surface .planning-phase-banner-fhnw {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--plan-link);
+}
+
+.planning-surface .planning-phase-banner-text {
+  margin: 0 0 6px;
+  font-size: 0.88rem;
+  color: var(--plan-text);
+  line-height: 1.45;
+}
+
+.planning-surface .planning-phase-banner-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--plan-text-muted);
+  font-style: italic;
+}
+
+.planning-surface .planung-breadcrumb,
+.planning-surface .planung-breadcrumb span {
+  color: var(--plan-text-muted);
+}
+
+.planning-surface .planung-header h1,
+.planning-surface #planung-page-title {
+  color: var(--plan-text);
+  letter-spacing: -0.03em;
+}
+
+.planning-surface .planung-draft-notice {
+  margin: 0 0 1.25rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--plan-radius-sm);
+  background: var(--plan-accent-bg);
+  border: 1px solid rgba(237, 209, 0, 0.25);
+  color: var(--plan-accent);
+  font-size: 0.9rem;
+}
+
+.planning-surface .planung-fieldset {
+  border: 1px solid var(--plan-border);
+  border-radius: var(--plan-radius-sm);
+  background: var(--plan-card);
+}
+
+.planning-surface .planung-competency-text,
+.planning-surface .planung-competency-summary,
+.planning-surface .planung-competency-empty {
+  color: var(--plan-text-muted);
+}
+
+.planning-surface .planung-meta-dl dt {
+  color: var(--plan-text-muted);
+}
+
+.planning-surface .planung-meta-dl dd,
+.planning-surface .planung-meta-dl code {
+  color: var(--plan-text);
+}
+
+.planning-surface .competency-picker-selected-label,
+.planning-surface .competency-picker-hint,
+.planning-surface .competency-picker-empty {
+  color: var(--plan-text-muted);
+}
+
+.planning-surface .competency-picker-chip {
+  border: 1px solid var(--plan-border);
+  background: var(--plan-elevated);
+}
+
+.planning-surface .competency-picker-chip-code {
+  color: var(--plan-accent);
+}
+
+.planning-surface .competency-picker-chip-label {
+  color: var(--plan-text);
+}
+
+.planning-surface .competency-picker-tab {
+  color: var(--plan-text-muted);
+  background: var(--plan-card);
+  border-color: var(--plan-border);
+}
+
+.planning-surface .competency-picker-tab.is-active {
+  color: #0b0b0b;
+  background: var(--plan-accent);
+  border-color: var(--plan-accent);
+}
+
+.planning-surface .competency-picker-panel {
+  background: var(--plan-card);
+  border-color: var(--plan-border);
+}
+
+.planning-surface .competency-picker-folder-toggle,
+.planning-surface .competency-picker-item-label {
+  color: var(--plan-text);
+}
+
+.planning-surface .competency-picker-item {
+  border-bottom-color: var(--plan-border-subtle);
+}
+
+.planning-surface .competency-picker-item-meta,
+.planning-surface .competency-picker-folder-count {
+  color: var(--plan-text-subtle);
+}
+
+.planning-surface .competency-picker-add-btn {
+  border-color: var(--plan-border);
+  background: var(--plan-elevated);
+  color: var(--plan-text);
+}
+
+.planning-surface .competency-picker-refresh {
+  color: var(--plan-text-muted);
+}
+
+.planning-surface .vorhaben-stepper-connector {
+  background: var(--plan-border);
+}
+
+.planning-surface .vorhaben-quick-link {
+  color: var(--plan-link);
+  border-bottom-color: var(--plan-border-subtle);
+}
+
+.planning-surface .vorhaben-quick-link:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.planning-surface .report-organizer-applied {
+  color: #7cb87c;
+}
+
+/* —— IA Phase: Kontextleiste, Hub-CTA, Onboarding —— */
+.planning-context-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--plan-border-subtle, #1e1e1e);
+}
+
+.planning-context-primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.planning-context-home {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--plan-text-muted);
+  text-decoration: none;
+}
+
+.planning-context-home--active,
+.planning-context-home:hover {
+  color: var(--plan-accent, #edd100);
+}
+
+.planning-context-vorhaben {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: min(100%, 20rem);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--plan-border);
+  background: var(--plan-card);
+  text-decoration: none;
+  color: var(--plan-text);
+  font-size: 0.82rem;
+}
+
+.planning-context-vorhaben--current {
+  border-color: var(--plan-accent);
+}
+
+.planning-context-vorhaben--empty {
+  font-size: 0.8rem;
+  color: var(--plan-text-muted);
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.planning-context-vorhaben-label {
+  color: var(--plan-text-muted);
+  font-weight: 600;
+}
+
+.planning-context-vorhaben-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.planning-context-views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.planning-context-link {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--plan-text-muted);
+  border: 1px solid transparent;
+}
+
+.planning-context-link:hover {
+  color: var(--plan-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.planning-context-link--active {
+  color: #0b0b0b;
+  background: var(--plan-accent);
+  border-color: var(--plan-accent);
+}
+
+.cal-planning-context-wrap {
+  flex-shrink: 0;
+  padding: 0 var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--plan-border-subtle, #1e1e1e);
+}
+
+.cal-planning-context-wrap .planning-context-bar {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.planning-primary-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  border-radius: 14px;
+  border: 1px solid var(--plan-border);
+  background: linear-gradient(135deg, #141414 0%, #1a1a10 100%);
+}
+
+.planning-primary-cta--empty {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.planning-primary-cta h2 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--plan-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.planning-primary-cta-vorhaben {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--plan-text);
+}
+
+.planning-primary-cta-hint {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  color: var(--plan-text-muted);
+}
+
+.planning-primary-cta-btn {
+  flex-shrink: 0;
+}
+
+.planning-today-card {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border-radius: 12px;
+  border: 1px solid var(--plan-border);
+  background: var(--plan-card);
+}
+
+.planning-today-title {
+  margin: 0 0 var(--space-2);
+  font-size: 1rem;
+}
+
+.planning-today-meta {
+  margin: 0 0 var(--space-3);
+  font-size: 0.88rem;
+  color: var(--plan-text-muted);
+}
+
+.planning-today-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.planning-hub-entries--secondary {
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: var(--space-5);
+}
+
+.planning-onboarding {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border-radius: 12px;
+  border: 1px dashed var(--plan-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.planning-onboarding-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.planning-onboarding-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.planning-onboarding-dismiss {
+  border: none;
+  background: transparent;
+  color: var(--plan-text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.planning-onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.planning-onboarding-step h3 {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+}
+
+.planning-onboarding-step p {
+  margin: 0 0 var(--space-2);
+  font-size: 0.82rem;
+  color: var(--plan-text-muted);
+}
+
+.planning-onboarding-cta {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--plan-link);
+}
+
+.lektion-entwurf-card {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border-radius: 12px;
+  border: 1px solid var(--plan-border);
+  background: var(--plan-card);
+}
+
+.lektion-entwurf-desc {
+  margin: 0 0 var(--space-3);
+  font-size: 0.88rem;
+  color: var(--plan-text-muted);
+}
+
+.planung-entwurf-hint {
+  margin: var(--space-2) 0 0;
+  font-size: 0.88rem;
+  color: var(--plan-text-muted);
+}
+
+.planung-entwurf-hint a {
+  color: var(--plan-link);
+}
+
+@media (max-width: 900px) {
+  .planning-onboarding-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .planning-context-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .planning-context-views {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .planning-context-link {
+    flex: 1;
+    text-align: center;
+  }
+}

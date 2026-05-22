@@ -3,12 +3,14 @@ import CompetencyChainView from "./components/CompetencyChainView";
 import CurriculumMapOverlay from "./components/CurriculumMapOverlay";
 import React, { Component } from "react";
 import "./App.css";
+import { APP_ROUTES, chainPath } from "./config/appUrls";
 import {
   clearRecentCompetencies,
   pushRecentCompetency,
   readRecentCompetencies,
   truncateCompetencyLabel,
 } from "./recentCompetencyHistory";
+import { competencyEntryFromSearchResult } from "./utils/competencyUid";
 import {
   addFolder,
   bookmarkExists,
@@ -46,6 +48,19 @@ const API_ROOT =
 const apiUrl = (path) => {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${API_ROOT}${normalized}`;
+};
+
+/** Querverweise-Nachladen: Fokus-UID kann in einer zusammengeführten Ketten-Stufe stecken. */
+const chainStepContainsFocusUid = (step, focusUid) => {
+  if (!step || focusUid == null || focusUid === "") {
+    return false;
+  }
+  const f = String(focusUid).trim();
+  if (step.uid != null && String(step.uid).trim() === f) {
+    return true;
+  }
+  const mus = step.merged_uids;
+  return Array.isArray(mus) && mus.some((u) => u != null && String(u).trim() === f);
 };
 
 const backendDisplayLabel =
@@ -160,20 +175,28 @@ class App extends Component {
       recentCompetencies: [],
       bookmarkStore: loadBookmarkStore(),
       bookmarkDrawerOpen: false,
+      bookmarkDrawerTab: "merkliste",
+      /** Ordner aufgeklappt (folderId → true); fehlt = offen wenn Einträge */
+      bookmarkFolderExpanded: {},
       /** Nach „Leeren“: Snapshot für Rückgängig */
       bookmarkUndoSnapshot: null,
       /** Drag-and-Drop Zielordner (Highlight) */
       bookmarkDropTargetFolderId: null,
       /** Landkarte-Overlay (Fach → Thema → Ketten) */
       curriculumMapOpen: false,
+      /** Einmaliger Fokus für CurriculumMapOverlay (z. B. aus ChainView-Kontext). */
+      mapExplorerFocusRequest: null,
       /** Nur Dev: null | true | false — GET /health gegen API_ROOT */
       devBackendReachable: null,
+      vorhabenToast: null,
     };
     this.searchDebounceTimer = null;
     this.bookmarkDrawerEscapeHandler = null;
     this.bookmarkUndoTimerId = null;
     /** Verhindert, dass ein älterer /competency-chain-Fetch die ChainView überschreibt. */
     this._chainViewRequestId = 0;
+    /** Monoton für `mapExplorerFocusRequest.nonce`. */
+    this._mapExplorerFocusNonce = 0;
   }
 
   componentDidMount() {
@@ -223,9 +246,35 @@ class App extends Component {
     } catch (_e) {
       // ignore
     }
+
+    this.syncFromRouteProps(this.props);
   }
 
+  syncFromRouteProps = (props, prevProps) => {
+    const uid =
+      props.routeChainUid != null ? String(props.routeChainUid).trim() : "";
+    const prevUid =
+      prevProps && prevProps.routeChainUid != null
+        ? String(prevProps.routeChainUid).trim()
+        : "";
+    if (uid && uid !== prevUid) {
+      this.handleOpenCompetencyChain(uid, null, null, {});
+    } else if (!uid && prevUid) {
+      this.setState({ chainView: null });
+    }
+    if (props.initialMapOpen) {
+      this.setState({ curriculumMapOpen: true });
+    }
+  };
+
   componentDidUpdate(prevProps, prevState) {
+    const routeChanged =
+      prevProps.routeChainUid !== this.props.routeChainUid ||
+      prevProps.initialMapOpen !== this.props.initialMapOpen;
+    if (routeChanged) {
+      this.syncFromRouteProps(this.props, prevProps);
+    }
+
     if (prevState.bookmarkDrawerOpen !== this.state.bookmarkDrawerOpen) {
       if (this.state.bookmarkDrawerOpen) {
         this.bookmarkDrawerEscapeHandler = (event) => {
@@ -316,6 +365,10 @@ class App extends Component {
   componentWillUnmount() {
     if (this.searchDebounceTimer) {
       clearTimeout(this.searchDebounceTimer);
+    }
+    if (this.vorhabenToastTimerId) {
+      clearTimeout(this.vorhabenToastTimerId);
+      this.vorhabenToastTimerId = null;
     }
     if (this.handleVisibilityForHealth) {
       document.removeEventListener("visibilitychange", this.handleVisibilityForHealth);
@@ -628,7 +681,9 @@ class App extends Component {
         }));
         const fullChain = Array.isArray(chainPayload.full_chain)
           ? chainPayload.full_chain.map((step) =>
-              step && step.uid === focusUid ? { ...step, network_links: links } : step
+              step && chainStepContainsFocusUid(step, focusUid)
+                ? { ...step, network_links: links }
+                : step
             )
           : chainPayload.full_chain;
         return {
@@ -644,7 +699,7 @@ class App extends Component {
     return chainPayload;
   };
 
-  handleOpenCompetencyChain = (rawUid, prefetchedChain, recentContext) => {
+  handleOpenCompetencyChain = (rawUid, prefetchedChain, recentContext, openOptions) => {
     const uid =
       typeof rawUid === "string"
         ? rawUid.trim()
@@ -655,9 +710,21 @@ class App extends Component {
       return;
     }
 
+    const { routerNavigate } = this.props;
+    const chainRoute = chainPath(uid);
+    if (routerNavigate && window.location.pathname !== chainRoute) {
+      routerNavigate(chainRoute);
+    }
+    if (this.state.curriculumMapOpen) {
+      this.setState({ curriculumMapOpen: false, mapExplorerFocusRequest: null });
+    }
+
     const requestId = ++this._chainViewRequestId;
 
     const highlightAnchorUid = uid;
+    const searchSelectionHighlight = Boolean(
+      openOptions && openOptions.searchSelectionHighlight
+    );
 
     const embedded =
       prefetchedChain &&
@@ -691,11 +758,18 @@ class App extends Component {
           error: null,
           data: prefetchedChain,
           highlightAnchorUid,
+          searchSelectionHighlight,
         },
       });
     } else {
       this.setState({
-        chainView: { loading: true, error: null, data: null, highlightAnchorUid },
+        chainView: {
+          loading: true,
+          error: null,
+          data: null,
+          highlightAnchorUid,
+          searchSelectionHighlight,
+        },
       });
     }
 
@@ -721,12 +795,14 @@ class App extends Component {
                 loading: false,
                 error: null,
                 data,
+                searchSelectionHighlight,
               }
             : {
                 loading: false,
                 error: null,
                 data,
                 highlightAnchorUid,
+                searchSelectionHighlight,
               },
         }));
       })
@@ -745,6 +821,7 @@ class App extends Component {
               error: message,
               data: prefetchedChain,
               highlightAnchorUid,
+              searchSelectionHighlight,
             },
           });
         } else {
@@ -754,6 +831,7 @@ class App extends Component {
               error: message,
               data: null,
               highlightAnchorUid,
+              searchSelectionHighlight,
             },
           });
         }
@@ -762,6 +840,42 @@ class App extends Component {
 
   handleCloseCompetencyChain = () => {
     this.setState({ chainView: null });
+    const { routerNavigate } = this.props;
+    if (routerNavigate) {
+      routerNavigate(APP_ROUTES.search);
+    }
+  };
+
+  handleCloseCurriculumMap = () => {
+    this.setState({ curriculumMapOpen: false, mapExplorerFocusRequest: null });
+    if (this.props.initialMapOpen && this.props.routerNavigate) {
+      this.props.routerNavigate(APP_ROUTES.search);
+    }
+  };
+
+  handleOpenLandkarteRoute = () => {
+    this.setState({ curriculumMapOpen: true, mapExplorerFocusRequest: null });
+  };
+
+  handleOpenCurriculumMapFromChainContext = (payload) => {
+    if (!payload || !String(payload.fachName || "").trim()) {
+      return;
+    }
+    this._mapExplorerFocusNonce += 1;
+    this.setState({
+      curriculumMapOpen: true,
+      mapExplorerFocusRequest: { nonce: this._mapExplorerFocusNonce, ...payload },
+    });
+  };
+
+  handleMapExplorerFocusApplied = (nonce) => {
+    this.setState((prev) => {
+      const cur = prev.mapExplorerFocusRequest;
+      if (!cur || cur.nonce !== nonce) {
+        return null;
+      }
+      return { mapExplorerFocusRequest: null };
+    });
   };
 
   handleChainSelectNeighbor = (nextUid) => {
@@ -794,6 +908,10 @@ class App extends Component {
           fach: cur && cur.fach ? String(cur.fach).trim() : undefined,
           label: stepLabel,
         });
+        const { routerNavigate } = this.props;
+        if (routerNavigate && stepUid) {
+          routerNavigate(chainPath(stepUid));
+        }
         this.enrichChainDataWithNetworkApi(data).then((enriched) => {
           this.setState({
             chainView: {
@@ -801,6 +919,7 @@ class App extends Component {
               loading: false,
               error: null,
               data: enriched,
+              searchSelectionHighlight: false,
             },
           });
         });
@@ -881,7 +1000,12 @@ class App extends Component {
       result.metadata?.uid != null && String(result.metadata.uid).trim()
         ? String(result.metadata.uid).trim()
         : "";
-    return fromDocKey || fromChainUid || fromDoc || fromMeta || null;
+    const fromLp21Row =
+      result.metadata?.lp21_row_index != null &&
+      String(result.metadata.lp21_row_index).trim() !== ""
+        ? `lp21:${String(result.metadata.lp21_row_index).trim()}`
+        : "";
+    return fromDocKey || fromChainUid || fromDoc || fromLp21Row || fromMeta || null;
   };
 
   resolveBookmarkUidFromResult = (result) => {
@@ -903,7 +1027,13 @@ class App extends Component {
       result.metadata && result.metadata.uid != null
         ? String(result.metadata.uid).trim()
         : "";
-    return fromDocKey || fromDoc || fromMeta || fromChainUid || null;
+    const fromLp21Row =
+      result.metadata &&
+      result.metadata.lp21_row_index != null &&
+      String(result.metadata.lp21_row_index).trim() !== ""
+        ? `lp21:${String(result.metadata.lp21_row_index).trim()}`
+        : "";
+    return fromDocKey || fromDoc || fromLp21Row || fromMeta || fromChainUid || null;
   };
 
   handleToggleBookmarkEntry = (partial) => {
@@ -949,8 +1079,49 @@ class App extends Component {
     });
   };
 
+  handleAddedToVorhaben = (vorhaben) => {
+    if (!vorhaben?.title) {
+      return;
+    }
+    this.setState({
+      vorhabenToast: `Kompetenz in «${vorhaben.title}» übernommen.`,
+    });
+    if (this.vorhabenToastTimerId) {
+      clearTimeout(this.vorhabenToastTimerId);
+    }
+    this.vorhabenToastTimerId = window.setTimeout(() => {
+      this.setState({ vorhabenToast: null });
+      this.vorhabenToastTimerId = null;
+    }, 4000);
+  };
+
   handleOpenBookmarkDrawer = () => {
     this.setState({ bookmarkDrawerOpen: true });
+  };
+
+  handleBookmarkDrawerTab = (tab) => {
+    this.setState({ bookmarkDrawerTab: tab });
+  };
+
+  isBookmarkFolderExpanded = (folderId, itemCount) => {
+    const { bookmarkFolderExpanded } = this.state;
+    if (bookmarkFolderExpanded[folderId] !== undefined) {
+      return bookmarkFolderExpanded[folderId];
+    }
+    return itemCount > 0;
+  };
+
+  handleToggleBookmarkFolder = (folderId) => {
+    const itemCount =
+      this.state.bookmarkStore?.folders?.find((f) => f.id === folderId)?.items
+        ?.length ?? 0;
+    const currently = this.isBookmarkFolderExpanded(folderId, itemCount);
+    this.setState((prev) => ({
+      bookmarkFolderExpanded: {
+        ...prev.bookmarkFolderExpanded,
+        [folderId]: !currently,
+      },
+    }));
   };
 
   handleCloseBookmarkDrawer = () => {
@@ -1176,9 +1347,11 @@ class App extends Component {
       recentCompetencies,
       bookmarkStore,
       bookmarkDrawerOpen,
+      bookmarkDrawerTab,
       bookmarkUndoSnapshot,
       bookmarkDropTargetFolderId,
       curriculumMapOpen,
+      mapExplorerFocusRequest,
     } = this.state;
     const bookmarkIdSet = uidSetFromStore(bookmarkStore);
     const bookmarkTotal = totalBookmarkCount(bookmarkStore);
@@ -1222,9 +1395,22 @@ class App extends Component {
       })),
     }));
 
+    const { vorhabenToast } = this.state;
+
+    const mapOpen = curriculumMapOpen;
+
     return (
-      <div className="app-shell">
+      <div
+        className={`app-shell planning-surface app-shell--search${
+          mapOpen ? " app-shell--map-open" : ""
+        }`}
+      >
         {this.renderLocalDevWarnings()}
+        {vorhabenToast ? (
+          <div className="app-toast app-toast--vorhaben" role="status">
+            {vorhabenToast}
+          </div>
+        ) : null}
         <button
           type="button"
           className="bookmark-drawer-fab"
@@ -1232,7 +1418,8 @@ class App extends Component {
           aria-expanded={bookmarkDrawerOpen}
           aria-controls="bookmark-drawer-panel"
           aria-haspopup="dialog"
-          aria-label="Seitenleiste öffnen: Merkliste und zuletzt angesehen"
+          aria-label="Merkliste öffnen"
+          title="Merkliste"
         >
           <svg className="bookmark-drawer-fab-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -1262,56 +1449,90 @@ class App extends Component {
         >
           <div className="bookmark-drawer-inner">
             <h2 id="sidebar-drawer-heading" className="bookmark-drawer-sr-only">
-              Merkliste und zuletzt angesehen
+              Merkliste
             </h2>
-            <header className="bookmark-drawer-header bookmark-drawer-header--solo">
+            <header className="bookmark-drawer-header bookmark-drawer-header--tabs">
+              <div className="bookmark-drawer-tabs-wrap" role="tablist" aria-label="Merkliste Bereiche">
+                <button
+                  type="button"
+                  role="tab"
+                  className={`bookmark-drawer-tab ${bookmarkDrawerTab === "merkliste" ? "is-active" : ""}`}
+                  aria-selected={bookmarkDrawerTab === "merkliste"}
+                  onClick={() => this.handleBookmarkDrawerTab("merkliste")}
+                >
+                  Merkliste
+                  {bookmarkTotal > 0 ? (
+                    <span className="bookmark-drawer-tab-count"> ({bookmarkTotal})</span>
+                  ) : null}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  className={`bookmark-drawer-tab ${bookmarkDrawerTab === "recent" ? "is-active" : ""}`}
+                  aria-selected={bookmarkDrawerTab === "recent"}
+                  onClick={() => this.handleBookmarkDrawerTab("recent")}
+                >
+                  Zuletzt
+                  {recentCompetencies.length > 0 ? (
+                    <span className="bookmark-drawer-tab-count">
+                      {" "}
+                      ({recentCompetencies.length})
+                    </span>
+                  ) : null}
+                </button>
+              </div>
               <button
                 type="button"
                 className="bookmark-drawer-close"
                 onClick={this.handleCloseBookmarkDrawer}
-                aria-label="Seitenleiste schließen"
+                aria-label="Merkliste schließen"
               >
                 ×
               </button>
             </header>
 
-            <div className="bookmark-drawer-scroll">
-              <section
-                className="bookmark-drawer-section"
-                aria-labelledby="merkliste-heading"
-              >
-                <div className="bookmark-drawer-section-head">
-                  <h3 className="bookmark-drawer-section-title" id="merkliste-heading">
-                    Merkliste
-                  </h3>
-                  <div className="bookmark-drawer-section-tools">
-                    <button
-                      type="button"
-                      className="bookmark-section-tool-btn clear-button bookmark-add-folder-btn"
-                      onClick={this.handleAddFolderClick}
-                      aria-label="Neuen Ordner hinzufügen"
-                    >
-                      <span className="bookmark-add-folder-plus" aria-hidden="true">
-                        +
-                      </span>{" "}
-                      Ordner
-                    </button>
-                    <button
-                      type="button"
-                      className="bookmark-section-tool-btn recent-history-clear clear-button"
-                      onClick={this.handleClearBookmarksWithUndo}
-                      disabled={bookmarkTotal === 0}
-                      aria-label="Gesamte Merkliste leeren"
-                    >
-                      Leeren
-                    </button>
-                  </div>
-                </div>
+            <div
+              className="bookmark-drawer-tabpanel"
+              role="tabpanel"
+              aria-labelledby="sidebar-drawer-heading"
+            >
+              <div className="bookmark-drawer-tabpanel-inner">
+                {bookmarkDrawerTab === "merkliste" ? (
+                  <>
+                    <div className="bookmark-drawer-toolbar">
+                      <button
+                        type="button"
+                        className="bookmark-toolbar-btn"
+                        onClick={this.handleAddFolderClick}
+                        aria-label="Neuen Ordner hinzufügen"
+                      >
+                        + Ordner
+                      </button>
+                      <button
+                        type="button"
+                        className="bookmark-toolbar-btn bookmark-toolbar-btn--muted"
+                        onClick={this.handleClearBookmarksWithUndo}
+                        disabled={bookmarkTotal === 0}
+                        aria-label="Gesamte Merkliste leeren"
+                      >
+                        Leeren
+                      </button>
+                    </div>
 
-                {foldersOrdered.map((folder) => (
+                    {bookmarkTotal === 0 ? (
+                      <p className="bookmark-drawer-empty">
+                        Noch keine Kompetenzen gemerkt. In den Suchergebnissen auf das
+                        Lesezeichen tippen.
+                      </p>
+                    ) : (
+                      <div className="bookmark-drawer-scroll bookmark-drawer-scroll--folders">
+                {foldersOrdered.map((folder) => {
+                  const itemCount = folder.items ? folder.items.length : 0;
+                  const folderOpen = this.isBookmarkFolderExpanded(folder.id, itemCount);
+                  return (
                   <section
                     key={folder.id}
-                    className={`bookmark-folder ${bookmarkDropTargetFolderId === folder.id ? "bookmark-folder--drop" : ""}`}
+                    className={`bookmark-folder ${bookmarkDropTargetFolderId === folder.id ? "bookmark-folder--drop" : ""} ${folderOpen ? "" : "bookmark-folder--collapsed"}`}
                     onDragOver={(event) =>
                       this.handleBookmarkDragOverFolder(event, folder.id)
                     }
@@ -1319,45 +1540,57 @@ class App extends Component {
                     onDrop={(event) => this.handleDropOnFolderBody(event, folder.id)}
                   >
                     <div className="bookmark-folder-head">
-                      <h4 className="bookmark-folder-name">{folder.name}</h4>
-                      <div className="bookmark-folder-actions">
-                        <button
-                          type="button"
-                          className="bookmark-folder-link"
-                          onClick={() =>
-                            this.handleRenameFolderClick(folder.id, folder.name)
-                          }
-                        >
-                          Umbenennen
-                        </button>
-                        <button
-                          type="button"
-                          className="bookmark-folder-link"
-                          onClick={() => this.handleCopyFolderPlain(folder)}
-                          disabled={!folder.items || folder.items.length === 0}
-                        >
-                          Liste kopieren
-                        </button>
-                        <button
-                          type="button"
-                          className="bookmark-folder-link"
-                          onClick={() => this.handleDownloadFolderTxt(folder)}
-                          disabled={!folder.items || folder.items.length === 0}
-                        >
-                          Textdatei
-                        </button>
-                        {folder.id !== DEFAULT_FOLDER_ID ? (
+                      <button
+                        type="button"
+                        className="bookmark-folder-toggle"
+                        onClick={() => this.handleToggleBookmarkFolder(folder.id)}
+                        aria-expanded={folderOpen}
+                      >
+                        <span className="bookmark-folder-chevron" aria-hidden="true">
+                          {folderOpen ? "▾" : "▸"}
+                        </span>
+                        <span className="bookmark-folder-name">{folder.name}</span>
+                        <span className="bookmark-folder-count">{itemCount}</span>
+                      </button>
+                      <details className="bookmark-folder-menu">
+                        <summary aria-label={`Aktionen für ${folder.name}`}>⋯</summary>
+                        <div className="bookmark-folder-menu-panel">
                           <button
                             type="button"
-                            className="bookmark-folder-link bookmark-folder-link--danger"
-                            onClick={() => this.handleDeleteFolderClick(folder.id)}
+                            onClick={() =>
+                              this.handleRenameFolderClick(folder.id, folder.name)
+                            }
                           >
-                            Ordner löschen
+                            Umbenennen
                           </button>
-                        ) : null}
-                      </div>
+                          <button
+                            type="button"
+                            onClick={() => this.handleCopyFolderPlain(folder)}
+                            disabled={itemCount === 0}
+                          >
+                            Kopieren
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => this.handleDownloadFolderTxt(folder)}
+                            disabled={itemCount === 0}
+                          >
+                            Textdatei
+                          </button>
+                          {folder.id !== DEFAULT_FOLDER_ID ? (
+                            <button
+                              type="button"
+                              className="bookmark-folder-menu-danger"
+                              onClick={() => this.handleDeleteFolderClick(folder.id)}
+                            >
+                              Löschen
+                            </button>
+                          ) : null}
+                        </div>
+                      </details>
                     </div>
 
+                    {folderOpen ? (
                     <ul className="bookmark-folder-list">
                       {!folder.items || folder.items.length === 0 ? (
                         <li className="bookmark-folder-placeholder">
@@ -1431,87 +1664,84 @@ class App extends Component {
                         })
                       )}
                     </ul>
+                    ) : (
+                      <p className="bookmark-folder-placeholder">
+                        Leer — per Drag &amp; Drop verschieben
+                      </p>
+                    )}
                   </section>
-                ))}
-
-                {bookmarkTotal === 0 ? (
-                  <p className="bookmark-drawer-empty">
-                    Noch keine Kompetenzen gemerkt.
-                  </p>
-                ) : null}
-              </section>
-
-              <section
-                className="bookmark-drawer-section bookmark-drawer-section--divider"
-                aria-labelledby="recent-heading"
-              >
-                <div className="bookmark-drawer-section-head">
-                  <h3 className="bookmark-drawer-section-title" id="recent-heading">
-                    Zuletzt angesehen
-                  </h3>
-                  <button
-                    type="button"
-                    className="bookmark-section-tool-btn recent-history-clear clear-button"
-                    onClick={this.handleClearRecentHistory}
-                    disabled={recentCompetencies.length === 0}
-                    aria-label="Zuletzt angesehen leeren"
-                  >
-                    Verlauf leeren
-                  </button>
-                </div>
-
-                {recentCompetencies.length === 0 ? (
-                  <p className="bookmark-drawer-empty bookmark-drawer-empty--tight">
-                    Noch keine Einträge.
-                  </p>
+                  );
+                })}
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <ul className="bookmark-drawer-list bookmark-drawer-list--recentsidebar">
-                    {recentCompetencies.map((entry) => {
-                      const metaLine = [entry.code, entry.fach]
-                        .filter(Boolean)
-                        .join(" · ");
-                      const timeStr = this.formatRecentTimestamp(entry.ts);
-                      const aria = [
-                        "Kompetenz im Aufbau-Kontext öffnen:",
-                        entry.label,
-                        metaLine,
-                        timeStr,
-                      ]
-                        .filter(Boolean)
-                        .join(" ");
-                      return (
-                        <li key={entry.uid}>
-                          <button
-                            type="button"
-                            className="recent-history-item recent-history-item--in-drawer"
-                            onClick={() => this.handleOpenFromRecent(entry)}
-                            aria-label={aria}
-                          >
-                            <span className="recent-history-item-main">
-                              <span className="recent-history-item-label">
-                                {entry.label}
-                              </span>
-                              {metaLine ? (
-                                <span className="recent-history-item-meta">
-                                  {metaLine}
-                                </span>
-                              ) : null}
-                            </span>
-                            {timeStr ? (
-                              <time
-                                className="recent-history-item-time"
-                                dateTime={new Date(entry.ts).toISOString()}
+                  <>
+                    <div className="bookmark-drawer-toolbar bookmark-drawer-toolbar--solo">
+                      <button
+                        type="button"
+                        className="bookmark-toolbar-btn bookmark-toolbar-btn--muted"
+                        onClick={this.handleClearRecentHistory}
+                        disabled={recentCompetencies.length === 0}
+                        aria-label="Zuletzt angesehen leeren"
+                      >
+                        Verlauf leeren
+                      </button>
+                    </div>
+                    {recentCompetencies.length === 0 ? (
+                      <p className="bookmark-drawer-empty bookmark-drawer-empty--tight">
+                        Noch keine Einträge.
+                      </p>
+                    ) : (
+                      <ul className="bookmark-drawer-list bookmark-drawer-list--recentsidebar">
+                        {recentCompetencies.map((entry) => {
+                          const metaLine = [entry.code, entry.fach]
+                            .filter(Boolean)
+                            .join(" · ");
+                          const timeStr = this.formatRecentTimestamp(entry.ts);
+                          const aria = [
+                            "Kompetenz im Aufbau-Kontext öffnen:",
+                            entry.label,
+                            metaLine,
+                            timeStr,
+                          ]
+                            .filter(Boolean)
+                            .join(" ");
+                          return (
+                            <li key={entry.uid}>
+                              <button
+                                type="button"
+                                className="recent-history-item recent-history-item--in-drawer"
+                                onClick={() => this.handleOpenFromRecent(entry)}
+                                aria-label={aria}
                               >
-                                {timeStr}
-                              </time>
-                            ) : null}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                                <span className="recent-history-item-main">
+                                  <span className="recent-history-item-label">
+                                    {entry.label}
+                                  </span>
+                                  {metaLine ? (
+                                    <span className="recent-history-item-meta">
+                                      {metaLine}
+                                    </span>
+                                  ) : null}
+                                </span>
+                                {timeStr ? (
+                                  <time
+                                    className="recent-history-item-time"
+                                    dateTime={new Date(entry.ts).toISOString()}
+                                  >
+                                    {timeStr}
+                                  </time>
+                                ) : null}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </>
                 )}
-              </section>
+              </div>
             </div>
           </div>
         </aside>
@@ -1529,7 +1759,7 @@ class App extends Component {
           </div>
         ) : null}
 
-        <main className="layout">
+        <main className="layout search-main-content">
           <section className="content-column">
             <header className={`hero ${hasSearched ? "hero-compact" : ""}`}>
               <div className="hero-title-row">
@@ -1537,11 +1767,11 @@ class App extends Component {
                 <button
                   type="button"
                   className="hero-map-link"
-                  onClick={() => this.setState({ curriculumMapOpen: true })}
+                  onClick={this.handleOpenLandkarteRoute}
                   aria-expanded={curriculumMapOpen}
                   aria-controls="curriculum-map-root"
                 >
-                  (Karte)
+                  Landkarte-Explorer
                 </button>
               </div>
               <p>
@@ -1681,6 +1911,7 @@ class App extends Component {
                 error={chainView.error}
                 chainData={chainView.data}
                 highlightAnchorUid={chainView.highlightAnchorUid}
+                searchSelectionHighlight={Boolean(chainView.searchSelectionHighlight)}
                 onBack={this.handleCloseCompetencyChain}
                 onSelectNeighbor={this.handleChainSelectNeighbor}
                 getZyklusColorByPart={this.getZyklusColor}
@@ -1690,6 +1921,7 @@ class App extends Component {
                 }
                 bookmarkUids={bookmarkIdSet}
                 onToggleBookmarkStep={this.handleToggleBookmarkFromChainStep}
+                onOpenInCurriculumMap={this.handleOpenCurriculumMapFromChainContext}
               />
             ) : null}
 
@@ -1754,22 +1986,42 @@ class App extends Component {
                                     : undefined
                                 }
                                 onOpenCompetencyChain={(uid, prefetchedChain) =>
-                                  this.handleOpenCompetencyChain(uid, prefetchedChain, {
-                                    code: result.metadata.code,
-                                    fach: result.metadata.fach,
-                                    label: truncateCompetencyLabel(
-                                      result.text ||
-                                        result.metadata.code ||
-                                        uid,
-                                      120
-                                    ),
-                                  })
+                                  this.handleOpenCompetencyChain(
+                                    uid,
+                                    prefetchedChain,
+                                    {
+                                      code: result.metadata.code,
+                                      fach: result.metadata.fach,
+                                      label: truncateCompetencyLabel(
+                                        result.text ||
+                                          result.metadata.code ||
+                                          uid,
+                                        120
+                                      ),
+                                    },
+                                    { searchSelectionHighlight: true }
+                                  )
                                 }
                                 getCompetencyChainUrl={(uid) =>
                                   apiUrl(
                                     `/api/competency-chain/${encodeURIComponent(uid)}`
                                   )
                                 }
+                                competencyEntry={competencyEntryFromSearchResult({
+                                  text: result.text,
+                                  metadata: result.metadata,
+                                  prefetchedChain:
+                                    result.prefetchedChain ||
+                                    result.metadata._competency_chain,
+                                  documentUid: this.resolveCompetencyOpenUidFromResult(result),
+                                })}
+                                onAddedToVorhaben={this.handleAddedToVorhaben}
+                                lessonDraftUid={this.resolveCompetencyOpenUidFromResult(
+                                  result
+                                )}
+                                lessonDraftCode={result.metadata.code}
+                                lessonDraftFach={result.metadata.fach}
+                                lessonDraftText={result.text}
                               />
                               );
                             })}
@@ -1791,7 +2043,8 @@ class App extends Component {
 
         <CurriculumMapOverlay
           isOpen={curriculumMapOpen}
-          onClose={() => this.setState({ curriculumMapOpen: false })}
+          fullPage={true}
+          onClose={this.handleCloseCurriculumMap}
           apiUrl={apiUrl}
           getFachColor={this.getFachColor}
           getZyklusColorByPart={this.getZyklusColor}
@@ -1799,6 +2052,9 @@ class App extends Component {
           onRecordRecentView={this.recordRecentCompetencyView}
           bookmarkUids={bookmarkIdSet}
           onBookmarkToggle={this.handleToggleBookmarkEntry}
+          mapExplorerFocusRequest={mapExplorerFocusRequest}
+          onMapExplorerFocusApplied={this.handleMapExplorerFocusApplied}
+          onOpenInCurriculumMapFromChain={this.handleOpenCurriculumMapFromChainContext}
         />
       </div>
     );
