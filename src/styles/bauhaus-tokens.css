@@ -40,9 +40,11 @@
   --space-6: 32px;
   --space-7: 48px;
 
-  /* —— Bridge: search / App.css —— */
-  --text-muted: #444444;
-  --text-subtle: #555555;
+  /* —— Bridge: search / App.css (WCAG AA auf #F0F0F0) —— */
+  --text-muted: #3a3a3a;
+  --text-subtle: #4f4f4f;
+  --text-on-primary: #ffffff;
+  --text-on-accent: #121212;
   --border-subtle: var(--bh-fg);
   --radius-input: 0;
   --radius-chip: var(--bh-radius-full);

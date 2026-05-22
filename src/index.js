@@ -6,6 +6,7 @@ import './styles/bauhaus-components.css';
 import './index.css';
 import AppRouter from './AppRouter';
 import './styles/bauhaus-overrides.css';
+import './styles/bauhaus-readability.css';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

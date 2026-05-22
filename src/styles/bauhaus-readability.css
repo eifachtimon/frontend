@@ -1,0 +1,369 @@
+/**
+ * Lesbarkeit — überschreibt Legacy-Dark-Mode-Textfarben aus App.css / Planung.
+ * Nach bauhaus-overrides.css laden.
+ */
+
+/* —— Baseline auf hellem Canvas —— */
+.app-shell,
+.planning-surface,
+.curriculum-map-page,
+.bookmark-drawer-panel,
+.add-to-vorhaben-modal,
+.competency-chain-panel {
+  color: var(--bh-fg);
+}
+
+/* —— Suche: Hero —— */
+.app-shell .hero h1,
+.app-shell .hero p,
+.app-shell #app-main-title {
+  color: var(--bh-fg) !important;
+}
+
+.app-shell .hero.hero-compact p {
+  color: var(--text-muted) !important;
+}
+
+/* —— Suche: Fliesstext & Überschriften —— */
+.app-shell .result-text,
+.app-shell .result-text--merge-block,
+.app-shell .result-linked-peer-text,
+.app-shell .result-group h3,
+.app-shell .results-header,
+.app-shell .bookmark-drawer-row-label,
+.app-shell .recent-history-item-label,
+.app-shell .chain-panel-title,
+.app-shell .chain-aufbau-thema,
+.app-shell .chain-aufbau-context-line,
+.app-shell .chain-aufbau-context-fachname,
+.app-shell .chain-aufbau-thema--context,
+.app-shell .clear-button,
+.app-shell .filter-chip,
+.app-shell .active-filter-chip {
+  color: var(--bh-fg) !important;
+}
+
+/* —— Sekundärtext (mind. ~4.5:1 auf #F0F0F0) —— */
+.app-shell .result-code-text,
+.app-shell .result-linked-peer-code,
+.app-shell .result-linked-peer-loading,
+.app-shell .result-network-link-label,
+.app-shell .result-network-link-icon,
+.app-shell .result-network-link-ref,
+.app-shell .recent-history-item-meta,
+.app-shell .recent-history-item-time,
+.app-shell .bookmark-drawer-row-meta,
+.app-shell .bookmark-drawer-tab-count,
+.app-shell .filter-summary,
+.app-shell .chip-group-title,
+.app-shell .hero:not(.hero-compact) ~ .filters-inline .chip-group-title,
+.app-shell .chain-aufbau-chain-heading,
+.app-shell .chain-aufbau-context-line--cluster,
+.app-shell .chain-status,
+.app-shell .network-graph-overflow,
+.app-shell .curriculum-map-subtitle,
+.app-shell .curriculum-map-strip-hint,
+.app-shell .map-outline-toolbar-stats,
+.app-shell .curriculum-map-chain-code,
+.app-shell .planning-empty,
+.app-shell .planning-empty-state-hint,
+.planning-surface .vorhaben-stepper-hint,
+.planning-surface .vorhaben-card-meta,
+.planning-surface .vorhaben-card-stats,
+.planning-surface .planning-hub-lead,
+.planning-surface .planning-hub-entry-desc,
+.planning-surface .ritual-palette-hint,
+.planning-surface .woche-kw-year {
+  color: var(--text-muted) !important;
+}
+
+/* —— Links —— */
+.app-shell .chain-source-link,
+.app-shell a.chain-source-link,
+.planning-surface a:not(.planning-btn):not(.app-top-nav-link):not(.vorhaben-card-link) {
+  color: var(--bh-blue);
+}
+
+.planning-surface .vorhaben-card-link,
+.planning-surface .vorhaben-card-link h3 {
+  color: var(--bh-fg) !important;
+}
+
+.app-shell .chain-source-link:hover {
+  color: #0a2e80;
+}
+
+/* —— Status & Hinweise —— */
+.app-shell .status-message {
+  color: var(--text-muted) !important;
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+}
+
+.app-shell .status-message::after {
+  border-color: var(--bh-muted) !important;
+  border-top-color: var(--bh-fg) !important;
+}
+
+.app-shell .status-message.error {
+  color: #7a1212 !important;
+  background: #ffe5e5 !important;
+  border-color: var(--bh-red) !important;
+}
+
+/* —— Merkliste (Drawer) —— */
+.bookmark-drawer-panel {
+  color: var(--bh-fg) !important;
+}
+
+.bookmark-drawer-header,
+.bookmark-drawer-toolbar,
+.bookmark-drawer-tabs {
+  border-color: var(--bh-border) !important;
+}
+
+.bookmark-drawer-tab {
+  color: var(--text-muted) !important;
+  background: var(--bh-white) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.bookmark-drawer-tab.is-active {
+  color: var(--bh-fg) !important;
+  background: var(--bh-yellow) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.bookmark-drawer-tab.is-active .bookmark-drawer-tab-count {
+  color: var(--text-muted) !important;
+}
+
+.bookmark-toolbar-btn,
+.bookmark-toolbar-btn--muted {
+  color: var(--bh-fg) !important;
+}
+
+.bookmark-folder-toggle,
+.bookmark-folder-name,
+.bookmark-drawer-placeholder {
+  color: var(--text-muted) !important;
+}
+
+.bookmark-drag-handle {
+  color: var(--text-subtle) !important;
+}
+
+/* —— Aufbau-Kette —— */
+.competency-chain-panel {
+  color: var(--bh-fg) !important;
+}
+
+.competency-chain-panel .chain-map-nav-btn {
+  color: var(--text-muted) !important;
+  background: var(--bh-white) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.competency-chain-panel .chain-map-nav-btn:hover:not(:disabled) {
+  color: var(--bh-fg) !important;
+  background: var(--bh-muted) !important;
+}
+
+.competency-chain-panel .chain-back-button {
+  color: var(--bh-fg) !important;
+  background: var(--bh-white) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.competency-chain-panel .chain-bookmark-button {
+  color: var(--bh-blue) !important;
+  background: var(--bh-white) !important;
+  border-color: var(--bh-blue) !important;
+}
+
+.competency-chain-panel .chain-bookmark-button--active {
+  color: var(--bh-fg) !important;
+  background: var(--bh-yellow) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.competency-chain-panel .chain-aufbau-merge-sep {
+  border-top-color: var(--bh-border) !important;
+}
+
+button.chain-aufbau-context-hit:hover {
+  background: var(--bh-muted) !important;
+}
+
+.chain-status-error {
+  color: var(--bh-red) !important;
+}
+
+/* —— Landkarte —— */
+.curriculum-map-page,
+.curriculum-map-page h2,
+.curriculum-map-page .curriculum-map-crumb,
+.curriculum-map-page .map-node,
+.curriculum-map-page .map-node-code,
+.curriculum-map-page .map-outline-row,
+.curriculum-map-page .curriculum-map-chain-row,
+.curriculum-map-page .map-subject-card-title,
+.curriculum-map-status {
+  color: var(--bh-fg) !important;
+}
+
+.curriculum-map-page .curriculum-map-crumb--current {
+  color: var(--text-muted) !important;
+}
+
+.curriculum-map-page .map-subject-card,
+.curriculum-map-page .map-node--kb,
+.curriculum-map-page .map-node--aspect {
+  background: var(--bh-white) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.curriculum-map-page .map-outline-row--stage {
+  color: var(--text-muted) !important;
+}
+
+.map-outline-tool-btn,
+.curriculum-map-close {
+  color: var(--bh-fg) !important;
+}
+
+/* —— Filter & Chips —— */
+.app-shell .quick-chip,
+.app-shell .filter-toolbar button,
+.active-filter-chip {
+  color: var(--bh-fg) !important;
+}
+
+.app-shell .group-fach-pill {
+  color: var(--text-on-primary) !important;
+}
+
+/* —— Eingaben —— */
+.app-shell input::placeholder,
+.app-shell textarea::placeholder,
+.planning-surface input::placeholder,
+.planning-surface textarea::placeholder,
+.cal-page input::placeholder {
+  color: var(--text-subtle) !important;
+  opacity: 1 !important;
+}
+
+.app-shell input,
+.app-shell textarea,
+.app-shell select {
+  color: var(--bh-fg) !important;
+}
+
+/* —— Planung: Kontrast auf farbigen Flächen —— */
+.planning-primary-cta,
+.planning-primary-cta h2,
+.planning-primary-cta p,
+.planning-primary-cta-vorhaben,
+.planning-primary-cta-hint {
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .vorhaben-stepper-link--active,
+.planning-surface .vorhaben-stepper-link--active .vorhaben-stepper-hint,
+.planning-surface .vorhaben-stepper-link--current {
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .vorhaben-stepper-link--active .vorhaben-stepper-hint {
+  color: var(--text-muted) !important;
+}
+
+.planning-surface .woche-today-badge {
+  color: var(--bh-fg) !important;
+  background: var(--bh-yellow) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.planning-surface .template-chip--active,
+.planning-surface .planning-context-link--active {
+  color: var(--bh-fg) !important;
+}
+
+/* —— Kalender —— */
+.cal-fullcalendar-host .fc-col-header-cell-cushion,
+.cal-fullcalendar-host .fc-daygrid-day-number,
+.cal-fullcalendar-host .fc-timegrid-slot-label-cushion,
+.cal-fullcalendar-host .fc-daygrid-week-number,
+.cal-fullcalendar-host .fc-list-day-text,
+.cal-toolbar-title,
+.cal-filter-bar,
+.cal-modal,
+.cal-modal label,
+.cal-modal-header h2 {
+  color: var(--bh-fg) !important;
+}
+
+.cal-fullcalendar-host .fc-button {
+  color: var(--text-on-primary) !important;
+}
+
+.cal-fullcalendar-host .fc-button-primary:not(:disabled).fc-button-active {
+  color: var(--bh-fg) !important;
+}
+
+.cal-stundenplan-modal-hint,
+.cal-filter-bar label {
+  color: var(--text-muted) !important;
+}
+
+/* —— Fehler / Warnung (lesbar) —— */
+.planning-surface .field-error,
+.cal-modal-field-error,
+.app-shell .input-error-message {
+  color: #7a1212 !important;
+}
+
+.planning-surface .woche-sonder--elterninfo {
+  color: #0a2e80 !important;
+}
+
+/* —— Kompetenz-Picker & Entwurf —— */
+.planning-surface .competency-picker-tab,
+.planning-surface .competency-picker-chip-label,
+.planning-surface .competency-picker-item-label,
+.planning-surface .planung-header h1,
+.planning-surface .planung-competency-summary,
+.planning-surface label,
+.planning-surface legend {
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .competency-picker-hint,
+.planning-surface .competency-picker-empty,
+.planning-surface .planung-draft-notice,
+.planning-surface .planung-api-placeholder {
+  color: var(--text-muted) !important;
+}
+
+.planning-surface .competency-picker-tab.is-active {
+  color: var(--bh-fg) !important;
+  background: var(--bh-yellow) !important;
+}
+
+/* —— Report-Organizer —— */
+.planning-surface .report-organizer-toggle,
+.planning-surface .report-organizer-body,
+.planning-surface .report-organizer-applied {
+  color: var(--bh-fg) !important;
+}
+
+/* —— Dev-Warnungen —— */
+.dev-warning-title,
+.dev-warning-body {
+  color: var(--bh-fg) !important;
+}
+
+.dev-warning-body code {
+  color: var(--bh-fg) !important;
+  background: var(--bh-muted) !important;
+}

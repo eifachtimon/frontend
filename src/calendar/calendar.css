@@ -251,7 +251,7 @@
 .cal-apple-error {
   margin: 0 0 var(--space-2);
   font-size: 0.82rem;
-  color: #f08080;
+  color: var(--bh-red, #d02020);
 }
 
 .cal-apple-url-row {
@@ -625,7 +625,7 @@
 .cal-subscriptions-error {
   margin: 0 0 var(--space-2);
   font-size: 0.82rem;
-  color: #f08080;
+  color: var(--bh-red, #d02020);
 }
 
 .cal-subscriptions-actions {
@@ -669,7 +669,7 @@
 }
 
 .cal-subscription-err {
-  color: #f08080;
+  color: var(--bh-red, #d02020);
 }
 
 .cal-subscription-btns {
@@ -1012,7 +1012,7 @@ body.cal-modal-open {
 }
 
 .cal-modal-delete {
-  color: #f08080 !important;
+  color: var(--bh-red, #d02020) !important;
 }
 
 .cal-modal-readonly-hint {
