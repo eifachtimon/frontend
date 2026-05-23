@@ -123,7 +123,7 @@ const CalendarEventModal = ({
 
           {canEdit && vorhabenOptions.length > 0 ? (
             <div className="cal-modal-field">
-              <label htmlFor="cal-ev-vorhaben">Vorhaben</label>
+              <label htmlFor="cal-ev-vorhaben">Thema</label>
               <select
                 id="cal-ev-vorhaben"
                 value={form.vorhabenId || ""}

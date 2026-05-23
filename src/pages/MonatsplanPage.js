@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import PlanningContextBar from "../planning/PlanningContextBar";
+import PlanningViewHeader from "../planning/PlanningViewHeader";
 import {
   MONTH_NAMES,
   getSchoolYearStart,
@@ -14,12 +14,8 @@ import {
   updateWeekInMonth,
 } from "../planning/planningKalender";
 import usePlanningStore from "../planning/usePlanningStore";
-import {
-  APP_ROUTES,
-  jahresplanPath,
-  monatsplanPath,
-  vorhabenLevelPath,
-} from "../config/appUrls";
+import { APP_ROUTES, monatsplanPath, vorhabenLevelPath } from "../config/appUrls";
+import { getFachCssVars, getFachToneClassName } from "../planning/fachColors";
 import "../planning/planning.css";
 
 const MonatsplanPage = () => {
@@ -50,62 +46,53 @@ const MonatsplanPage = () => {
 
   return (
     <div className="app-shell planning-hub planning-surface">
-      <main className="planning-hub-main layout">
-        <PlanningContextBar activeSection="monat" />
-        <nav className="planung-breadcrumb" aria-label="Brotkrumen">
-          <Link to={APP_ROUTES.planung}>Mein Unterricht</Link>
-          <span aria-hidden="true"> / </span>
-          <Link to={jahresplanPath(schoolYearStart)}>Jahresplan</Link>
-          <span aria-hidden="true"> / </span>
-          <span>
-            {monthLabel} {year}
-          </span>
-        </nav>
+      <main className="planning-hub-main planning-hub-main--time layout">
+        <PlanningViewHeader
+          title={monthLabel}
+          lead="Kalenderwochen und Verknüpfung zu Themen"
+          nav={
+            <>
+              <button
+                type="button"
+                className="planning-btn planning-btn--ghost"
+                onClick={() => navigate(monatsplanPath(prev.year, prev.month))}
+              >
+                ← {MONTH_NAMES[prev.month - 1].slice(0, 3)}
+              </button>
+              <button
+                type="button"
+                className="planning-btn planning-btn--ghost"
+                onClick={() => navigate(monatsplanPath(next.year, next.month))}
+              >
+                {MONTH_NAMES[next.month - 1].slice(0, 3)} →
+              </button>
+            </>
+          }
+        />
 
-        <header className="kalender-page-header">
-          <div>
-            <h1>{monthLabel}</h1>
-            <p className="planning-hub-lead">Kalenderwochen und Verknüpfung zu Vorhaben</p>
+        <div className="planning-view-panel">
+          <div className="monatsplan-stack">
+          <div className="planning-field">
+            <label htmlFor="monat-focus">Monatsschwerpunkt</label>
+            <input
+              id="monat-focus"
+              type="text"
+              value={monthEntry.focus || ""}
+              onChange={(e) => handleMonthPatch({ focus: e.target.value })}
+              placeholder="Was steht diesen Monat im Zentrum?"
+            />
           </div>
-          <div className="kalender-month-nav">
-            <button
-              type="button"
-              className="planning-btn planning-btn--ghost"
-              onClick={() => navigate(monatsplanPath(prev.year, prev.month))}
-            >
-              ← {MONTH_NAMES[prev.month - 1].slice(0, 3)}
-            </button>
-            <button
-              type="button"
-              className="planning-btn planning-btn--ghost"
-              onClick={() => navigate(monatsplanPath(next.year, next.month))}
-            >
-              {MONTH_NAMES[next.month - 1].slice(0, 3)} →
-            </button>
+          <div className="planning-field">
+            <label htmlFor="monat-notizen">Monatsnotizen</label>
+            <textarea
+              id="monat-notizen"
+              rows={2}
+              value={monthEntry.notizen || ""}
+              onChange={(e) => handleMonthPatch({ notizen: e.target.value })}
+            />
           </div>
-        </header>
 
-        <div className="planning-field">
-          <label htmlFor="monat-focus">Monatsschwerpunkt</label>
-          <input
-            id="monat-focus"
-            type="text"
-            value={monthEntry.focus || ""}
-            onChange={(e) => handleMonthPatch({ focus: e.target.value })}
-            placeholder="Was steht diesen Monat im Zentrum?"
-          />
-        </div>
-        <div className="planning-field">
-          <label htmlFor="monat-notizen">Monatsnotizen</label>
-          <textarea
-            id="monat-notizen"
-            rows={2}
-            value={monthEntry.notizen || ""}
-            onChange={(e) => handleMonthPatch({ notizen: e.target.value })}
-          />
-        </div>
-
-        <ul className="monatsplan-week-list">
+          <ul className="monatsplan-week-list">
           {weeks.map((w) => {
             const wkStoreKey = `${w.year}-W${w.kw}`;
             const weekData = monthEntry.weeks?.[wkStoreKey] || {};
@@ -124,18 +111,22 @@ const MonatsplanPage = () => {
                   </span>
                   {linked.length > 0 ? (
                     <span className="monatsplan-vorhaben-chips">
-                      {linked.map((v) => (
-                        <Link
-                          key={v.id}
-                          to={vorhabenLevelPath(v.id, "woche")}
-                          className="monatsplan-vorhaben-chip"
-                        >
-                          {v.title}
-                        </Link>
-                      ))}
+                      {linked.map((v) => {
+                        const toneClass = getFachToneClassName(v.fach);
+                        return (
+                          <Link
+                            key={v.id}
+                            to={vorhabenLevelPath(v.id, "woche")}
+                            className={`monatsplan-vorhaben-chip${toneClass ? ` ${toneClass}` : ""}`}
+                            style={toneClass ? getFachCssVars(v.fach, v.id) : undefined}
+                          >
+                            {v.title}
+                          </Link>
+                        );
+                      })}
                     </span>
                   ) : (
-                    <span className="monatsplan-no-vorhaben">Kein Vorhaben</span>
+                    <span className="monatsplan-no-vorhaben">Kein Thema</span>
                   )}
                 </div>
                 <input
@@ -150,7 +141,7 @@ const MonatsplanPage = () => {
                 />
                 {store.vorhaben.length > 0 ? (
                   <label className="monatsplan-vorhaben-select-wrap">
-                    <span className="planning-sr-only">Vorhaben für KW verknüpfen</span>
+                    <span className="planning-sr-only">Thema für KW verknüpfen</span>
                     <select
                       value={vorhabenId}
                       onChange={(e) =>
@@ -158,9 +149,9 @@ const MonatsplanPage = () => {
                           vorhabenId: e.target.value,
                         })
                       }
-                      aria-label={`Vorhaben für KW ${w.kw}`}
+                      aria-label={`Thema für KW ${w.kw}`}
                     >
-                      <option value="">— Vorhaben wählen —</option>
+                      <option value="">— Thema wählen —</option>
                       {store.vorhaben.map((v) => (
                         <option key={v.id} value={v.id}>
                           {v.title}
@@ -177,14 +168,16 @@ const MonatsplanPage = () => {
                     ) : null}
                   </label>
                 ) : (
-                  <Link to={APP_ROUTES.planung} className="monatsplan-week-open">
-                    Vorhaben anlegen →
+                  <Link to={APP_ROUTES.home} className="monatsplan-week-open">
+                    Thema anlegen →
                   </Link>
                 )}
               </li>
             );
           })}
         </ul>
+          </div>
+        </div>
       </main>
     </div>
   );

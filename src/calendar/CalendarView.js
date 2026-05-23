@@ -31,10 +31,26 @@ import { applyEventDropToPlanningStore } from "./calendarActions";
 import { applyStundenplanEventDrop } from "./stundenplanActions";
 import { updateLocalEvent, upsertStundenplanSlot } from "./calendarStore";
 import {
+  applyFachEventElementStyles,
+  resolvePlanningEventColors,
+} from "../planning/fachColors";
+import {
+  accentForExternalKind,
+  externalDragEventData,
+  withBauhausEventStyle,
+} from "./calendarEventStyles";
+import {
   findStundenplanSlotAt,
   slotFromFcEvent,
   stundenplanToCalendarEvents,
 } from "./stundenplanEvents";
+
+const applyDragAccent = (el, accent) => {
+  if (!el || !accent) {
+    return;
+  }
+  el.style.setProperty("--cal-event-accent", accent);
+};
 
 const CalendarView = forwardRef(
   (
@@ -50,15 +66,34 @@ const CalendarView = forwardRef(
       onDateSelect,
       onStundenplanSlotClick,
       showExternalEvents = false,
+      showDragStrip,
       compactExternal = false,
+      spacious = false,
       height = "100%",
+      /** Nur heutiger Tag, Tagesraster ohne Toolbar (Home) */
+      dayViewToday = false,
+      initialDate,
     },
     ref
   ) => {
     const calendarRef = useRef(null);
     const externalRef = useRef(null);
+    const todayAnchor = useMemo(() => {
+      const d = initialDate ? new Date(initialDate) : new Date();
+      if (Number.isNaN(d.getTime())) {
+        return new Date();
+      }
+      return d;
+    }, [initialDate]);
     const [visibleRange, setVisibleRange] = useState(() => {
-      const now = new Date();
+      const now = initialDate ? new Date(initialDate) : new Date();
+      if (dayViewToday) {
+        const start = new Date(now);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        return { start, end };
+      }
       const start = new Date(now);
       start.setDate(start.getDate() - 7);
       const end = new Date(now);
@@ -97,13 +132,35 @@ const CalendarView = forwardRef(
       if (filters?.showStundenplan === false || !calendarStore.stundenplan?.enabled) {
         return [];
       }
-      return stundenplanToCalendarEvents(
+      const raw = stundenplanToCalendarEvents(
         calendarStore.stundenplan,
         visibleRange.start,
         visibleRange.end
       );
+      return raw.map((ev) => {
+        const vid = ev.extendedProps?.vorhabenId;
+        if (!vid) {
+          return ev;
+        }
+        const v = getVorhabenById(planningStore, vid);
+        if (!v?.fach) {
+          return ev;
+        }
+        const colors = resolvePlanningEventColors(v, "lektion");
+        return withBauhausEventStyle({
+          ...ev,
+          extendedProps: {
+            ...ev.extendedProps,
+            fach: v.fach,
+            vorhabenId: v.id,
+            eventAccent: colors.accent || ev.extendedProps?.eventAccent,
+            eventBg: colors.bg,
+          },
+        });
+      });
     }, [
       calendarStore.stundenplan,
+      planningStore?.vorhaben,
       visibleRange.start,
       visibleRange.end,
       filters?.showStundenplan,
@@ -125,51 +182,12 @@ const CalendarView = forwardRef(
           return undefined;
         }
         return new Draggable(containerEl, {
-          itemSelector: ".fc-external-event",
-          eventData: (eventEl) => {
-            const kind = eventEl.dataset.kind;
-            if (kind === "ritual") {
-              return {
-                title: eventEl.dataset.title,
-                duration: { minutes: Number(eventEl.dataset.duration) || 15 },
-                extendedProps: {
-                  source: "external-ritual",
-                  ritualId: eventEl.dataset.ritualId,
-                  vorhabenId: draftVorhabenId,
-                },
-              };
-            }
-            if (kind === "lektion") {
-              return {
-                title: eventEl.dataset.title,
-                duration: { minutes: Number(eventEl.dataset.duration) || 45 },
-                extendedProps: {
-                  source: "external-lektion",
-                  lektionId: eventEl.dataset.lektionId,
-                  vorhabenId: draftVorhabenId,
-                },
-              };
-            }
-            if (kind === "stundenplan-lektion") {
-              return {
-                title: eventEl.dataset.title,
-                duration: { minutes: Number(eventEl.dataset.duration) || 45 },
-                extendedProps: {
-                  source: "external-stundenplan-lektion",
-                  lektionId: eventEl.dataset.lektionId,
-                  vorhabenId: eventEl.dataset.vorhabenId,
-                },
-              };
-            }
-            return {
-              title: eventEl.dataset.title || "Termin",
-              duration: { minutes: 45 },
-              extendedProps: { source: "external-generic", vorhabenId: draftVorhabenId },
-            };
-          },
+          itemSelector: ".fc-external-event:not(.cal-external-event--add)",
+          eventData: (eventEl) =>
+            externalDragEventData(eventEl, draftVorhabenId, draftVorhaben?.fach),
         });
       },
-      [draftVorhabenId]
+      [draftVorhabenId, draftVorhaben?.fach]
     );
 
     useEffect(() => {
@@ -180,6 +198,65 @@ const CalendarView = forwardRef(
       draggables.push(setupDraggable(document.body));
       return () => draggables.forEach((d) => d?.destroy?.());
     }, [showExternalEvents, draftVorhabenId, draftVorhaben?.lektionen, setupDraggable]);
+
+    useEffect(() => {
+      const onPointerDown = (e) => {
+        const el = e.target.closest?.(".fc-external-event");
+        if (!el || el.classList.contains("cal-external-event--add")) {
+          return;
+        }
+        const kind = el.dataset.kind || "generic";
+        applyFachEventElementStyles(
+          el,
+          draftVorhaben?.fach,
+          draftVorhabenId,
+          kind
+        );
+        applyDragAccent(
+          el,
+          accentForExternalKind(kind, draftVorhabenId, draftVorhaben?.fach)
+        );
+        el.classList.add("fc-external-event--lifting");
+        document.body.classList.add("cal-is-dragging");
+      };
+      const clearDragChrome = () => {
+        document.body.classList.remove("cal-is-dragging");
+        document.querySelectorAll(".fc-external-event--lifting").forEach((node) => {
+          node.classList.remove("fc-external-event--lifting");
+        });
+      };
+      document.addEventListener("pointerdown", onPointerDown);
+      document.addEventListener("pointerup", clearDragChrome);
+      document.addEventListener("pointercancel", clearDragChrome);
+      return () => {
+        document.removeEventListener("pointerdown", onPointerDown);
+        document.removeEventListener("pointerup", clearDragChrome);
+        document.removeEventListener("pointercancel", clearDragChrome);
+        clearDragChrome();
+      };
+    }, [draftVorhabenId, draftVorhaben?.fach]);
+
+    const handleEventDragStart = useCallback((info) => {
+      document.body.classList.add("cal-is-dragging");
+      info.el.classList.add("cal-event--active-drag");
+      applyDragAccent(info.el, info.event.extendedProps?.eventAccent);
+    }, []);
+
+    const handleEventDragStop = useCallback(() => {
+      document.body.classList.remove("cal-is-dragging");
+      document.querySelectorAll(".cal-event--active-drag").forEach((el) => {
+        el.classList.remove("cal-event--active-drag");
+      });
+    }, []);
+
+    const handleEventResizeStart = useCallback((info) => {
+      document.body.classList.add("cal-is-resizing");
+      applyDragAccent(info.el, info.event.extendedProps?.eventAccent);
+    }, []);
+
+    const handleEventResizeStop = useCallback(() => {
+      document.body.classList.remove("cal-is-resizing");
+    }, []);
 
     const handleEventDrop = useCallback(
       (info) => {
@@ -330,22 +407,34 @@ const CalendarView = forwardRef(
     }, []);
 
     const eventClassNames = useCallback((arg) => {
-      const src = arg.event.extendedProps?.source;
-      if (src === "stundenplan") {
-        return ["cal-stundenplan-slot"];
-      }
+      const props = arg.event.extendedProps || {};
+      const classes = [...(arg.event.classNames || [])];
       const end = arg.event.end || arg.event.start;
       if (end && end < new Date()) {
-        return ["cal-event--past"];
+        classes.push("cal-event--past");
       }
-      return [];
+      return classes;
+    }, []);
+
+    const handleEventDidMount = useCallback((info) => {
+      const props = info.event.extendedProps || {};
+      applyFachEventElementStyles(
+        info.el,
+        props.fach,
+        props.vorhabenId,
+        props.cardType
+      );
+      applyDragAccent(info.el, props.eventAccent);
     }, []);
 
     const slotMin = calendarStore.settings?.slotMinTime || "06:00:00";
     const slotMax = calendarStore.settings?.slotMaxTime || "20:00:00";
 
+    const dragStripVisible =
+      showDragStrip !== undefined ? showDragStrip : showExternalEvents;
+
     const externalStrip =
-      showExternalEvents && draftVorhaben ? (
+      showExternalEvents && draftVorhaben && dragStripVisible ? (
         <div
           ref={externalRef}
           className={compactExternal ? "cal-external-strip" : "cal-external-events"}
@@ -360,7 +449,7 @@ const CalendarView = forwardRef(
             {rituals.map((rit) => (
               <div
                 key={rit.id}
-                className="fc-external-event"
+                className="fc-external-event fc-external-event--ritual"
                 data-kind="ritual"
                 data-title={rit.name}
                 data-duration={rit.durationMin}
@@ -398,17 +487,30 @@ const CalendarView = forwardRef(
       <div
         className={`cal-view-wrap ${compactExternal ? "cal-view-wrap--compact" : ""}`}
       >
-        <div className="cal-fullcalendar-host cal-fullcalendar-host--modern">
+        <div
+          className={`cal-fullcalendar-host cal-fullcalendar-host--modern ${
+            spacious ? "cal-fullcalendar-host--spacious" : ""
+          }`}
+        >
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
             locale={deLocale}
-            initialView={calendarStore.settings?.defaultView || "timeGridWeek"}
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
-            }}
+            initialView={
+              dayViewToday
+                ? "timeGridDay"
+                : calendarStore.settings?.defaultView || "timeGridWeek"
+            }
+            initialDate={dayViewToday ? todayAnchor : undefined}
+            headerToolbar={
+              dayViewToday
+                ? false
+                : {
+                    left: "prev,next today",
+                    center: "title",
+                    right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+                  }
+            }
             buttonText={{
               today: "Heute",
               month: "Monat",
@@ -423,7 +525,7 @@ const CalendarView = forwardRef(
             stickyHeaderDates
             allDaySlot
             nowIndicator
-            weekNumbers
+            weekNumbers={!dayViewToday}
             weekNumberCalculation="ISO"
             editable
             droppable
@@ -438,6 +540,12 @@ const CalendarView = forwardRef(
             firstDay={1}
             slotDuration="00:15:00"
             snapDuration="00:15:00"
+            slotLabelInterval="01:00:00"
+            slotLabelFormat={{
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            }}
             eventTimeFormat={{
               hour: "2-digit",
               minute: "2-digit",
@@ -446,12 +554,34 @@ const CalendarView = forwardRef(
             events={allEvents}
             eventDisplay="block"
             eventClassNames={eventClassNames}
+            eventDidMount={handleEventDidMount}
+            eventDragStart={handleEventDragStart}
+            eventDragStop={handleEventDragStop}
+            eventResizeStart={handleEventResizeStart}
+            eventResizeStop={handleEventResizeStop}
             eventDrop={handleEventDrop}
             eventResize={handleEventDrop}
             eventReceive={handleEventReceive}
             select={handleDateSelect}
             eventClick={handleEventClick}
-            datesSet={handleDatesSet}
+            datesSet={(info) => {
+              if (dayViewToday && info?.start) {
+                const anchor = new Date(todayAnchor);
+                anchor.setHours(0, 0, 0, 0);
+                const seen = new Date(info.start);
+                seen.setHours(0, 0, 0, 0);
+                if (seen.getTime() !== anchor.getTime()) {
+                  calendarRef.current?.getApi?.()?.gotoDate(todayAnchor);
+                }
+                const start = new Date(todayAnchor);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(start);
+                end.setDate(end.getDate() + 1);
+                setVisibleRange({ start, end });
+                return;
+              }
+              handleDatesSet(info);
+            }}
           />
         </div>
         {externalStrip}

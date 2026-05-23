@@ -55,8 +55,7 @@
   --dur-hero: 0.2s;
   --shell-pad-x: clamp(1rem, 4.5vw, 2rem);
   --shell-pad-y: clamp(1.25rem, 4vw, 2.5rem);
-  /** Suchspalte / Ergebnisse — Landkarte ohne Split nutzt dieselbe Breite. */
-  --app-content-max-width: 860px;
+  /* --app-content-max-width: siehe styles/bauhaus-tokens.css (responsive) */
 }
 
 @keyframes ux-rise {
@@ -119,11 +118,15 @@ html {
 }
 
 .app-shell {
-  max-width: 1260px;
+  max-width: var(--app-shell-max-width, 78rem);
   width: 100%;
   margin: 0 auto;
   padding: var(--shell-pad-y) var(--shell-pad-x) calc(var(--shell-pad-y) + var(--space-2));
   box-sizing: border-box;
+}
+
+.app-shell.planning-hub {
+  max-width: var(--planning-shell-max);
 }
 
 .content-column {
@@ -1943,14 +1946,18 @@ html {
   margin-bottom: var(--space-6);
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-muted);
+  color: var(--text-muted, #3a3a3a);
   animation: ux-rise 0.45s var(--ease-out-expo) both;
+}
+
+.results-header h2 {
+  color: var(--bh-fg, #121212);
 }
 
 .results-header span {
   font-size: 0.875rem;
-  font-weight: 500;
-  color: #7d7d7d;
+  font-weight: 600;
+  color: var(--text-muted, #3a3a3a);
 }
 
 .results-grid {
@@ -4640,6 +4647,10 @@ button.chain-aufbau-context-hit:focus-visible {
   display: none;
 }
 
+.app-shell--landkarte-only {
+  min-height: 100%;
+}
+
 .app-toast {
   position: fixed;
   bottom: 1.25rem;
@@ -4677,16 +4688,17 @@ button.chain-aufbau-context-hit:focus-visible {
   grid-row: 1;
 }
 
-.result-actions--full .add-to-vorhaben-btn {
+.result-actions--full .add-to-vorhaben-group {
   grid-column: 1 / -1;
   grid-row: 2;
-  width: 100%;
+}
+
+.result-actions--full .add-to-vorhaben-btn {
   min-height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  border-radius: 8px;
   border: 1px solid #4a5a7a;
   background: #151d2c;
   color: #a8c4f0;
@@ -4703,6 +4715,99 @@ button.chain-aufbau-context-hit:focus-visible {
 .result-actions--full .source-button,
 .result-actions--full .result-lesson-draft-link {
   grid-row: 3;
+}
+
+.search-location-bar {
+  margin-bottom: 0.75rem;
+}
+
+.search-location-trail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-location-item {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.search-location-item a {
+  color: var(--text-muted, #888);
+  text-decoration: none;
+}
+
+.search-location-item a:hover {
+  color: var(--accent, #edd100);
+}
+
+.search-location-item--current {
+  color: var(--text, #f0f0f0);
+}
+
+.search-location-sep {
+  opacity: 0.45;
+  user-select: none;
+}
+
+.search-location-chain-label {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+.add-to-vorhaben-group {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+}
+
+.add-to-vorhaben-quick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0 0.35rem;
+  border: 1px solid #4a5a7a;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  background: rgba(237, 209, 0, 0.12);
+  color: #edd100;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.add-to-vorhaben-quick:hover {
+  background: rgba(237, 209, 0, 0.22);
+}
+
+.add-to-vorhaben-group .add-to-vorhaben-btn {
+  flex: 1;
+  border-radius: 0 8px 8px 0;
+}
+
+.result-actions--full .add-to-vorhaben-group .add-to-vorhaben-btn {
+  grid-column: unset;
+  grid-row: unset;
+}
+
+.add-to-vorhaben-active-quick {
+  width: 100%;
+  margin-bottom: 0.75rem;
+  text-align: left;
 }
 
 .add-to-vorhaben-overlay {

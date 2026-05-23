@@ -1,0 +1,109 @@
+/* Fach-Farben in Planung, Sidebar, Kalender */
+
+.fach-tone {
+  --fach-base: #5a5a5a;
+  --fach-accent: #5a5a5a;
+  --fach-bg: #f2f2f2;
+}
+
+.fach-tone--mathematik {
+  --fach-base: #d02020;
+}
+
+.fach-tone--deutsch {
+  --fach-base: #1040c0;
+}
+
+.fach-tone--nmg {
+  --fach-base: #2a8f4e;
+}
+
+.fach-tone--englisch {
+  --fach-base: #e07820;
+}
+
+.fach-tone--franzoesisch {
+  --fach-base: #c44d8a;
+}
+
+.fach-tone--natur_technik {
+  --fach-base: #1a9a9a;
+}
+
+.fach-tone--raeume_zeiten {
+  --fach-base: #a06040;
+}
+
+.fach-tone--sport {
+  --fach-base: #8b3030;
+}
+
+.fach-tone--musik {
+  --fach-base: #7a48b0;
+}
+
+.fach-tone--medien {
+  --fach-base: #3a88c8;
+}
+
+.fach-tone--ethik {
+  --fach-base: #7a9040;
+}
+
+.fach-tone--wirtschaft {
+  --fach-base: #9a7040;
+}
+
+/* Sidebar Themen */
+.app-sidebar-vorhaben-link.fach-tone {
+  border-left: 3px solid var(--fach-accent, var(--fach-base));
+  padding-left: 8px;
+}
+
+.app-sidebar-rail-btn--vorhaben.fach-tone {
+  box-shadow: inset 3px 0 0 var(--fach-accent, var(--fach-base));
+}
+
+/* Hub & Thema */
+.thema-meta-chip.fach-tone {
+  border-color: var(--fach-base);
+  background: var(--fach-bg, #fff);
+}
+
+.thema-stat-pill.fach-tone {
+  border-color: var(--fach-base);
+}
+
+.thema-stat-pill.fach-tone .thema-stat-pill-n {
+  color: var(--fach-base);
+}
+
+.vorhaben-card.fach-tone {
+  border-left: 4px solid var(--fach-accent, var(--fach-base));
+}
+
+.unterricht-fach-folder-head.fach-tone {
+  border-left: 4px solid var(--fach-base);
+  padding-left: 10px;
+}
+
+.monatsplan-vorhaben-chip.fach-tone {
+  border: 2px solid var(--fach-base);
+  background: var(--fach-bg, #fff);
+  color: var(--bh-fg, #121212);
+}
+
+.cal-filter-chip.fach-tone {
+  border: 2px solid var(--fach-base);
+  background: var(--fach-bg, #fff);
+}
+
+.cal-filter-chip.fach-tone.cal-filter-chip--active {
+  background: var(--fach-base);
+  color: #fff;
+  border-color: var(--fach-base);
+}
+
+.thema-panel-card.fach-tone {
+  border-top: 6px solid var(--fach-base);
+}

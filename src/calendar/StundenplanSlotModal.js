@@ -167,7 +167,7 @@ const StundenplanSlotModal = ({
                 <>
                   {" "}
                   <Link to={vorhabenLevelPath(slot.vorhabenId, "lektion")} onClick={onClose}>
-                    im Vorhaben öffnen →
+                    im Thema öffnen →
                   </Link>
                 </>
               ) : null}
@@ -188,13 +188,13 @@ const StundenplanSlotModal = ({
             <p className="cal-stundenplan-drag-hint">Klicken zum Zuweisen — oder in den Platz im Kalender ziehen.</p>
             <ul ref={listRef} className="cal-stundenplan-lektion-list">
               {allLektionen.length === 0 ? (
-                <li className="cal-stundenplan-lektion-empty">Noch keine Lektionen in Vorhaben.</li>
+                <li className="cal-stundenplan-lektion-empty">Noch keine Lektionen in Themen.</li>
               ) : (
                 allLektionen.map((lek) => (
                   <li key={`${lek.vorhabenId}-${lek.id}`}>
                     <button
                       type="button"
-                      className={`cal-stundenplan-lektion-item fc-external-event ${
+                      className={`cal-stundenplan-lektion-item fc-external-event fc-external-event--stundenplan ${
                         slot.lektionId === lek.id ? "cal-stundenplan-lektion-item--active" : ""
                       }`}
                       data-kind="stundenplan-lektion"

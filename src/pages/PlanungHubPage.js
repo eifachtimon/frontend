@@ -1,21 +1,26 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  APP_ROUTES,
-  jahresplanPath,
-  monatsplanPath,
-  vorhabenLevelPath,
-} from "../config/appUrls";
-import PlanningContextBar from "../planning/PlanningContextBar";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import CalendarView from "../calendar/CalendarView";
+import { DEFAULT_CAL_FILTERS } from "../calendar/calendarFilters";
+import { loadCalendarStore, saveCalendarStore } from "../calendar/calendarStore";
+import { APP_ROUTES, vorhabenLevelPath } from "../config/appUrls";
+import PlanningViewHeader from "../planning/PlanningViewHeader";
 import PlanningOnboarding from "../planning/PlanningOnboarding";
+import NeuesVorhabenModal from "../planning/NeuesVorhabenModal";
+import { getContinuePlanningTarget } from "../planning/planningHubUtils";
+import { groupVorhabenByFach } from "../planning/planningHomeUtils";
+import TagesTodosPanel from "../planning/TagesTodosPanel";
 import {
-  getContinuePlanningTarget,
-  getTodayHubSummary,
-  suggestNextStepLabel,
-} from "../planning/planningHubUtils";
-import { getSchoolYearStart } from "../planning/calendarUtils";
-import { VORHABEN_TEMPLATES } from "../planning/planningDefaults";
-import { createVorhaben } from "../planning/planningStore";
+  addTagesTodoItem,
+  createVorhaben,
+  getTagesEintrag,
+  loadPlanningStore,
+  removeTagesTodoItem,
+  setTagesEintrag,
+  toggleTagesTodoItem,
+} from "../planning/planningStore";
+import { applyMockPlanningStore } from "../planning/planningMockData";
+import { getFachCssVars, getFachToneClassName } from "../planning/fachColors";
 import usePlanningStore from "../planning/usePlanningStore";
 import "../planning/planning.css";
 
@@ -41,220 +46,382 @@ const formatRelative = (ts) => {
 
 const PlanungHubPage = () => {
   const navigate = useNavigate();
-  const { store, saveVorhaben, removeVorhaben } = usePlanningStore();
-  const [templateId, setTemplateId] = useState("thema");
-  const [newTitle, setNewTitle] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { store, saveVorhaben, removeVorhaben, patchStore } = usePlanningStore();
+  const [calStore, setCalStore] = useState(() => loadCalendarStore());
+  const [createOpen, setCreateOpen] = useState(false);
+  const [folderExpanded, setFolderExpanded] = useState({});
 
+  const today = useMemo(() => new Date(), []);
+  const dateLabel = useMemo(
+    () =>
+      today.toLocaleDateString("de-CH", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    [today]
+  );
+  const isoDate = useMemo(() => {
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, [today]);
+
+  const fachFolders = useMemo(() => groupVorhabenByFach(store.vorhaben), [store.vorhaben]);
   const continueTarget = getContinuePlanningTarget(store);
-  const todaySummary = getTodayHubSummary(store);
-  const nextHint = suggestNextStepLabel(continueTarget?.vorhaben);
+  const draftVorhabenId =
+    store.lastActiveVorhabenId || store.vorhaben[0]?.id || "";
 
-  const handleCreate = () => {
+  const tagesEintrag = getTagesEintrag(store, isoDate);
+  const [draftNotizen, setDraftNotizen] = useState(tagesEintrag.notizen);
+
+  useEffect(() => {
+    setDraftNotizen(tagesEintrag.notizen);
+  }, [tagesEintrag.notizen, isoDate]);
+
+  useEffect(() => {
+    const refreshCal = () => setCalStore(loadCalendarStore());
+    window.addEventListener("lp21-calendar-updated", refreshCal);
+    window.addEventListener("storage", refreshCal);
+    return () => {
+      window.removeEventListener("lp21-calendar-updated", refreshCal);
+      window.removeEventListener("storage", refreshCal);
+    };
+  }, []);
+
+  const persistCal = useCallback((next) => {
+    setCalStore(saveCalendarStore(next));
+  }, []);
+
+  const persistTagesEintrag = useCallback(
+    (partial) => {
+      patchStore((current) => setTagesEintrag(current, isoDate, partial));
+    },
+    [patchStore, isoDate]
+  );
+
+  useEffect(() => {
+    if (draftNotizen === tagesEintrag.notizen) {
+      return undefined;
+    }
+    const timer = window.setTimeout(
+      () => persistTagesEintrag({ notizen: draftNotizen }),
+      500
+    );
+    return () => window.clearTimeout(timer);
+  }, [draftNotizen, tagesEintrag.notizen, persistTagesEintrag]);
+
+  const handleToggleTodo = useCallback(
+    (todoId) => {
+      patchStore((current) => toggleTagesTodoItem(current, isoDate, todoId));
+    },
+    [patchStore, isoDate]
+  );
+
+  const handleAddTodo = useCallback(
+    (text) => {
+      patchStore((current) => addTagesTodoItem(current, isoDate, text));
+    },
+    [patchStore, isoDate]
+  );
+
+  const handleRemoveTodo = useCallback(
+    (todoId) => {
+      patchStore((current) => removeTagesTodoItem(current, isoDate, todoId));
+    },
+    [patchStore, isoDate]
+  );
+
+  const handleCreateVorhaben = ({ templateId, title }) => {
     const v = createVorhaben({
       templateId,
-      title: newTitle.trim() || undefined,
+      title: title || undefined,
     });
     const saved = saveVorhaben(v);
+    setCreateOpen(false);
     navigate(vorhabenLevelPath(saved.id, "grob"));
   };
 
-  const sorted = [...store.vorhaben].sort(
-    (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)
+  const handleLoadMockData = () => {
+    if (
+      !window.confirm(
+        "Demo-Daten laden? Bestehende Themen und heutige Todos/Notizen werden ersetzt."
+      )
+    ) {
+      return;
+    }
+    const next = applyMockPlanningStore({ replace: true });
+    const first = next.vorhaben[0];
+    if (first) {
+      navigate(vorhabenLevelPath(first.id, first.lastVisitedLevel || "woche"));
+    }
+  };
+
+  useEffect(() => {
+    if (searchParams.get("demo") !== "1") {
+      return;
+    }
+    applyMockPlanningStore({ replace: true });
+    const next = new URLSearchParams(searchParams);
+    next.delete("demo");
+    setSearchParams(next, { replace: true });
+    const first = loadPlanningStore().vorhaben[0];
+    if (first) {
+      navigate(vorhabenLevelPath(first.id, first.lastVisitedLevel || "woche"), {
+        replace: true,
+      });
+    }
+  }, [searchParams, setSearchParams, navigate]);
+
+  const toggleFolder = (fach) => {
+    setFolderExpanded((prev) => ({ ...prev, [fach]: !prev[fach] }));
+  };
+
+  const isFolderOpen = (fach, count) => {
+    if (folderExpanded[fach] !== undefined) {
+      return folderExpanded[fach];
+    }
+    return count <= 4;
+  };
+
+  const headerActions = (
+    <>
+      {continueTarget ? (
+        <Link
+          to={continueTarget.path}
+          className="planning-btn planning-btn--ghost unterricht-header-link"
+        >
+          Weiter planen
+        </Link>
+      ) : null}
+      <Link
+        to={APP_ROUTES.kalender}
+        className="planning-btn planning-btn--ghost unterricht-header-link"
+      >
+        Kalender
+      </Link>
+      <button
+        type="button"
+        className="planning-btn planning-btn--ghost unterricht-header-link"
+        onClick={handleLoadMockData}
+        title="Beispiel-Themen mit allen Planungsebenen laden"
+      >
+        Demo-Daten
+      </button>
+      <button
+        type="button"
+        className="unterricht-btn-neu bh-btn bh-btn--red"
+        onClick={() => setCreateOpen(true)}
+        aria-haspopup="dialog"
+      >
+        + Neu
+      </button>
+    </>
   );
 
   return (
-    <div className="app-shell planning-hub planning-surface">
-      <main className="planning-hub-main layout">
-        <PlanningContextBar activeSection="hub" />
+    <div className="app-shell planning-hub planning-surface unterricht-home">
+      <main className="planning-hub-main layout unterricht-home-main">
+        <PlanningViewHeader
+          band="yellow"
+          title="Mein Unterricht"
+          lead={dateLabel}
+          actions={headerActions}
+        />
 
-        <header className="planning-hub-header">
-          <h1>Mein Unterricht</h1>
-          <p className="planning-hub-lead">
-            Ein Vorhaben als roter Faden — von der Grobplanung bis zur Lektion, mit
-            Jahres- und Wochenüberblick.
-          </p>
-        </header>
+        <div className="unterricht-home-columns">
+          <section
+            className="unterricht-home-col unterricht-home-col--calendar"
+            aria-labelledby="home-calendar-title"
+          >
+            <div className="unterricht-home-col-head">
+              <h2 id="home-calendar-title" className="unterricht-section-title">
+                Heute
+              </h2>
+              <Link to={APP_ROUTES.kalender} className="unterricht-col-link">
+                Voller Kalender →
+              </Link>
+            </div>
+            <div className="unterricht-home-calendar-host">
+              <CalendarView
+                dayViewToday
+                initialDate={today}
+                planningStore={store}
+                saveVorhaben={saveVorhaben}
+                calendarStore={calStore}
+                onCalendarStoreChange={persistCal}
+                filters={DEFAULT_CAL_FILTERS}
+                draftVorhabenId={draftVorhabenId}
+                rituals={store.rituals}
+                showExternalEvents={false}
+                showDragStrip={false}
+                height="100%"
+              />
+            </div>
+          </section>
+
+          <section
+            className="unterricht-home-col unterricht-home-col--notes"
+            aria-label="Todos und Notizen für heute"
+          >
+            <div className="unterricht-tagesfeld">
+              <h3 id="unterricht-tages-todos" className="unterricht-section-title">
+                Todos für heute
+              </h3>
+              <p className="unterricht-tagesnotiz-hint">
+                Abhaken, wenn erledigt — bleibt für heute gespeichert.
+              </p>
+              <TagesTodosPanel
+                items={tagesEintrag.todos}
+                onToggle={handleToggleTodo}
+                onAdd={handleAddTodo}
+                onRemove={handleRemoveTodo}
+              />
+            </div>
+            <div className="unterricht-tagesfeld unterricht-tagesfeld--notizen">
+              <label htmlFor="unterricht-tages-notizen" className="unterricht-section-title">
+                Notizen für heute
+              </label>
+              <p className="unterricht-tagesnotiz-hint">
+                Gedanken und Ideen — später kann KI sie einem Vorhaben zuordnen.
+              </p>
+              <textarea
+                id="unterricht-tages-notizen"
+                className="unterricht-tagesnotiz-input unterricht-tagesnotiz-input--fill"
+                value={draftNotizen}
+                onChange={(e) => setDraftNotizen(e.target.value)}
+                onBlur={() => persistTagesEintrag({ notizen: draftNotizen })}
+                placeholder="Reflexion, Ideen für den Einstieg, Gesprächsnotizen …"
+                aria-label="Notizen für heute"
+              />
+            </div>
+          </section>
+        </div>
 
         <PlanningOnboarding />
 
-        {continueTarget ? (
-          <section className="planning-primary-cta" aria-labelledby="continue-planning-title">
-            <div className="planning-primary-cta-text">
-              <h2 id="continue-planning-title">Weiter planen</h2>
-              <p className="planning-primary-cta-vorhaben">{continueTarget.vorhaben.title}</p>
-              <p className="planning-primary-cta-hint">{nextHint}</p>
-            </div>
-            <Link
-              to={continueTarget.path}
-              className="planning-btn planning-btn--primary planning-primary-cta-btn"
-            >
-              {continueTarget.todayLabel
-                ? `Heute — ${continueTarget.todayLabel}`
-                : "Weiter öffnen"}
-            </Link>
-          </section>
-        ) : (
-          <section className="planning-primary-cta planning-primary-cta--empty">
-            <p>Starte mit einem Vorhaben — Kompetenzen kommen aus der Suche.</p>
-            <Link to={APP_ROUTES.search} className="planning-btn planning-btn--ghost">
-              Zur Suche
-            </Link>
-          </section>
-        )}
-
-        {todaySummary && !todaySummary.isWeekend ? (
-          <section className="planning-today-card" aria-labelledby="today-planning-title">
-            <h2 id="today-planning-title" className="planning-today-title">
-              Heute · KW {todaySummary.kw}
-            </h2>
-            <p className="planning-today-meta">
-              {todaySummary.cardCount > 0
-                ? `${todaySummary.cardCount} Karte(n) am ${todaySummary.todayLabel}`
-                : `Noch keine Karten am ${todaySummary.todayLabel}`}
-              {todaySummary.openReminders > 0
-                ? ` · ${todaySummary.openReminders} Erinnerung(en)`
-                : ""}
-            </p>
-            <div className="planning-today-actions">
-              <Link
-                to={vorhabenLevelPath(todaySummary.vorhaben.id, "woche")}
-                className="planning-btn planning-btn--ghost"
-              >
-                Wochenplan
-              </Link>
-              <Link to={APP_ROUTES.kalender} className="planning-btn planning-btn--ghost">
-                Kalender
-              </Link>
-            </div>
-          </section>
-        ) : null}
-
-        <nav className="planning-hub-entries planning-hub-entries--secondary" aria-label="Überblick">
-          <Link
-            to={jahresplanPath(getSchoolYearStart())}
-            className="planning-hub-entry planning-hub-entry--jahr"
-          >
-            <span className="planning-hub-entry-title">Jahresplan</span>
-            <span className="planning-hub-entry-desc">12 Monate, Schwerpunkte</span>
-          </Link>
-          <Link
-            to={monatsplanPath(new Date().getFullYear(), new Date().getMonth() + 1)}
-            className="planning-hub-entry planning-hub-entry--monat"
-          >
-            <span className="planning-hub-entry-title">Monatsplan</span>
-            <span className="planning-hub-entry-desc">KW und Vorhaben im Monat</span>
-          </Link>
-        </nav>
-
-        <section className="planning-create-card" aria-labelledby="create-vorhaben-title">
-          <h2 id="create-vorhaben-title">Neues Vorhaben</h2>
-          <div className="template-chip-row" role="group" aria-label="Vorlage wählen">
-            {VORHABEN_TEMPLATES.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className={`template-chip ${templateId === t.id ? "template-chip--active" : ""}`}
-                onClick={() => setTemplateId(t.id)}
-                aria-pressed={templateId === t.id}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <div className="planning-create-row">
-            <input
-              type="text"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Titel (z. B. Bruchteile im Alltag)"
-              aria-label="Titel des Vorhabens"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleCreate();
-                }
-              }}
-            />
-            <button
-              type="button"
-              className="planning-btn planning-btn--primary"
-              onClick={handleCreate}
-            >
-              Anlegen
-            </button>
-          </div>
-        </section>
-
-        <section className="planning-vorhaben-list-section" aria-labelledby="vorhaben-list-title">
-          <h2 id="vorhaben-list-title">Deine Vorhaben</h2>
-          {sorted.length === 0 ? (
+        <section
+          className="unterricht-folders"
+          aria-labelledby="planungen-fach-title"
+        >
+          <h2 id="planungen-fach-title" className="unterricht-section-title">
+            Planungen nach Fach
+          </h2>
+          {fachFolders.length === 0 ? (
             <div className="planning-empty-state">
-              <p>Noch kein Vorhaben.</p>
+              <p>Noch keine Themen.</p>
               <p className="planning-empty-state-hint">
-                Wähle oben eine Vorlage oder starte in der Suche mit «Ins Vorhaben».
+                <button
+                  type="button"
+                  className="unterricht-inline-link"
+                  onClick={() => setCreateOpen(true)}
+                >
+                  + Neu
+                </button>{" "}
+                oder Kompetenzen in der{" "}
+                <Link to={APP_ROUTES.search}>Suche</Link> ins Thema legen.
               </p>
             </div>
           ) : (
-            <ul className="vorhaben-card-list">
-              {sorted.map((v) => {
-                const resumeLevel = v.lastVisitedLevel || "grob";
+            <div className="unterricht-folders-list">
+              {fachFolders.map(({ fach, items }) => {
+                const open = isFolderOpen(fach, items.length);
+                const folderTone = getFachToneClassName(fach);
                 return (
-                  <li key={v.id}>
-                    <article className="vorhaben-card">
-                      <Link
-                        to={vorhabenLevelPath(v.id, resumeLevel)}
-                        className="vorhaben-card-link"
-                      >
-                        <h3>{v.title}</h3>
-                        <p className="vorhaben-card-meta">
-                          {[v.fach, v.zyklus && `Zyklus ${v.zyklus}`, v.klasse]
-                            .filter(Boolean)
-                            .join(" · ") || "Fach & Klasse ergänzen"}
-                        </p>
-                        <p className="vorhaben-card-stats">
-                          {v.competencies?.length || 0} Kompetenzen · {v.lektionen?.length || 0}{" "}
-                          Lektionen
-                          {v.updatedAt ? (
-                            <span className="vorhaben-card-time">
-                              {" "}
-                              · {formatRelative(v.updatedAt)}
-                            </span>
-                          ) : null}
-                        </p>
-                      </Link>
-                      <div className="vorhaben-card-quick">
-                        <Link
-                          to={vorhabenLevelPath(v.id, "woche")}
-                          className="vorhaben-quick-link"
-                        >
-                          Woche
-                        </Link>
-                        <Link
-                          to={vorhabenLevelPath(v.id, "lektion")}
-                          className="vorhaben-quick-link"
-                        >
-                          Lektion
-                        </Link>
-                        <button
-                          type="button"
-                          className="vorhaben-card-delete"
-                          onClick={() => {
-                            if (window.confirm(`«${v.title}» wirklich löschen?`)) {
-                              removeVorhaben(v.id);
-                            }
-                          }}
-                          aria-label={`${v.title} löschen`}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </article>
-                  </li>
+                  <section key={fach} className="unterricht-fach-folder">
+                    <button
+                      type="button"
+                      className={`unterricht-fach-folder-head${folderTone ? ` ${folderTone}` : ""}`}
+                      style={folderTone ? getFachCssVars(fach) : undefined}
+                      onClick={() => toggleFolder(fach)}
+                      aria-expanded={open}
+                    >
+                      <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+                      <span className="unterricht-fach-folder-name">{fach}</span>
+                      <span className="unterricht-fach-folder-count">{items.length}</span>
+                    </button>
+                    {open ? (
+                      <ul className="vorhaben-card-list unterricht-fach-list">
+                        {items.map((v) => {
+                          const resumeLevel = v.lastVisitedLevel || "grob";
+                          const cardTone = getFachToneClassName(v.fach || fach);
+                          return (
+                            <li key={v.id}>
+                              <article
+                                className={`vorhaben-card${cardTone ? ` ${cardTone}` : ""}`}
+                                style={cardTone ? getFachCssVars(v.fach || fach, v.id) : undefined}
+                              >
+                                <Link
+                                  to={vorhabenLevelPath(v.id, resumeLevel)}
+                                  className="vorhaben-card-link"
+                                >
+                                  <h3>{v.title}</h3>
+                                  <p className="vorhaben-card-meta">
+                                    {[v.zyklus && `Zyklus ${v.zyklus}`, v.klasse]
+                                      .filter(Boolean)
+                                      .join(" · ") || "Klasse ergänzen"}
+                                  </p>
+                                  <p className="vorhaben-card-stats">
+                                    {v.competencies?.length || 0} Kompetenzen ·{" "}
+                                    {v.lektionen?.length || 0} Lektionen
+                                    {v.updatedAt ? (
+                                      <span className="vorhaben-card-time">
+                                        {" "}
+                                        · {formatRelative(v.updatedAt)}
+                                      </span>
+                                    ) : null}
+                                  </p>
+                                </Link>
+                                <div className="vorhaben-card-quick">
+                                  <Link
+                                    to={vorhabenLevelPath(v.id, "woche")}
+                                    className="vorhaben-quick-link"
+                                  >
+                                    Woche
+                                  </Link>
+                                  <Link
+                                    to={vorhabenLevelPath(v.id, "lektion")}
+                                    className="vorhaben-quick-link"
+                                  >
+                                    Lektion
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    className="vorhaben-card-delete"
+                                    onClick={() => {
+                                      if (
+                                        window.confirm(`«${v.title}» wirklich löschen?`)
+                                      ) {
+                                        removeVorhaben(v.id);
+                                      }
+                                    }}
+                                    aria-label={`${v.title} löschen`}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </article>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
+                  </section>
                 );
               })}
-            </ul>
+            </div>
           )}
         </section>
       </main>
+
+      <NeuesVorhabenModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={handleCreateVorhaben}
+      />
     </div>
   );
 };

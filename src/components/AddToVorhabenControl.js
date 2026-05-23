@@ -46,7 +46,7 @@ const AddToVorhabenControl = ({ entry, className = "", onAdded }) => {
   const handleCreateAndAdd = () => {
     const current = loadPlanningStore();
     const v = createVorhaben({
-      title: entry.code || entry.label?.slice(0, 48) || "Neues Vorhaben",
+      title: entry.code || entry.label?.slice(0, 48) || "Neues Thema",
       fach: entry.fach || "",
       zyklus: entry.zyklus || "",
       competencies: [],
@@ -63,28 +63,53 @@ const AddToVorhabenControl = ({ entry, className = "", onAdded }) => {
     return competencyAlreadyInVorhaben(v, entry.uid);
   };
 
+  const activeVorhaben = store.lastActiveVorhabenId
+    ? store.vorhaben.find((x) => x.id === store.lastActiveVorhabenId)
+    : store.vorhaben[0] || null;
+  const canQuickAddActive =
+    activeVorhaben && !alreadyIn(activeVorhaben.id);
+
+  const handleQuickAddActive = (e) => {
+    e.stopPropagation();
+    handleAdd(activeVorhaben.id);
+  };
+
   return (
     <>
-      <button
-        type="button"
-        className={`add-to-vorhaben-btn ${className}`.trim()}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        onKeyDown={(e) => e.stopPropagation()}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        title="Kompetenz einem Vorhaben zuordnen"
-      >
-        <svg className="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            fill="currentColor"
-            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 3h2v6h-6v2h6v6h-2v-6h-6v-2h6V6z"
-          />
-        </svg>
-        <span className="add-to-vorhaben-btn-label">Vorhaben</span>
-      </button>
+      <span className={`add-to-vorhaben-group ${className}`.trim()}>
+        {canQuickAddActive ? (
+          <button
+            type="button"
+            className="add-to-vorhaben-quick"
+            onClick={handleQuickAddActive}
+            onKeyDown={(e) => e.stopPropagation()}
+            title={`Direkt zu «${activeVorhaben.title}»`}
+            aria-label={`Kompetenz zum aktiven Thema «${activeVorhaben.title}» hinzufügen`}
+          >
+            +
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className="add-to-vorhaben-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          title="Kompetenz einem Thema zuordnen"
+        >
+          <svg className="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 3h2v6h-6v2h6v6h-2v-6h-6v-2h6V6z"
+            />
+          </svg>
+          <span className="add-to-vorhaben-btn-label">Thema</span>
+        </button>
+      </span>
 
       {open ? (
         <div
@@ -104,7 +129,7 @@ const AddToVorhabenControl = ({ entry, className = "", onAdded }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <header className="add-to-vorhaben-modal-header">
-              <h2 id="add-to-vorhaben-title">Ins Vorhaben</h2>
+              <h2 id="add-to-vorhaben-title">Ins Thema</h2>
               <button
                 type="button"
                 className="add-to-vorhaben-close"
@@ -121,9 +146,19 @@ const AddToVorhabenControl = ({ entry, className = "", onAdded }) => {
               <span>{entry.label}</span>
             </p>
 
+            {canQuickAddActive ? (
+              <button
+                type="button"
+                className="planning-btn planning-btn--primary add-to-vorhaben-active-quick"
+                onClick={() => handleAdd(activeVorhaben.id)}
+              >
+                Aktives Thema: {activeVorhaben.title}
+              </button>
+            ) : null}
+
             {store.vorhaben.length === 0 ? (
               <p className="add-to-vorhaben-empty">
-                Noch kein Vorhaben — lege eines an und übernimm die Kompetenz direkt.
+                Noch kein Thema — lege eines an und übernimm die Kompetenz direkt.
               </p>
             ) : (
               <ul className="add-to-vorhaben-list">
@@ -155,7 +190,7 @@ const AddToVorhabenControl = ({ entry, className = "", onAdded }) => {
               className="planning-btn planning-btn--primary add-to-vorhaben-create"
               onClick={handleCreateAndAdd}
             >
-              + Neues Vorhaben mit dieser Kompetenz
+              + Neues Thema mit dieser Kompetenz
             </button>
           </div>
         </div>

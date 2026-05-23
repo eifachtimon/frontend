@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import PlanningContextBar from "../planning/PlanningContextBar";
+import PlanningViewHeader from "../planning/PlanningViewHeader";
 import {
   getSchoolYearMonthList,
   getSchoolYearStart,
@@ -9,7 +9,7 @@ import {
 } from "../planning/calendarUtils";
 import { normalizeKalender, updateMonthEntry } from "../planning/planningKalender";
 import usePlanningStore from "../planning/usePlanningStore";
-import { APP_ROUTES, jahresplanPath, monatsplanPath } from "../config/appUrls";
+import { jahresplanPath, monatsplanPath } from "../config/appUrls";
 import "../planning/planning.css";
 
 const countVorhabenInMonth = (vorhabenList, year, month) => {
@@ -56,45 +56,37 @@ const JahresplanPage = () => {
 
   return (
     <div className="app-shell planning-hub planning-surface">
-      <main className="planning-hub-main layout">
-        <PlanningContextBar activeSection="jahr" />
-        <nav className="planung-breadcrumb" aria-label="Brotkrumen">
-          <Link to={APP_ROUTES.planung}>Mein Unterricht</Link>
-          <span aria-hidden="true"> / </span>
-          <span>Jahresplan</span>
-        </nav>
+      <main className="planning-hub-main planning-hub-main--time layout">
+        <PlanningViewHeader
+          title="Jahresplan"
+          lead={`Schuljahr ${startYear}/${String(startYear + 1).slice(-2)} — Überblick pro Monat`}
+          nav={
+            <>
+              <button
+                type="button"
+                className="planning-btn planning-btn--ghost"
+                onClick={() => handleYearShift(-1)}
+                aria-label="Vorheriges Schuljahr"
+              >
+                ←
+              </button>
+              <span className="kalender-year-label">
+                {startYear}/{startYear + 1}
+              </span>
+              <button
+                type="button"
+                className="planning-btn planning-btn--ghost"
+                onClick={() => handleYearShift(1)}
+                aria-label="Nächstes Schuljahr"
+              >
+                →
+              </button>
+            </>
+          }
+        />
 
-        <header className="kalender-page-header">
-          <div>
-            <h1>Jahresplan</h1>
-            <p className="planning-hub-lead">
-              Schuljahr {startYear}/{String(startYear + 1).slice(-2)} — Überblick pro Monat
-            </p>
-          </div>
-          <div className="kalender-year-nav">
-            <button
-              type="button"
-              className="planning-btn planning-btn--ghost"
-              onClick={() => handleYearShift(-1)}
-              aria-label="Vorheriges Schuljahr"
-            >
-              ←
-            </button>
-            <span className="kalender-year-label">
-              {startYear}/{startYear + 1}
-            </span>
-            <button
-              type="button"
-              className="planning-btn planning-btn--ghost"
-              onClick={() => handleYearShift(1)}
-              aria-label="Nächstes Schuljahr"
-            >
-              →
-            </button>
-          </div>
-        </header>
-
-        <div className="jahresplan-grid" role="list">
+        <div className="planning-view-panel">
+          <div className="jahresplan-grid" role="list">
           {months.map((m) => {
             const entry = kalender.months[m.key] || { focus: "", notizen: "" };
             const isCurrent = m.key === currentKey;
@@ -126,17 +118,12 @@ const JahresplanPage = () => {
                   aria-label={`Schwerpunkt ${m.label}`}
                 />
                 {vorhabenCount > 0 ? (
-                  <p className="jahresplan-month-meta">{vorhabenCount} Vorhaben mit Wochen</p>
+                  <p className="jahresplan-month-meta">{vorhabenCount} Themen mit Wochen</p>
                 ) : null}
-                <Link
-                  to={monatsplanPath(m.year, m.month)}
-                  className="jahresplan-month-open"
-                >
-                  Monatsplan →
-                </Link>
               </article>
             );
           })}
+          </div>
         </div>
       </main>
     </div>

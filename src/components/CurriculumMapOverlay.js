@@ -1,7 +1,17 @@
 import React, { Component } from "react";
-import CompetencyChainView from "./CompetencyChainView";
+import { createPortal } from "react-dom";
+import CompetencyChainPanel from "./CompetencyChainPanel";
+import "../styles/curriculum-map-bauhaus.css";
 import { truncateCompetencyLabel } from "../recentCompetencyHistory";
 import { describeLp21Code } from "../lp21Code";
+import {
+  buildChainSliceAtLookupKey,
+  createMapChainLoadingView,
+  enrichChainDataWithNetworkApi,
+  fetchCompetencyChain,
+  getChainFetchErrorMessage,
+  resolveHighlightUidFromChainData,
+} from "../utils/competencyChainLoader";
 
 function normOutlineToken(s) {
   return String(s || "").toLowerCase();
@@ -239,21 +249,23 @@ const FACH_EMOJI = {
 const MAP_SPLIT_STORAGE_KEY = "lp21-map-split-ratio-v1";
 const MAP_LAST_FACH_STORAGE_KEY = "lp21-map-last-fach-v1";
 
+const MAP_SPLIT_DEFAULT = 65;
+
 function readInitialSplitRatio() {
   if (typeof window === "undefined") {
-    return 50;
+    return MAP_SPLIT_DEFAULT;
   }
   const raw = window.localStorage.getItem(MAP_SPLIT_STORAGE_KEY);
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) {
-    return 50;
+    return MAP_SPLIT_DEFAULT;
   }
   return Math.max(2, Math.min(98, parsed));
 }
 
 /**
- * Landkarte: Fach → Outline (Kompetenzbereiche, Aspekte, Ketten, Stufen) → CompetencyChainView.
- * State der Kette ist getrennt vom Such-„chainView“ in App.js.
+ * Landkarte: Fach → Outline (Kompetenzbereiche, Aspekte, Ketten, Stufen) → CompetencyChainPanel.
+ * Ketten-Laden/-UI geteilt mit Suche (competencyChainLoader); State hier: mapChainView.
  */
 class CurriculumMapOverlay extends Component {
   constructor(props) {
@@ -288,11 +300,28 @@ class CurriculumMapOverlay extends Component {
     this._mapChainFetchId = 0;
   }
 
+  componentDidMount() {
+    if (!this.props.isOpen) {
+      return;
+    }
+    this.ensureOverviewLoaded();
+    this.attachEscapeListener();
+    if (this.props.fullPage) {
+      this.setMapWorkspaceBodyClass(true);
+    } else {
+      document.body.style.overflow = "hidden";
+    }
+  }
+
   componentDidUpdate(prevProps, prevState) {
     if (!prevProps.isOpen && this.props.isOpen) {
       this.ensureOverviewLoaded();
       this.attachEscapeListener();
-      document.body.style.overflow = "hidden";
+      if (this.props.fullPage) {
+        this.setMapWorkspaceBodyClass(true);
+      } else {
+        document.body.style.overflow = "hidden";
+      }
       const subjects = this.state.overview && this.state.overview.subjects;
       const skipHydrateForFocus =
         this.props.mapExplorerFocusRequest &&
@@ -303,6 +332,7 @@ class CurriculumMapOverlay extends Component {
     }
     if (prevProps.isOpen && !this.props.isOpen) {
       this.removeEscapeListener();
+      this.setMapWorkspaceBodyClass(false);
       document.body.style.overflow = "";
       this._lastAppliedMapExplorerFocusNonce = null;
       this._mapChainFetchId += 1;
@@ -356,8 +386,16 @@ class CurriculumMapOverlay extends Component {
     }
   }
 
+  setMapWorkspaceBodyClass = (active) => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    document.body.classList.toggle("app-map-workspace-open", Boolean(active));
+  };
+
   componentWillUnmount() {
     this.removeEscapeListener();
+    this.setMapWorkspaceBodyClass(false);
     document.body.style.overflow = "";
     if (this.mapSplitDragCleanup) {
       this.mapSplitDragCleanup();
@@ -690,7 +728,7 @@ class CurriculumMapOverlay extends Component {
     if (typeof window !== "undefined" && name) {
       window.localStorage.setItem(MAP_LAST_FACH_STORAGE_KEY, String(name));
     }
-    this.setState({
+    this.setState((prev) => ({
       selectedFach: name,
       mapChainView: null,
       mapOutlineExpanded: { kb: {}, aspect: {}, chain: {} },
@@ -699,6 +737,19 @@ class CurriculumMapOverlay extends Component {
       mapChainSourceUid: null,
       mapYellowFocus: null,
       mapChainNavDirection: null,
+      mapSplitRatio: prev.mapSplitRatio >= 92 ? 65 : prev.mapSplitRatio,
+    }));
+  };
+
+  handleShowFachPicker = () => {
+    this.setState({
+      selectedFach: null,
+      mapChainView: null,
+      mapChainSourceUid: null,
+      mapYellowFocus: null,
+      mapChainNavDirection: null,
+      mapOutlineFilter: "",
+      mapOutlineExpanded: { kb: {}, aspect: {}, chain: {} },
     });
   };
 
@@ -848,18 +899,14 @@ class CurriculumMapOverlay extends Component {
     });
   };
 
-  /** Von Aufbau-Kette zurück zur Outline; von Outline zurück zur Fächerliste. */
+  /** Von Aufbau-Kette zurück zur KB-Übersicht (Fach bleibt in der Finder-Liste gewählt). */
   handleBreadcrumbFach = () => {
-    if (this.state.mapChainView) {
-      this.setState({
-        mapChainView: null,
-        mapChainSourceUid: null,
-        mapYellowFocus: null,
-        mapChainNavDirection: null,
-      });
-      return;
-    }
-    this.setState({ selectedFach: null, mapYellowFocus: null, mapChainNavDirection: null });
+    this.setState({
+      mapChainView: null,
+      mapChainSourceUid: null,
+      mapYellowFocus: null,
+      mapChainNavDirection: null,
+    });
   };
 
   /** Outline wie in der Graph-Ansicht (inkl. Suchfilter). */
@@ -975,7 +1022,7 @@ class CurriculumMapOverlay extends Component {
     if (!trimmed) {
       return;
     }
-    const { apiUrl, enrichChainDataWithNetworkApi, onRecordRecentView } = this.props;
+    const { onRecordRecentView } = this.props;
     const highlightAnchorUid = trimmed;
     const navDir =
       navSlide === "prev" || navSlide === "next" ? navSlide : null;
@@ -1009,27 +1056,19 @@ class CurriculumMapOverlay extends Component {
       };
     });
 
-    fetch(apiUrl(`/competency-chain/${encodeURIComponent(trimmed)}`))
-      .then((response) => {
-        if (response.status === 404) {
-          throw new Error("not_found");
-        }
-        if (!response.ok) {
-          throw new Error("network");
-        }
-        return response.json();
-      })
-      .then((data) => enrichChainDataWithNetworkApi(data))
+    fetchCompetencyChain(trimmed)
       .then((data) => {
         if (myFetchId !== this._mapChainFetchId) {
           return;
         }
+        const resolvedHighlightUid = resolveHighlightUidFromChainData(
+          data,
+          highlightAnchorUid
+        );
         const cur = data && data.current;
-        const resolvedHighlightUid =
-          cur && cur.uid != null ? String(cur.uid).trim() : highlightAnchorUid;
         if (typeof onRecordRecentView === "function" && cur) {
           onRecordRecentView({
-            uid: String(cur.uid).trim(),
+            uid: resolvedHighlightUid,
             code: cur.code,
             fach: cur.fach,
             label: truncateCompetencyLabel(cur.text || cur.code || cur.uid, 120),
@@ -1065,10 +1104,7 @@ class CurriculumMapOverlay extends Component {
         if (myFetchId !== this._mapChainFetchId) {
           return;
         }
-        const message =
-          error.message === "not_found"
-            ? "Für diese Kompetenz wurde kein Aufbau-Kontext gefunden."
-            : "Der Aufbau-Kontext konnte nicht geladen werden.";
+        const message = getChainFetchErrorMessage(error);
         this.setState((prev) => ({
           mapChainSourceUid: null,
           mapYellowFocus: null,
@@ -1110,54 +1146,43 @@ class CurriculumMapOverlay extends Component {
 
   handleMapChainSelectNeighbor = (nextUid) => {
     const { mapChainView } = this.state;
-    const { enrichChainDataWithNetworkApi, onRecordRecentView } = this.props;
-    const fullChain = mapChainView && mapChainView.data && mapChainView.data.full_chain;
-    if (fullChain && Array.isArray(fullChain) && nextUid) {
-      const idx = fullChain.findIndex((step) => step && step.uid === nextUid);
-      if (idx !== -1) {
-        const cur = fullChain[idx];
-        const data = {
-          previous: idx > 0 ? fullChain[idx - 1] : null,
-          current: cur,
-          next: idx < fullChain.length - 1 ? fullChain[idx + 1] : null,
-          full_chain: fullChain,
-          chain_heading: mapChainView.data.chain_heading,
-          _has_network: Boolean(cur && cur.network_links && cur.network_links.length > 0),
-        };
-        const stepUid = (cur && cur.uid) || nextUid;
-        const stepLabel =
-          truncateCompetencyLabel(cur && cur.text, 120) ||
-          (cur && cur.code ? String(cur.code).trim() : "") ||
-          stepUid;
-        if (typeof onRecordRecentView === "function") {
-          onRecordRecentView({
-            uid: stepUid,
-            code: cur && cur.code ? String(cur.code).trim() : undefined,
-            fach: cur && cur.fach ? String(cur.fach).trim() : undefined,
-            label: stepLabel,
-          });
-        }
-        enrichChainDataWithNetworkApi(data).then((enriched) => {
-          const resolvedHighlightUid =
-            enriched &&
-            enriched.current &&
-            enriched.current.uid != null
-              ? String(enriched.current.uid).trim()
-              : stepUid;
-          this.setState({
-            mapChainSourceUid: resolvedHighlightUid,
-            mapChainNavDirection: null,
-            mapChainView: {
-              ...mapChainView,
-              loading: false,
-              error: null,
-              data: enriched,
-              highlightAnchorUid: resolvedHighlightUid,
-            },
-          });
+    const { onRecordRecentView } = this.props;
+    const fullChain = mapChainView?.data?.full_chain;
+    const slice = buildChainSliceAtLookupKey(fullChain, nextUid, {
+      chainHeading: mapChainView?.data?.chain_heading,
+    });
+    if (slice) {
+      const { data, cur, highlightAnchorUid } = slice;
+      const stepLabel =
+        truncateCompetencyLabel(cur && cur.text, 120) ||
+        (cur && cur.code ? String(cur.code).trim() : "") ||
+        highlightAnchorUid;
+      if (typeof onRecordRecentView === "function") {
+        onRecordRecentView({
+          uid: highlightAnchorUid,
+          code: cur && cur.code ? String(cur.code).trim() : undefined,
+          fach: cur && cur.fach ? String(cur.fach).trim() : undefined,
+          label: stepLabel,
         });
-        return;
       }
+      enrichChainDataWithNetworkApi(data).then((enriched) => {
+        const resolvedHighlightUid = resolveHighlightUidFromChainData(
+          enriched,
+          highlightAnchorUid
+        );
+        this.setState({
+          mapChainSourceUid: resolvedHighlightUid,
+          mapChainNavDirection: null,
+          mapChainView: {
+            ...mapChainView,
+            loading: false,
+            error: null,
+            data: enriched,
+            highlightAnchorUid: resolvedHighlightUid,
+          },
+        });
+      });
+      return;
     }
     if (!nextUid) {
       return;
@@ -1187,96 +1212,186 @@ class CurriculumMapOverlay extends Component {
     });
   };
 
-  /** Kompakte Leiste: Fach bleibt beim Erkunden sichtbar (wechseln ohne „zweiten Screen“). */
-  renderSubjectStrip = (subjects) => (
-    <div
-      ref={this.fachStripRef}
-      className="curriculum-map-subject-strip"
-      role="group"
-      aria-label="Fach wechseln"
-    >
-      {subjects.map((subj) => {
-        const emoji = FACH_EMOJI[subj.name] || "📘";
-        const showEmoji = Boolean(this.state.showMapEmoji);
-        const active = this.state.selectedFach === subj.name;
-        return (
+  countFachStats = (subj) => {
+    const outline = Array.isArray(subj.outline) ? subj.outline : [];
+    let chainCount = 0;
+    outline.forEach((kb) => {
+      (kb.aspects || []).forEach((a) => {
+        chainCount += (a.chains || []).length;
+      });
+    });
+    return { kbCount: outline.length, chainCount };
+  };
+
+  renderFinderFachList = (subjects) => {
+    const showEmoji = Boolean(this.state.showMapEmoji);
+    const { selectedFach } = this.state;
+    return (
+      <nav
+        ref={this.fachStripRef}
+        className="curriculum-map-finder-fach"
+        aria-label="Fächer"
+      >
+        <p className="curriculum-map-finder-fach-label">Fächer</p>
+        <ul className="curriculum-map-finder-fach-list">
+          {subjects.map((subj) => {
+            const { kbCount, chainCount } = this.countFachStats(subj);
+            const active = selectedFach === subj.name;
+            const emoji = FACH_EMOJI[subj.name] || "📘";
+            return (
+              <li key={subj.name}>
+                <button
+                  type="button"
+                  className={`curriculum-map-finder-fach-item ${active ? "curriculum-map-finder-fach-item--active" : ""}`}
+                  onClick={() => this.handleSelectFach(subj.name)}
+                  aria-pressed={active}
+                >
+                  {showEmoji ? (
+                    <span className="curriculum-map-finder-fach-emoji" aria-hidden="true">
+                      {emoji}
+                    </span>
+                  ) : null}
+                  <span className="curriculum-map-finder-fach-text">
+                    <span className="curriculum-map-finder-fach-name">{subj.name}</span>
+                    {subj.fach_code ? (
+                      <span className="curriculum-map-finder-fach-code">{subj.fach_code}</span>
+                    ) : null}
+                    <span className="curriculum-map-finder-fach-meta">
+                      {kbCount} KB · {chainCount} Ketten
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    );
+  };
+
+  renderFinderToolbar = (fachEntry) => {
+    const outlineRaw = Array.isArray(fachEntry.outline) ? fachEntry.outline : [];
+    const filterRaw = (this.state.mapOutlineFilter || "").trim();
+    const filterActive = filterRaw.length > 0;
+    const filteredOutline = filterActive
+      ? filterOutlineByQuery(outlineRaw, filterRaw)
+      : outlineRaw;
+    const statsFull = countOutlineStats(outlineRaw);
+    const statsShown = countOutlineStats(filteredOutline);
+    const fachCode = fachEntry.fach_code ? String(fachEntry.fach_code).trim() : "";
+
+    return (
+      <div className="map-outline-toolbar curriculum-map-finder-toolbar" role="search">
+        <div className="curriculum-map-finder-fach-bar">
           <button
-            key={subj.name}
             type="button"
-            className={`curriculum-map-strip-chip ${active ? "active" : ""}`}
-            style={{ "--strip-accent": this.props.getFachColor(subj.name) }}
-            onClick={() => this.handleSelectFach(subj.name)}
-            aria-pressed={active}
+            className="map-outline-tool-btn curriculum-map-fach-back"
+            onClick={this.handleShowFachPicker}
+            aria-label="Anderes Fach wählen"
           >
-            {showEmoji ? (
-              <span className="curriculum-map-strip-chip-emoji" aria-hidden="true">
-                {emoji}
-              </span>
+            ‹ Fach wechseln
+          </button>
+          <p className="curriculum-map-finder-fach-current">
+            <strong className="curriculum-map-finder-fach-current-name">{fachEntry.name}</strong>
+            {fachCode ? (
+              <span className="curriculum-map-finder-fach-code-inline">{fachCode}</span>
             ) : null}
-            <span className="curriculum-map-strip-chip-label">{subj.name}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  renderFachExplorerBody = (subjects, fachEntry) => (
-    <div className="curriculum-map-explorer-with-strip">
-      {this.renderSubjectStrip(subjects)}
-      <p className="curriculum-map-strip-hint">
-        Struktur für <strong>{fachEntry.name}</strong>. Andere Fächer: Leiste oben; alle Kacheln: Brotkrume
-        „Fächer“.
-      </p>
-      <div key={fachEntry.name} className="curriculum-map-graph-pane">
-        {this.renderFachGraph(fachEntry)}
-      </div>
-    </div>
-  );
-
-  renderSubjectChips = (subjects) => (
-    <div
-      className="curriculum-map-subject-grid curriculum-map-subject-grid--enter"
-      role="group"
-      aria-label="Fach auswählen"
-    >
-      {subjects.map((subj) => {
-        const outline = Array.isArray(subj.outline) ? subj.outline : [];
-        const kbCount = outline.length;
-        let chainCount = 0;
-        outline.forEach((kb) => {
-          (kb.aspects || []).forEach((a) => {
-            chainCount += (a.chains || []).length;
-          });
-        });
-        const emoji = FACH_EMOJI[subj.name] || "📘";
-        const showEmoji = Boolean(this.state.showMapEmoji);
-        return (
+          </p>
+        </div>
+        <p className="map-outline-toolbar-stats" aria-live="polite">
+          <span className="map-outline-stat">
+            Kompetenzbereiche
+          </span>
+          <span className="map-outline-stat-sep" aria-hidden="true">
+            ·
+          </span>
+          <span className="map-outline-stat">
+            KB <strong>{filterActive ? statsShown.kbCount : statsFull.kbCount}</strong>
+          </span>
+          <span className="map-outline-stat-sep" aria-hidden="true">
+            ·
+          </span>
+          <span className="map-outline-stat">
+            Ketten <strong>{filterActive ? statsShown.chainCount : statsFull.chainCount}</strong>
+          </span>
+        </p>
+        <div className="map-outline-toolbar-actions">
+          <input
+            type="search"
+            className="map-outline-filter-input"
+            placeholder="Filtern …"
+            aria-label="Kompetenzbereiche filtern"
+            value={this.state.mapOutlineFilter || ""}
+            onChange={this.handleOutlineFilterChange}
+          />
           <button
-            key={subj.name}
             type="button"
-            className={`curriculum-map-subject-card ${this.state.selectedFach === subj.name ? "active" : ""}`}
-            style={{ "--chip-accent": this.props.getFachColor(subj.name) }}
-            onClick={() => this.handleSelectFach(subj.name)}
+            className="map-outline-tool-btn"
+            onClick={this.handleExpandAllOutline}
+            disabled={filterActive}
           >
-            <span className="curriculum-map-subject-top">
-              {showEmoji ? (
-                <span className="curriculum-map-subject-emoji" aria-hidden="true">{emoji}</span>
-              ) : null}
-              {subj.fach_code ? (
-                <span className="curriculum-map-fach-token" title="Fachbereich-Kürzel (Lehrplan 21)">
-                  {subj.fach_code}
-                </span>
-              ) : null}
-            </span>
-            <span className="curriculum-map-fach-chip-label">{subj.name}</span>
-            <span className="curriculum-map-subject-meta">
-              {kbCount} Bereiche · {chainCount} Ketten
-            </span>
+            Alle auf
           </button>
-        );
-      })}
-    </div>
-  );
+          <button
+            type="button"
+            className="map-outline-tool-btn"
+            onClick={this.handleCollapseAllOutline}
+            disabled={filterActive}
+          >
+            Alle zu
+          </button>
+          {filterActive ? (
+            <button
+              type="button"
+              className="map-outline-tool-btn map-outline-tool-btn--accent"
+              onClick={() => this.setState({ mapOutlineFilter: "" })}
+            >
+              Filter löschen
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
+  renderMapFinder = (subjects) => {
+    const { selectedFach } = this.state;
+    const fachEntry = selectedFach
+      ? subjects.find((s) => s.name === selectedFach)
+      : null;
+
+    const hasFach = Boolean(selectedFach && fachEntry);
+
+    return (
+      <div
+        className={`curriculum-map-finder ${hasFach ? "curriculum-map-finder--has-fach" : ""}`}
+      >
+        {!hasFach ? this.renderFinderFachList(subjects) : null}
+        <div className="curriculum-map-finder-main">
+          {!fachEntry ? (
+            <div className="curriculum-map-finder-empty" role="status">
+              <p className="curriculum-map-finder-empty-title">Fach wählen</p>
+              <p className="curriculum-map-finder-empty-lead">
+                Links ein Fach antippen — danach erscheinen die Kompetenzbereiche (KB). Eine Kette
+                öffnet rechts den Aufbau.
+              </p>
+            </div>
+          ) : !Array.isArray(fachEntry.outline) || fachEntry.outline.length === 0 ? (
+            <p className="curriculum-map-status">
+              Keine Outline-Daten für dieses Fach. Backend neu starten (Cache), dann erneut laden.
+            </p>
+          ) : (
+            <>
+              {this.renderFinderToolbar(fachEntry)}
+              <div key={fachEntry.name} className="curriculum-map-graph-pane">
+                {this.renderFachGraph(fachEntry)}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   renderFachOutline = (subject) => {
     const fachName = subject.name;
@@ -1546,7 +1661,12 @@ class CurriculumMapOverlay extends Component {
     const exp = filterRaw ? mergeExpandedForFiltered(baseExp, forcedKeys) : baseExp;
 
     return (
-      <div className="map-graph" role="region" aria-label={`Landkarte-Nodes: ${fachName}`}>
+      <div className="map-graph" role="region" aria-label={`Kompetenzbereiche: ${fachName}`}>
+        {filteredOutline.length === 0 && filterRaw ? (
+          <p className="map-outline-empty" role="status">
+            Keine Treffer für „{filterRaw}“.
+          </p>
+        ) : null}
         {filteredOutline.map((kb) => {
           const kbCode = kb.kb_code != null ? String(kb.kb_code) : "";
           const expandedKb = Boolean(exp.kb[kbCode]);
@@ -1641,53 +1761,38 @@ class CurriculumMapOverlay extends Component {
   };
 
   renderMapChainPanel = () => {
-    const { mapChainView } = this.state;
+    const { mapChainView, mapChainNavDirection } = this.state;
     const { bookmarkUids, getFachColor } = this.props;
-    if (!mapChainView) {
-      return (
-        <aside className="map-detail-panel" aria-label="Kompetenzaufbau">
-          <h3>Aufbau-Kette</h3>
-          <p className="map-detail-empty">Klicke links eine Kompetenz an, um rechts die Kette zu laden.</p>
-        </aside>
-      );
-    }
+    const hasChainContent = Boolean(
+      mapChainView?.loading || mapChainView?.error || mapChainView?.data
+    );
+
     return (
-      <div className="map-chain-panel">
-        <CompetencyChainView
-          key={String(mapChainView.highlightAnchorUid || mapChainView.data?.current?.uid || "chain")}
-          loading={Boolean(mapChainView.loading)}
-          error={mapChainView.error}
-          chainData={mapChainView.data}
-          highlightAnchorUid={undefined}
-          searchSelectionHighlight={false}
-          onBack={this.handleMapChainBack}
-          onSelectNeighbor={this.handleMapChainSelectNeighbor}
-          getZyklusColorByPart={this.props.getZyklusColorByPart}
-          getFachColor={getFachColor}
-          getCompetencyNetworkUrl={(uid) =>
-            this.props.apiUrl(`/api/competency-network/${encodeURIComponent(uid)}`)
-          }
-          backButtonLabel="← Kette schließen"
-          backButtonAriaLabel="Kette schließen"
-          bookmarkUids={bookmarkUids}
-          onToggleBookmarkStep={this.handleToggleBookmarkStepFromMapChain}
-          onOpenInCurriculumMap={this.props.onOpenInCurriculumMapFromChain}
-          mapOutlineChainNav={this.computeMapOutlineChainNavProps()}
-          mapChainNavDirection={this.state.mapChainNavDirection}
-          onMapChainNavAnimationEnd={this.handleMapChainNavAnimationEnd}
-          chainLoadingStatusDelayMs={2000}
-        />
-      </div>
+      <CompetencyChainPanel
+        variant="map"
+        chainView={mapChainView}
+        onBack={this.handleMapChainBack}
+        onSelectNeighbor={this.handleMapChainSelectNeighbor}
+        getZyklusColorByPart={this.props.getZyklusColorByPart}
+        getFachColor={getFachColor}
+        bookmarkUids={bookmarkUids}
+        onToggleBookmarkStep={this.handleToggleBookmarkStepFromMapChain}
+        onOpenInCurriculumMap={this.props.onOpenInCurriculumMapFromChain}
+        mapOutlineChainNav={
+          hasChainContent ? this.computeMapOutlineChainNavProps() : null
+        }
+        mapChainNavDirection={mapChainNavDirection}
+        onMapChainNavAnimationEnd={this.handleMapChainNavAnimationEnd}
+        chainIdleMessage="Wähle links eine Kompetenz, um hier den Aufbau zu sehen."
+        hideToolbarBack={!hasChainContent}
+        backButtonLabel="← Zurück zur Übersicht"
+        backButtonAriaLabel="Zurück zur Landkarten-Übersicht"
+      />
     );
   };
 
   renderExplorerMain = () => {
-    const {
-      overview,
-      overviewLoading,
-      overviewError,
-      selectedFach,
-    } = this.state;
+    const { overview, overviewLoading, overviewError } = this.state;
 
     if (overviewLoading) {
       return <p className="curriculum-map-status">Lade Übersicht …</p>;
@@ -1702,24 +1807,23 @@ class CurriculumMapOverlay extends Component {
     if (!overview || !Array.isArray(overview.subjects)) {
       return null;
     }
-    const subjects = overview.subjects;
-    if (!selectedFach) {
-      return this.renderSubjectChips(subjects);
-    }
-    const fachEntry = subjects.find((s) => s.name === selectedFach);
-    if (!fachEntry || !Array.isArray(fachEntry.outline)) {
-      return (
-        <p className="curriculum-map-status">
-          Keine Outline-Daten für dieses Fach. Backend neu starten (Cache), dann erneut laden.
-        </p>
-      );
-    }
-    return this.renderFachExplorerBody(subjects, fachEntry);
+    return this.renderMapFinder(overview.subjects);
   };
 
   renderBreadcrumb = () => {
     const { selectedFach, mapChainView } = this.state;
     const crumbs = [
+      <button
+        key="search"
+        type="button"
+        className="curriculum-map-crumb"
+        onClick={this.props.onClose}
+      >
+        Suche
+      </button>,
+      <span key="s0" className="curriculum-map-crumb-sep" aria-hidden="true">
+        ›
+      </span>,
       <button
         key="root"
         type="button"
@@ -1787,132 +1891,125 @@ class CurriculumMapOverlay extends Component {
 
     if (mapChainView) {
       return (
-        <CompetencyChainView
-          loading={Boolean(mapChainView.loading)}
-          error={mapChainView.error}
-          chainData={mapChainView.data}
-          highlightAnchorUid={undefined}
-          searchSelectionHighlight={false}
+        <CompetencyChainPanel
+          variant="map"
+          wrapMapPanel={false}
+          chainView={mapChainView}
           onBack={this.handleMapChainBack}
           onSelectNeighbor={this.handleMapChainSelectNeighbor}
           getZyklusColorByPart={this.props.getZyklusColorByPart}
           getFachColor={getFachColor}
-          getCompetencyNetworkUrl={(uid) =>
-            this.props.apiUrl(`/api/competency-network/${encodeURIComponent(uid)}`)
-          }
-          backButtonLabel="← Zurück zur Landkarte"
-          backButtonAriaLabel="Zurück zur Landkarte"
           bookmarkUids={bookmarkUids}
           onToggleBookmarkStep={this.handleToggleBookmarkStepFromMapChain}
+          backButtonLabel="← Zurück zur Landkarte"
+          backButtonAriaLabel="Zurück zur Landkarte"
         />
       );
     }
 
-    const subjects = overview.subjects;
-    if (!selectedFach) {
-      return this.renderSubjectChips(subjects);
-    }
+    return this.renderMapFinder(overview.subjects);
+  };
 
-    const fachEntry = subjects.find((s) => s.name === selectedFach);
-    if (!fachEntry || !Array.isArray(fachEntry.outline)) {
-      return (
-        <p className="curriculum-map-status">
-          Keine Outline-Daten für dieses Fach. Backend neu starten (Cache), dann erneut laden.
-        </p>
-      );
-    }
+  renderFullPageWorkspace = () => {
+    const { showMapEmoji, mapSplitRatio, selectedFach } = this.state;
+    const inFachSplit = Boolean(selectedFach);
+    const mapCollapsedByUser = inFachSplit && mapSplitRatio <= 8;
+    const chainCollapsedByUser = inFachSplit && mapSplitRatio >= 92;
+    const showMapPane = !inFachSplit || !mapCollapsedByUser;
+    const showChainPane = inFachSplit && !chainCollapsedByUser;
+    const showDivider = showMapPane && showChainPane;
+    const gridTemplateColumns = !showChainPane
+      ? "1fr"
+      : !showMapPane
+        ? "1fr"
+        : `${mapSplitRatio}fr 14px ${100 - mapSplitRatio}fr`;
 
-    return this.renderFachExplorerBody(subjects, fachEntry);
+    return (
+      <section
+        id="curriculum-map-root"
+        className="curriculum-map-page curriculum-map-page--workspace"
+        aria-labelledby="curriculum-map-title"
+      >
+        <header className="curriculum-map-header curriculum-map-header--page">
+          <div className="curriculum-map-header-text">
+            <h2 id="curriculum-map-title">Landkarte Lehrplan 21</h2>
+            <p className="curriculum-map-subtitle">
+              Links Fach wählen, dann Kompetenzbereiche — Kette antippen zeigt rechts den Aufbau.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="map-outline-tool-btn"
+            onClick={this.handleToggleMapEmoji}
+            aria-pressed={showMapEmoji}
+            title="Emoji in der Fachliste ein- oder ausblenden"
+          >
+            Emoji {showMapEmoji ? "an" : "aus"}
+          </button>
+          <button
+            type="button"
+            className="curriculum-map-close"
+            onClick={this.props.onClose}
+            aria-label="Zurück zur Suche"
+          >
+            Zur Suche
+          </button>
+        </header>
+        {this.renderBreadcrumb()}
+        <div className="curriculum-map-body curriculum-map-body--page">
+          <div
+            className="curriculum-map-page-layout"
+            style={{ gridTemplateColumns }}
+          >
+            {showMapPane ? (
+              <div className="curriculum-map-page-main">
+                {this.renderExplorerMain()}
+              </div>
+            ) : null}
+            {showDivider ? (
+              <div
+                className="map-split-divider"
+                role="separator"
+                aria-orientation="vertical"
+                aria-valuenow={Math.round(mapSplitRatio)}
+                aria-valuemin={2}
+                aria-valuemax={98}
+                aria-label="Breite anpassen: ziehen, Doppelklick 50/50"
+                title="Breite ziehen · Doppelklick = 50/50"
+                onMouseDown={this.handleMapSplitDragStart}
+                onDoubleClick={() =>
+                  this.setState({ mapSplitRatio: 50 }, () => {
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem(MAP_SPLIT_STORAGE_KEY, "50");
+                    }
+                  })
+                }
+              >
+                <span className="map-split-divider-handle" aria-hidden="true" />
+              </div>
+            ) : null}
+            {showChainPane ? this.renderMapChainPanel() : null}
+          </div>
+        </div>
+      </section>
+    );
   };
 
   render() {
     const { isOpen, fullPage } = this.props;
-    const { overview, selectedFach, mapChainView, showMapEmoji, mapSplitRatio } = this.state;
     if (!isOpen) {
       return null;
     }
 
     if (fullPage) {
-      const hasChain = Boolean(selectedFach && mapChainView);
-      const mapCollapsedByUser = hasChain && mapSplitRatio <= 8;
-      const chainCollapsedByUser = mapSplitRatio >= 92;
-      const showMapPane = !mapCollapsedByUser;
-      const showChainPane = hasChain && !chainCollapsedByUser;
-      const showDivider = showMapPane && showChainPane;
-      const gridTemplateColumns = !showChainPane
-        ? "1fr"
-        : !showMapPane
-          ? "1fr"
-          : `${mapSplitRatio}fr 14px ${100 - mapSplitRatio}fr`;
-      return (
-        <section
-          id="curriculum-map-root"
-          className="curriculum-map-page"
-          aria-labelledby="curriculum-map-title"
-        >
-          <header className="curriculum-map-header curriculum-map-header--page">
-            <div className="curriculum-map-header-text">
-              <h2 id="curriculum-map-title">Landkarte Lehrplan 21</h2>
-              <p className="curriculum-map-subtitle">
-                Fach wählen, dann Kompetenzbereiche und Ketten — gewähltes Fach bleibt als Leiste
-                erreichbar, Wechsel ohne neuen Screen.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="map-outline-tool-btn"
-              onClick={this.handleToggleMapEmoji}
-              aria-pressed={showMapEmoji}
-              title="Emoji in Fach-Kacheln ein- oder ausblenden"
-            >
-              Emoji {showMapEmoji ? "an" : "aus"}
-            </button>
-            <button
-              type="button"
-              className="curriculum-map-close"
-              onClick={this.props.onClose}
-              aria-label="Zurück zur Suche"
-            >
-              Zur Suche
-            </button>
-          </header>
-          {this.renderBreadcrumb()}
-          <div className="curriculum-map-body curriculum-map-body--page">
-            <div
-              className="curriculum-map-page-layout"
-              style={{
-                gridTemplateColumns,
-              }}
-            >
-              {showMapPane ? (
-                <div className="curriculum-map-page-main">{this.renderExplorerMain()}</div>
-              ) : null}
-              {showDivider ? (
-                <>
-                  <div
-                    className="map-split-divider"
-                    role="separator"
-                    aria-orientation="vertical"
-                    aria-label="Breite der Seitenaufteilung"
-                    title="Ziehen zum Anpassen, Doppelklick = 50/50"
-                    onMouseDown={this.handleMapSplitDragStart}
-                    onDoubleClick={() =>
-                      this.setState({ mapSplitRatio: 50 }, () => {
-                        if (typeof window !== "undefined") {
-                          window.localStorage.setItem(MAP_SPLIT_STORAGE_KEY, "50");
-                        }
-                      })
-                    }
-                  >
-                    <span className="map-split-divider-handle" aria-hidden="true" />
-                  </div>
-                </>
-              ) : null}
-              {showChainPane ? this.renderMapChainPanel() : null}
-            </div>
-          </div>
-        </section>
-      );
+      const workspace = this.renderFullPageWorkspace();
+      if (typeof document !== "undefined") {
+        const host = document.getElementById("app-main-content");
+        if (host) {
+          return createPortal(workspace, host);
+        }
+      }
+      return workspace;
     }
 
     return (

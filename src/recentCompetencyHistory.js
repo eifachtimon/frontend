@@ -114,6 +114,7 @@ export const pushRecentCompetency = (entry) => {
       RECENT_COMPETENCIES_STORAGE_KEY,
       JSON.stringify(next)
     );
+    window.dispatchEvent(new CustomEvent("lp21-recent-updated"));
   } catch (_err) {
     // quota / private mode
   }
@@ -123,6 +124,7 @@ export const pushRecentCompetency = (entry) => {
 export const clearRecentCompetencies = () => {
   try {
     window.localStorage.removeItem(RECENT_COMPETENCIES_STORAGE_KEY);
+    window.dispatchEvent(new CustomEvent("lp21-recent-updated"));
   } catch (_err) {
     // ignore
   }

@@ -31,7 +31,6 @@ const VorhabenLevelNav = ({ vorhaben }) => {
                 <span className="vorhaben-stepper-text">
                   <span className="vorhaben-stepper-label">{meta.label}</span>
                   <span className="vorhaben-stepper-hint">{meta.hint}</span>
-                  <span className="vorhaben-stepper-fhnw">{meta.fhnwPhases.join(" · ")}</span>
                 </span>
                 {badge ? (
                   <span className="vorhaben-stepper-badge" aria-label={`${badge} Einträge`}>

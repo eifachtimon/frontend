@@ -1,30 +1,47 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { APP_ROUTES, PLANUNG_LEVELS, vorhabenLevelPath } from "../config/appUrls";
-import ReportOrganizer from "../planning/ReportOrganizer";
-import PlanningPhaseBanner from "../planning/PlanningPhaseBanner";
-import PlanningContextBar from "../planning/PlanningContextBar";
-import VorhabenCircularityHint from "../planning/VorhabenCircularityHint";
+import PlanningLocationBar from "../planning/PlanningLocationBar";
 import VorhabenLevelNav from "../planning/VorhabenLevelNav";
 import PlanningSaveToast from "../planning/PlanningSaveToast";
+import ThemaPageAside from "../planning/ThemaPageAside";
+import ThemaHeroMeta from "../planning/ThemaHeroMeta";
 import GrobplanungPanel from "../planning/panels/GrobplanungPanel";
 import ZweiWochenPanel from "../planning/panels/ZweiWochenPanel";
 import WochePanel from "../planning/panels/WochePanel";
 import LektionPanel from "../planning/panels/LektionPanel";
 import usePlanningStore from "../planning/usePlanningStore";
-import { loadPlanningStore } from "../planning/planningStore";
+import { getFachCssVars, getFachToneClassName } from "../planning/fachColors";
+import { getSuggestNextStepTarget } from "../planning/planningHubUtils";
+import { getLevelMeta } from "../planning/planningLevels";
+import { getVorhabenById, loadPlanningStore } from "../planning/planningStore";
 import "../planning/planning.css";
+import "../planning/themaPage.css";
+
+const findVorhabenById = (planningStore, vorhabenId) => {
+  if (!vorhabenId) {
+    return null;
+  }
+  return (
+    getVorhabenById(planningStore, vorhabenId) ||
+    getVorhabenById(loadPlanningStore(), vorhabenId) ||
+    null
+  );
+};
 
 const VorhabenPage = () => {
   const { id, level } = useParams();
   const { store, saveVorhaben } = usePlanningStore();
-  const [vorhaben, setVorhaben] = useState(null);
+  const [vorhaben, setVorhaben] = useState(() => findVorhabenById(loadPlanningStore(), id));
+  const [missingConfirmed, setMissingConfirmed] = useState(false);
   const [savePulse, setSavePulse] = useState(0);
+  const [asideOpen, setAsideOpen] = useState(false);
   const skipNextSaveToast = useRef(true);
 
   useEffect(() => {
-    const v = store.vorhaben.find((x) => x.id === id) || null;
+    const v = findVorhabenById(store, id);
     setVorhaben(v);
+    setMissingConfirmed(!v);
     skipNextSaveToast.current = true;
   }, [store, id]);
 
@@ -51,22 +68,44 @@ const VorhabenPage = () => {
     [saveVorhaben]
   );
 
+  const nextStep = useMemo(
+    () => (vorhaben ? getSuggestNextStepTarget(vorhaben, level) : null),
+    [vorhaben, level]
+  );
+
+  const openReminders = (vorhaben?.erinnerungen || []).filter((e) => !e.done).length;
+  const compCount = vorhaben?.competencies?.length || 0;
+  const lekCount = vorhaben?.lektionen?.length || 0;
+
   if (!PLANUNG_LEVELS.includes(level)) {
     return <Navigate to={vorhabenLevelPath(id, "grob")} replace />;
   }
 
   if (!vorhaben) {
+    if (!missingConfirmed) {
+      return (
+        <div className="app-shell planning-hub planning-surface">
+          <main className="planning-hub-main">
+            <p className="planning-loading" role="status">
+              Thema wird geladen …
+            </p>
+          </main>
+        </div>
+      );
+    }
     return (
       <div className="app-shell planning-hub planning-surface">
         <main className="planning-hub-main">
-          <p className="planning-empty">Vorhaben nicht gefunden.</p>
-          <Link to={APP_ROUTES.planung}>← Mein Unterricht</Link>
+          <p className="planning-empty">Thema nicht gefunden.</p>
+          <Link to={APP_ROUTES.home}>← Mein Unterricht</Link>
         </main>
       </div>
     );
   }
 
   const rituals = store.rituals || loadPlanningStore().rituals;
+  const showActionStep = nextStep && !nextStep.isOnTarget && nextStep.path;
+  const showOkStep = nextStep && nextStep.isOnTarget;
 
   const renderPanel = () => {
     switch (level) {
@@ -85,67 +124,94 @@ const VorhabenPage = () => {
     }
   };
 
+  const aside = (
+    <ThemaPageAside vorhaben={vorhaben} level={level} onChange={persist} />
+  );
+
+  const heroTone = getFachToneClassName(vorhaben.fach);
+  const heroStyle = heroTone ? getFachCssVars(vorhaben.fach, vorhaben.id) : undefined;
+
+  const nextStepBlock = showActionStep ? (
+    <div className="thema-next-step thema-next-step--action" role="status">
+      <span className="thema-next-step-label">Nächster Schritt</span>
+      <p className="thema-next-step-text">{nextStep.label}</p>
+      <Link to={nextStep.path} className="thema-next-step-link">
+        Zu {getLevelMeta(nextStep.level).label} →
+      </Link>
+    </div>
+  ) : showOkStep ? (
+    <div
+      className="thema-next-step thema-next-step--ok thema-next-step--inline"
+      role="status"
+    >
+      <span className="thema-next-step-label">Fokus</span>
+      <p className="thema-next-step-text">{nextStep.label}</p>
+    </div>
+  ) : null;
+
   return (
     <div className="app-shell vorhaben-page planning-surface">
       <PlanningSaveToast pulseKey={savePulse} />
       <main
-        className={`vorhaben-main layout${level === "woche" ? " vorhaben-main--woche" : ""}`}
+        className={`vorhaben-main layout thema-page${level === "woche" ? " vorhaben-main--woche" : ""}`}
       >
-        <PlanningContextBar activeSection="vorhaben" vorhabenId={id} />
-        <nav className="planung-breadcrumb" aria-label="Brotkrumen">
-          <Link to={APP_ROUTES.planung}>Mein Unterricht</Link>
-          <span aria-hidden="true"> / </span>
-          <span>{vorhaben.title}</span>
-        </nav>
-
-        <header className="vorhaben-header">
+        <header
+          className={`vorhaben-header thema-hero${heroTone ? ` ${heroTone}` : ""}`}
+          style={heroStyle}
+        >
           <input
             type="text"
             className="vorhaben-title-input"
             value={vorhaben.title}
             onChange={(e) => persist({ ...vorhaben, title: e.target.value })}
-            aria-label="Titel des Vorhabens"
+            aria-label="Titel des Themas"
           />
-          <div className="vorhaben-meta-row">
-            <input
-              type="text"
-              placeholder="Fach"
-              value={vorhaben.fach || ""}
-              onChange={(e) => persist({ ...vorhaben, fach: e.target.value })}
-              aria-label="Fach"
-            />
-            <input
-              type="text"
-              placeholder="Zyklus"
-              value={vorhaben.zyklus || ""}
-              onChange={(e) => persist({ ...vorhaben, zyklus: e.target.value })}
-              aria-label="Zyklus"
-              className="vorhaben-meta-short"
-            />
-            <input
-              type="text"
-              placeholder="Klasse (z. B. 5b)"
-              value={vorhaben.klasse || ""}
-              onChange={(e) => persist({ ...vorhaben, klasse: e.target.value })}
-              aria-label="Klasse"
-              className="vorhaben-meta-short"
-            />
-          </div>
+          <ThemaHeroMeta
+            vorhaben={vorhaben}
+            onChange={persist}
+            compCount={compCount}
+            lekCount={lekCount}
+            openReminders={openReminders}
+          />
         </header>
 
-        <div className="vorhaben-stepper-sticky">
-          <VorhabenLevelNav vorhaben={vorhaben} />
+        <div className="thema-toolbar-sticky vorhaben-stepper-sticky">
+          <div
+            className={`thema-toolbar-inner${showOkStep ? " thema-toolbar-inner--with-hint" : ""}`}
+          >
+            <VorhabenLevelNav vorhaben={vorhaben} />
+            {showOkStep ? nextStepBlock : null}
+            <PlanningLocationBar
+              context="vorhaben"
+              vorhabenId={id}
+              levelId={level}
+              variant="toolbar"
+            />
+          </div>
         </div>
-        <VorhabenCircularityHint vorhabenId={vorhaben.id} currentLevel={level} />
 
-        <ReportOrganizer
-          vorhaben={vorhaben}
-          onApply={persist}
-          defaultOpen={level === "grob"}
-        />
+        {showActionStep ? nextStepBlock : null}
 
-        <PlanningPhaseBanner levelId={level} />
-        <div className="vorhaben-panel-area">{renderPanel()}</div>
+        <div className="thema-body">
+          <div className="thema-body-main vorhaben-panel-area">{renderPanel()}</div>
+
+          <div
+            className={`thema-aside-wrap${asideOpen ? " thema-aside-wrap--open" : ""}`}
+          >
+            <button
+              type="button"
+              className="thema-aside-mobile-toggle"
+              aria-expanded={asideOpen}
+              onClick={() => setAsideOpen((o) => !o)}
+            >
+              Kompetenzen &amp; Werkzeuge
+              <span className="thema-aside-mobile-chevron" aria-hidden="true">
+                {asideOpen ? "▾" : "▸"}
+              </span>
+            </button>
+            {aside}
+          </div>
+        </div>
       </main>
     </div>
   );

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import CompetencyPicker from "../components/CompetencyPicker";
-import PlanningContextBar from "../planning/PlanningContextBar";
+import PlanningViewHeader from "../planning/PlanningViewHeader";
+import "../planning/planning.css";
 import { APP_ROUTES, vorhabenLevelPath } from "../config/appUrls";
 import usePlanningStore from "../planning/usePlanningStore";
 import { getActiveVorhaben } from "../planning/planningHubUtils";
@@ -107,33 +108,26 @@ const PlanungEntwurfPage = () => {
   return (
     <div className="app-shell planung-page planning-surface">
       <main className="planung-main layout">
-        <PlanningContextBar activeSection="vorhaben" vorhabenId={activeVorhaben?.id} />
-        <nav className="planung-breadcrumb" aria-label="Brotkrumen">
-          <Link to={APP_ROUTES.planung}>Mein Unterricht</Link>
-          <span aria-hidden="true"> / </span>
-          <span>Stundenentwurf</span>
-        </nav>
-
-        <header className="planung-header">
-          <h1 id="planung-page-title">Stundenentwurf</h1>
-          <p className="planung-draft-notice" role="status">
-            Entwurf — bitte prüfen. KI-Generierung folgt in einer späteren Phase.
-          </p>
+        <PlanningViewHeader
+          band="blue"
+          title="Stundenentwurf"
+          lead="Entwurf — bitte prüfen. KI-Generierung folgt in einer späteren Phase."
+        >
           {activeVorhaben ? (
             <p className="planung-entwurf-hint">
               Empfohlen: Stundenentwurf in der{" "}
               <Link to={vorhabenLevelPath(activeVorhaben.id, "lektion")}>
                 Lektionsebene von «{activeVorhaben.title}»
               </Link>{" "}
-              pflegen, damit alles im Vorhaben bleibt.
+              pflegen, damit alles im Thema bleibt.
             </p>
           ) : (
             <p className="planung-entwurf-hint">
-              <Link to={APP_ROUTES.planung}>Lege ein Vorhaben an</Link>, um Planung und Entwurf zu
+              <Link to={APP_ROUTES.home}>Lege ein Thema an</Link>, um Planung und Entwurf zu
               bündeln.
             </p>
           )}
-        </header>
+        </PlanningViewHeader>
 
         <form className="planung-form" onSubmit={(e) => e.preventDefault()} noValidate>
           <fieldset className="planung-fieldset planung-fieldset--picker">

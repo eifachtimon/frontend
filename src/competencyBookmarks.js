@@ -245,6 +245,7 @@ export const saveBookmarkStore = (store) => {
   try {
     const cleaned = dedupeGlobalUids(enforceTotalMax(store, BOOKMARKS_MAX_TOTAL));
     window.localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(cleaned));
+    window.dispatchEvent(new CustomEvent("lp21-bookmarks-updated"));
   } catch (_err) {
     // quota / private mode
   }

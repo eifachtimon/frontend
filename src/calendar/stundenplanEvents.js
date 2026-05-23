@@ -1,4 +1,5 @@
 import { WEEKDAYS } from "../planning/planningDefaults";
+import { calendarEventClassNames, withBauhausEventStyle } from "./calendarEventStyles";
 import { weekdayIdFromDate } from "./planningEvents";
 
 const atMinutes = (baseDate, minutesFromMidnight) => {
@@ -35,28 +36,32 @@ export const stundenplanToCalendarEvents = (stundenplan, rangeStart, rangeEnd) =
       const evStart = atMinutes(day, startMin);
       const evEnd = atMinutes(day, endMin);
       const dayKey = day.toISOString().slice(0, 10);
-      events.push({
-        id: `stp-${slot.id}-${dayKey}`,
-        title: slot.label || "Lektionsplatz",
-        start: evStart.toISOString(),
-        end: evEnd.toISOString(),
-        display: "auto",
-        classNames: ["cal-stundenplan-slot"],
-        backgroundColor: "rgba(237, 209, 0, 0.12)",
-        borderColor: "rgba(237, 209, 0, 0.55)",
-        textColor: "#edd100",
-        editable: true,
-        startEditable: true,
-        durationEditable: true,
-        overlap: true,
-        extendedProps: {
-          source: "stundenplan",
-          slotId: slot.id,
-          lektionId: slot.lektionId || null,
-          vorhabenId: slot.vorhabenId || null,
-          slotLabel: slot.label,
-        },
-      });
+      events.push(
+        withBauhausEventStyle({
+          id: `stp-${slot.id}-${dayKey}`,
+          title: slot.label || "Lektionsplatz",
+          start: evStart.toISOString(),
+          end: evEnd.toISOString(),
+          display: "auto",
+          classNames: [
+            ...calendarEventClassNames("stundenplan"),
+            "cal-stundenplan-slot",
+            slot.lektionId ? "cal-stundenplan-slot--filled" : "",
+          ].filter(Boolean),
+          editable: true,
+          startEditable: true,
+          durationEditable: true,
+          overlap: true,
+          extendedProps: {
+            source: "stundenplan",
+            eventAccent: slot.lektionId ? "#1040c0" : "#f0c020",
+            slotId: slot.id,
+            lektionId: slot.lektionId || null,
+            vorhabenId: slot.vorhabenId || null,
+            slotLabel: slot.label,
+          },
+        })
+      );
     }
   }
   return events;

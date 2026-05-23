@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import AddToVorhabenControl from "./AddToVorhabenControl";
 import LessonDraftLink from "./LessonDraftLink";
+import { resolveChainNavFromSearchResult } from "../utils/competencyUid";
 
 class SearchResult extends Component {
   state = {
@@ -62,28 +63,22 @@ class SearchResult extends Component {
       return;
     }
     const chain = prefetchedChain || (metadata && metadata._competency_chain);
-    const chainDocKey =
-      chain?.current?.doc_key != null && String(chain.current.doc_key).trim()
-        ? String(chain.current.doc_key).trim()
-        : "";
-    const chainUid =
-      chain?.current?.uid != null && String(chain.current.uid).trim()
-        ? String(chain.current.uid).trim()
-        : "";
-    const docUid =
-      competencyUid != null && String(competencyUid).trim()
-        ? String(competencyUid).trim()
-        : "";
-    const lp21FromMeta =
-      metadata?.lp21_row_index != null &&
-      String(metadata.lp21_row_index).trim() !== ""
-        ? `lp21:${String(metadata.lp21_row_index).trim()}`
-        : "";
-    const uid = chainDocKey || chainUid || docUid || lp21FromMeta || null;
-    if (!chain?.current && !uid) {
+    const { fetchUid } = resolveChainNavFromSearchResult(
+      {
+        prefetchedChain: chain,
+        metadata,
+        documentUid: competencyUid,
+      },
+      competencyUid
+    );
+    if (!chain?.current && !fetchUid) {
       return;
     }
-    onOpenCompetencyChain(uid, chain);
+    onOpenCompetencyChain(fetchUid, chain, {
+      code: metadata?.code,
+      fach: metadata?.fach,
+      label: this.props.text || metadata?.code || fetchUid,
+    });
   };
 
   handleCardKeyDown = (event) => {

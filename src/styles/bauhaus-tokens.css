@@ -31,7 +31,7 @@
   --bh-dot-pattern: radial-gradient(var(--bh-fg) 1.5px, transparent 1.5px);
   --bh-dot-size: 20px 20px;
 
-  /* —— Spacing (shared with app) —— */
+  /* —— Spacing (8px-Raster) —— */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -39,6 +39,21 @@
   --space-5: 24px;
   --space-6: 32px;
   --space-7: 48px;
+
+  /*
+   * Layout-Hierarchie (wiedererkennbar):
+   * Ebene 1 Abschnitt → Ebene 2 Region → Ebene 3 Cluster → Ebene 4 Inline
+   */
+  --layout-page-x: clamp(1.25rem, 3vw, 2.5rem);
+  --layout-page-y: clamp(1.25rem, 2.5vh, 2rem);
+  --layout-section-gap: var(--space-5);
+  --layout-region-gap: var(--space-4);
+  --layout-cluster-gap: var(--space-3);
+  --layout-inline-gap: var(--space-2);
+  --layout-tight-gap: var(--space-1);
+  --layout-inset-card: var(--space-5);
+  --layout-inset-bar: var(--space-4);
+  --layout-inset-compact: var(--space-3);
 
   /* —— Bridge: search / App.css (WCAG AA auf #F0F0F0) —— */
   --text-muted: #3a3a3a;
@@ -48,9 +63,17 @@
   --border-subtle: var(--bh-fg);
   --radius-input: 0;
   --radius-chip: var(--bh-radius-full);
-  --shell-pad-x: clamp(1rem, 4.5vw, 2rem);
-  --shell-pad-y: clamp(1.25rem, 4vw, 2.5rem);
-  --app-content-max-width: 860px;
+  --shell-pad-x: var(--layout-page-x);
+  --shell-pad-y: var(--layout-page-y);
+  /* Breite: Desktop nutzt mehr Viewport (Sidebar ab 1024px) */
+  --app-shell-max-width: min(100%, 96rem);
+  --app-content-max-width: min(100%, 72rem);
+  --search-hero-bar-max: min(100%, 44rem);
+  --search-filters-max: min(100%, 52rem);
+  /* Planung: Inhalt füllt den Main-Bereich, Obergrenze skaliert mit Monitor */
+  --planning-shell-max: 100%;
+  --planning-page-max: min(100%, 88rem);
+  --planning-panel-min-h: min(52vh, 520px);
 
   /* —— Bridge: planning / calendar —— */
   --plan-bg: var(--bh-bg);
@@ -70,13 +93,21 @@
 
   /* FullCalendar */
   --fc-border-color: var(--bh-fg);
-  --fc-button-bg-color: var(--bh-blue);
+  --fc-button-bg-color: var(--bh-white);
   --fc-button-border-color: var(--bh-fg);
-  --fc-button-text-color: var(--bh-white);
-  --fc-button-hover-bg-color: #0d3699;
+  --fc-button-text-color: var(--bh-fg);
+  --fc-button-hover-text-color: var(--bh-fg);
+  --fc-button-active-text-color: var(--bh-fg);
+  --fc-button-hover-bg-color: var(--bh-muted);
   --fc-page-bg-color: var(--bh-white);
   --fc-neutral-bg-color: var(--bh-muted);
   --fc-today-bg-color: var(--bh-yellow-pale);
+
+  /* Kalender — Lesbarkeit & Höhe */
+  --cal-slot-height: 3.25rem;
+  --cal-grid-min-height: min(72vh, calc(100dvh - 10.5rem));
+  --cal-font-base: 0.94rem;
+  --cal-event-font: 0.88rem;
 }
 
 @media (min-width: 1024px) {
@@ -84,5 +115,42 @@
     --bh-border-w: 4px;
     --bh-shadow-sm: 4px 4px 0 0 var(--bh-fg);
     --bh-shadow-lg: 8px 8px 0 0 var(--bh-fg);
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --layout-section-gap: var(--space-6);
+    --app-shell-max-width: min(100%, 112rem);
+    --app-content-max-width: min(100%, 84rem);
+    --search-hero-bar-max: min(100%, 56rem);
+    --search-filters-max: min(100%, 64rem);
+    --planning-page-max: min(100%, 100rem);
+    --planning-panel-min-h: min(56vh, 600px);
+  }
+}
+
+@media (min-width: 1440px) {
+  :root {
+    --app-content-max-width: min(100%, 92rem);
+    --search-hero-bar-max: min(100%, 64rem);
+    --search-filters-max: min(100%, 72rem);
+    --planning-page-max: min(100%, 112rem);
+    --planning-panel-min-h: min(58vh, 640px);
+  }
+}
+
+@media (min-width: 1800px) {
+  :root {
+    --app-content-max-width: min(100%, 100rem);
+    --search-hero-bar-max: min(100%, 72rem);
+    --planning-page-max: min(100%, 124rem);
+    --planning-panel-min-h: min(60vh, 680px);
+  }
+}
+
+@media (min-width: 2100px) {
+  :root {
+    --planning-page-max: min(100%, 136rem);
   }
 }

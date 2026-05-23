@@ -29,7 +29,20 @@
 .app-shell .result-text--merge-block,
 .app-shell .result-linked-peer-text,
 .app-shell .result-group h3,
-.app-shell .results-header,
+.app-shell .results-header {
+  color: var(--bh-fg) !important;
+  border-bottom-color: var(--bh-border) !important;
+}
+
+.app-shell .results-header h2 {
+  color: var(--bh-fg) !important;
+}
+
+.app-shell .results-header span {
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+}
+
 .app-shell .bookmark-drawer-row-label,
 .app-shell .recent-history-item-label,
 .app-shell .chain-panel-title,
@@ -303,11 +316,14 @@ button.chain-aufbau-context-hit:hover {
   color: var(--bh-fg) !important;
 }
 
-.cal-fullcalendar-host .fc-button {
-  color: var(--text-on-primary) !important;
+/* FullCalendar-Toolbar: weisser Button-Hintergrund → dunkle Schrift (nicht --text-on-primary) */
+.cal-fullcalendar-host .fc-button,
+.cal-fullcalendar-host .fc-button .fc-icon {
+  color: var(--bh-fg) !important;
 }
 
-.cal-fullcalendar-host .fc-button-primary:not(:disabled).fc-button-active {
+.cal-fullcalendar-host .fc-button-primary:not(:disabled).fc-button-active,
+.cal-fullcalendar-host .fc-button-primary:not(:disabled).fc-button-active:hover {
   color: var(--bh-fg) !important;
 }
 
@@ -366,4 +382,13 @@ button.chain-aufbau-context-hit:hover {
 .dev-warning-body code {
   color: var(--bh-fg) !important;
   background: var(--bh-muted) !important;
+}
+
+/* —— Blauer Seitenkopf: Links & Ghost-Buttons —— */
+.planning-view-header--blue .planning-view-header__extra a {
+  color: var(--bh-white) !important;
+}
+
+.planning-view-header--blue .planning-view-header__extra a:hover {
+  color: var(--bh-yellow-pale) !important;
 }

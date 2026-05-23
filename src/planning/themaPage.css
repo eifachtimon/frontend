@@ -1,0 +1,324 @@
+/* Thema-Planung — UI-Verfeinerung (Bauhaus, hell, ruhig) */
+
+.thema-page {
+  --thema-gap: var(--space-4);
+}
+
+/* Hero kompakter */
+.thema-page .vorhaben-header.thema-hero {
+  margin-bottom: var(--thema-gap);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+}
+
+.thema-page .vorhaben-header .vorhaben-title-input {
+  margin-bottom: var(--space-2);
+  font-size: clamp(1.1rem, 2.2vw, 1.55rem);
+}
+
+.thema-meta-chip {
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.thema-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 5px 10px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted, #3a3a3a);
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.thema-stat-pill:hover {
+  background: var(--bh-muted, #e8e8e8);
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.thema-stat-pill--accent {
+  border-color: var(--bh-red, #e02020);
+  color: var(--bh-red, #e02020);
+}
+
+.thema-stat-pill-n {
+  font-weight: 800;
+  color: var(--bh-fg, #121212);
+}
+
+.thema-stat-pill--accent .thema-stat-pill-n {
+  color: var(--bh-red, #e02020);
+}
+
+.thema-hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Toolbar: hell statt dunkel */
+.thema-page .thema-toolbar-sticky.vorhaben-stepper-sticky,
+.thema-page .vorhaben-stepper-sticky {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  border-bottom: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  box-shadow: 0 4px 0 0 rgba(18, 18, 18, 0.06);
+}
+
+.thema-page .vorhaben-stepper-link {
+  border-width: 2px;
+  padding: 8px 10px;
+}
+
+.thema-page .vorhaben-stepper-link:not(.vorhaben-stepper-link--active) {
+  background: var(--bh-white, #fff);
+  border-color: var(--bh-border, #121212);
+}
+
+.thema-page .vorhaben-stepper-link--active {
+  box-shadow: 3px 3px 0 0 var(--bh-border, #121212);
+}
+
+@media (max-width: 719px) {
+  .thema-page .vorhaben-stepper-hint {
+    display: none;
+  }
+
+  .thema-page .vorhaben-stepper-item {
+    min-width: 5.5rem;
+  }
+}
+
+/* Nächster Schritt */
+.thema-next-step {
+  border-width: 2px;
+  box-shadow: 3px 3px 0 0 var(--bh-border, #121212);
+}
+
+.thema-next-step--action {
+  border-color: var(--bh-red, #e02020);
+  background: #fff8f8;
+  box-shadow: 3px 3px 0 0 var(--bh-red, #e02020);
+}
+
+.thema-next-step--ok {
+  border-color: var(--bh-border, #121212);
+  background: var(--bh-yellow-dim, #fff9e0);
+  box-shadow: 3px 3px 0 0 var(--bh-border, #121212);
+}
+
+.thema-next-step--ok .thema-next-step-label {
+  color: var(--bh-fg, #121212);
+}
+
+.thema-next-step--inline {
+  margin-bottom: 0;
+  padding: 6px 12px;
+  flex: 1;
+  min-width: 10rem;
+  max-width: 28rem;
+}
+
+.thema-toolbar-inner--with-hint {
+  align-items: stretch;
+}
+
+/* Panel-Karte */
+.thema-panel-card {
+  border: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+}
+
+.thema-panel-card-head {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--bh-border, #121212);
+  background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
+}
+
+.thema-panel-card-head-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin-bottom: 6px;
+}
+
+.thema-panel-card-step {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-panel-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.thema-panel-card-focus {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-panel-card-body {
+  padding: var(--space-4);
+}
+
+.thema-panel-card-body .planning-panel {
+  margin-top: 0;
+}
+
+.planning-section {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--plan-border-subtle, #eee);
+}
+
+.planning-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.planning-section-title {
+  margin: 0 0 var(--space-3);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--bh-fg, #121212);
+}
+
+/* Woche: Blöcke */
+.thema-woche-block {
+  margin-bottom: var(--space-4);
+}
+
+.thema-woche-block:last-child {
+  margin-bottom: 0;
+}
+
+.thema-woche-block-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-woche-cal-wrap {
+  border: 2px solid var(--bh-border, #121212);
+  padding: var(--space-2);
+  background: var(--bh-white, #fff);
+}
+
+.thema-page .woche-erinnerungen {
+  background: var(--bh-white, #fff);
+  border: 2px solid var(--bh-border, #121212);
+  box-shadow: none;
+}
+
+.thema-page .woche-cal-hint {
+  margin: 0 0 var(--space-3);
+  padding: 8px 10px;
+  background: var(--bh-muted, #f0f0f0);
+  border-left: 3px solid var(--bh-yellow, #f0c020);
+}
+
+/* Aside */
+.thema-page .thema-aside-block {
+  border-width: 2px;
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.thema-page .thema-aside-mobile-toggle {
+  border-width: 2px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+}
+
+/* Lektion */
+.thema-page .lektion-entwurf-card {
+  border-width: 2px;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 0 var(--bh-red, #e02020);
+  border-color: var(--bh-red, #e02020);
+}
+
+.thema-page .lektion-card {
+  border: 2px solid var(--bh-border, #121212);
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.thema-page .lektion-card--focused {
+  outline: 2px solid var(--bh-blue, #1040c0);
+  outline-offset: 2px;
+}
+
+.thema-page .lektion-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+/* Phasen & Meilensteine */
+.thema-page .planning-phasen,
+.thema-page .planning-milestones {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.thema-page .planning-phasen legend,
+.thema-page .planning-milestones legend {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+
+.thema-page .planning-milestone-row input[type="text"] {
+  border: 2px solid var(--plan-border);
+  background: var(--bh-white, #fff);
+}
+
+.thema-page .planning-panel--split .ritual-palette {
+  border-width: 2px;
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.thema-panel-card.fach-tone {
+  border-top: 6px solid var(--fach-base);
+}
+
+.thema-hero.fach-tone {
+  box-shadow:
+    var(--bh-shadow-sm, 4px 4px 0 0 #121212),
+    inset 0 6px 0 0 var(--fach-base);
+}
+
+@media (min-width: 960px) {
+  .thema-aside-wrap {
+    top: 4.25rem;
+  }
+}

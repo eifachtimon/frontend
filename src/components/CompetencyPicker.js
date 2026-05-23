@@ -202,7 +202,7 @@ const CompetencyPicker = ({ selected = [], onChange, maxSelected = MAX_SELECTED 
           {bookmarkTotal === 0 ? (
             <p className="competency-picker-empty">
               Noch nichts gemerkt. In der{" "}
-              <Link to={APP_ROUTES.search}>Suche</Link> — merken oder «Ins Vorhaben», dann
+              <Link to={APP_ROUTES.search}>Suche</Link> — merken oder «Ins Thema», dann
               hier auswählen.
             </p>
           ) : (

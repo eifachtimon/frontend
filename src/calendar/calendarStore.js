@@ -29,8 +29,8 @@ const emptyStore = () => ({
   stundenplan: defaultStundenplan(),
   settings: {
     defaultView: "timeGridWeek",
-    slotMinTime: "06:00:00",
-    slotMaxTime: "20:00:00",
+    slotMinTime: "07:00:00",
+    slotMaxTime: "18:00:00",
   },
 });
 

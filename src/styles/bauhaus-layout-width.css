@@ -1,0 +1,54 @@
+/**
+ * Volle Nutzung des Main-Bereichs neben der Sidebar (Desktop).
+ * Ersetzt zentrierte schmale content-column / planning-page-max.
+ */
+
+.app-shell-layout .search-main-content,
+.app-shell-layout .search-main-content .content-column,
+.app-shell-layout .content-column {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  box-sizing: border-box;
+}
+
+.app-shell-layout .planning-hub-main,
+.app-shell-layout .vorhaben-main,
+.app-shell-layout .planning-hub-main--time {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+
+.app-shell-layout .planning-hub-workspace {
+  width: 100%;
+}
+
+/* Suche: Hero/Filter optional begrenzt, Ergebnisse volle Breite */
+.app-shell-layout .results-panel,
+.app-shell-layout .results-grid,
+.app-shell-layout .results-groups {
+  width: 100%;
+  max-width: 100%;
+}
+
+.app-shell-layout .curriculum-map-page--workspace {
+  width: 100%;
+  max-width: 100%;
+}
+
+body.app-map-workspace-open .app-shell-layout .app-shell-main {
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .app-shell-layout .planning-hub-workspace {
+    grid-template-columns: minmax(14rem, 1fr) minmax(0, 2.5fr);
+  }
+}
+
+@media (min-width: 1440px) {
+  .app-shell-layout .planning-hub-workspace {
+    grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+  }
+}

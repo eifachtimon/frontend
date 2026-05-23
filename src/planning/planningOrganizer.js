@@ -117,7 +117,7 @@ export const parsePlanningReport = (text) => {
     push(
       "notiz",
       "Freie Notiz",
-      "Als allgemeine Notiz zum Vorhaben speichern.",
+      "Als allgemeine Notiz zum Thema speichern.",
       { text: raw }
     );
   }

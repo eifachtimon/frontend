@@ -4,7 +4,7 @@ export const LEVEL_META = [
   {
     id: "grob",
     step: 1,
-    label: "Grob",
+    label: "Überblick",
     hint: "Ziele & Phasen",
     fhnwPhases: ["Klären", "Entscheiden"],
     fhnwFocus: "Voraussetzungen, Lernziele, Kompetenzen — Tiefenstrukturen vor Methoden.",
@@ -12,7 +12,7 @@ export const LEVEL_META = [
   {
     id: "zwei-wochen",
     step: 2,
-    label: "2 Wochen",
+    label: "Zwischenziele",
     hint: "Meilensteine",
     fhnwPhases: ["Gestalten"],
     fhnwFocus: "Material, Medien, Rituale — Oberflächenstrukturen passend zu Lernprozessen.",

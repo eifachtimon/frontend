@@ -1,0 +1,223 @@
+/**
+ * Migration verbleibender Dark-Mode-Blöcke (App.css, Kalender-Filter, Drawer).
+ */
+
+/* —— Merkliste (Drawer) —— */
+.bookmark-drawer {
+  background: var(--bh-white) !important;
+  border-left: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-lg) !important;
+}
+
+.bookmark-drawer-inner,
+.bookmark-drawer-scroll {
+  background: var(--bh-white);
+  scrollbar-color: var(--bh-muted) var(--bh-white);
+}
+
+.bookmark-drawer-section--divider {
+  border-top-color: var(--bh-border) !important;
+}
+
+.bookmark-drawer-section-title,
+.bookmark-drawer-row-label,
+.bookmark-drawer-tab,
+.bookmark-folder-name,
+.bookmark-drawer-placeholder {
+  color: var(--bh-fg) !important;
+}
+
+.bookmark-drawer-row-meta,
+.bookmark-drawer-tab-count,
+.bookmark-toolbar-btn--muted,
+.bookmark-folder-count,
+.bookmark-drag-handle {
+  color: var(--text-muted) !important;
+}
+
+.bookmark-drawer-tab {
+  background: var(--bh-white) !important;
+  border-color: var(--bh-border) !important;
+  color: var(--text-muted) !important;
+}
+
+.bookmark-drawer-tab.is-active {
+  background: var(--bh-yellow) !important;
+  border-color: var(--bh-border) !important;
+  color: var(--bh-fg) !important;
+}
+
+.bookmark-section-tool-btn,
+.bookmark-toolbar-btn,
+.bookmark-folder-menu-btn,
+.bookmark-drawer-close-btn {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  color: var(--bh-fg) !important;
+  box-shadow: 3px 3px 0 0 var(--bh-fg);
+}
+
+.bookmark-folder-toggle,
+.bookmark-drawer-row-main {
+  color: var(--bh-fg) !important;
+}
+
+.bookmark-folder-list,
+.bookmark-drawer-row {
+  border-color: var(--bh-border) !important;
+}
+
+.bookmark-folder-header {
+  background: var(--bh-muted) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.bookmark-folder-menu-panel {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-md) !important;
+}
+
+.bookmark-folder-menu-panel button {
+  color: var(--bh-fg) !important;
+}
+
+/* —— Suche: Filter & Chips —— */
+.filters-inline,
+.filter-toolbar,
+.chip-group {
+  color: var(--bh-fg);
+}
+
+.chip-group-title,
+.filter-summary,
+.results-count,
+.results-meta {
+  color: var(--text-muted) !important;
+}
+
+.clear-button {
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-sm);
+}
+
+.active-filter-chip {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border) !important;
+}
+
+/* —— Kalender-Filterleiste —— */
+.cal-filter-bar {
+  background: var(--bh-white) !important;
+  border-bottom: var(--bh-border-w-lg) solid var(--bh-border) !important;
+}
+
+.cal-filter-chip {
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border-radius: var(--bh-radius-full) !important;
+}
+
+.cal-filter-chip--active {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.cal-filter-search {
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border-radius: 0 !important;
+}
+
+.cal-filter-search:focus {
+  border-color: var(--bh-blue) !important;
+  outline: 2px solid var(--bh-blue);
+  outline-offset: 2px;
+}
+
+.cal-kbd-badge {
+  background: var(--bh-muted) !important;
+  color: var(--bh-fg) !important;
+  border: 1px solid var(--bh-border) !important;
+}
+
+.cal-shortcuts-panel {
+  background: var(--bh-yellow-pale) !important;
+  border-bottom: var(--bh-border-w) solid var(--bh-border) !important;
+  color: var(--bh-fg) !important;
+}
+
+.cal-shortcuts-panel kbd {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  color: var(--bh-fg) !important;
+}
+
+.cal-side-drawer {
+  background: var(--bh-white) !important;
+  border-left: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-lg) !important;
+}
+
+.cal-drawer-close {
+  color: var(--bh-fg) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  background: var(--bh-white) !important;
+}
+
+/* —— Landkarte: dunkle Karten → hell —— */
+.map-node,
+.map-outline-row,
+.curriculum-map-chain-row,
+.map-subject-card {
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.map-node--aspect .map-node-code,
+.map-outline-row--stage,
+.curriculum-map-strip-hint {
+  color: var(--text-muted) !important;
+}
+
+.map-explorer-focus-banner {
+  background: var(--bh-yellow-pale) !important;
+  color: var(--bh-fg) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+}
+
+/* —— Report / Entwurf —— */
+.report-organizer-toggle,
+.report-organizer-body {
+  color: var(--bh-fg) !important;
+}
+
+.planung-submit-stub {
+  background: var(--bh-muted) !important;
+  color: var(--text-muted) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+}
+
+.planung-submit-stub:not(:disabled) {
+  background: var(--bh-blue) !important;
+  color: var(--text-on-primary) !important;
+}
+
+/* —— Netzwerk-Graph —— */
+.network-graph-panel {
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  color: var(--bh-fg) !important;
+}
+
+.network-graph-hint,
+.network-graph-overflow {
+  color: var(--text-muted) !important;
+}

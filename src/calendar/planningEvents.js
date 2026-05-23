@@ -1,16 +1,12 @@
 import { getWeekdayDatesForIsoWeek } from "../planning/calendarUtils";
 import { VORHABEN_TEMPLATES, WEEKDAYS } from "../planning/planningDefaults";
 import { getIsoWeek } from "../planning/planningStore";
-
-const VORHABEN_COLORS = ["#5b8fd6", "#6db87c", "#d4b84a", "#b07ad8", "#e08a5a", "#5ec4c4"];
-
-const vorhabenColor = (vorhabenId) => {
-  let h = 0;
-  for (let i = 0; i < (vorhabenId || "").length; i += 1) {
-    h = (h + vorhabenId.charCodeAt(i)) % VORHABEN_COLORS.length;
-  }
-  return VORHABEN_COLORS[h];
-};
+import { resolvePlanningEventColors } from "../planning/fachColors";
+import {
+  accentForCard,
+  calendarEventClassNames,
+  withBauhausEventStyle,
+} from "./calendarEventStyles";
 
 const templateLabel = (id) =>
   VORHABEN_TEMPLATES.find((t) => t.id === id)?.label || "";
@@ -31,16 +27,6 @@ const atMinutes = (baseDate, minutesFromMidnight) => {
   const m = minutesFromMidnight % 60;
   d.setHours(h, m, 0, 0);
   return d;
-};
-
-const cardColor = (type, base) => {
-  if (type === "lektion") {
-    return base;
-  }
-  if (type === "ritual") {
-    return "#6db87c";
-  }
-  return base;
 };
 
 /** Alle Karten eines Vorhabens → FullCalendar-Events (nur Mo–Fr). */
@@ -73,33 +59,37 @@ export const vorhabenToCalendarEvents = (vorhaben) => {
         const duration = card.durationMin || 45;
         const start = atMinutes(dateInfo.date, startMin);
         const end = new Date(start.getTime() + duration * 60 * 1000);
-        const baseColor = vorhabenColor(vorhaben.id);
-        const color = cardColor(card.type, baseColor);
-        events.push({
-          id: `plan-${vorhaben.id}-${card.id}`,
-          title: card.label || "Eintrag",
-          start: start.toISOString(),
-          end: end.toISOString(),
-          backgroundColor: color,
-          borderColor: color,
-          editable: true,
-          extendedProps: {
-            source: "planning",
-            vorhabenId: vorhaben.id,
-            vorhabenTitle: vorhaben.title,
-            templateId: vorhaben.templateId,
-            templateLabel: templateLabel(vorhaben.templateId),
-            fach: vorhaben.fach || "",
-            klasse: vorhaben.klasse || "",
-            weekId: week.id,
-            weekday: wd.id,
-            cardId: card.id,
-            cardType: card.type,
-            notes: day.notiz || "",
-            lektionId: card.lektionId || null,
-            ritualId: card.ritualId || null,
-          },
-        });
+        const colors = resolvePlanningEventColors(vorhaben, card.type);
+        const accent =
+          colors.accent || accentForCard(card.type, vorhaben.id, vorhaben.fach);
+        events.push(
+          withBauhausEventStyle({
+            id: `plan-${vorhaben.id}-${card.id}`,
+            title: card.label || "Eintrag",
+            start: start.toISOString(),
+            end: end.toISOString(),
+            classNames: calendarEventClassNames("planning", card.type),
+            editable: true,
+            extendedProps: {
+              source: "planning",
+              eventAccent: accent,
+              eventBg: colors.bg,
+              vorhabenId: vorhaben.id,
+              vorhabenTitle: vorhaben.title,
+              templateId: vorhaben.templateId,
+              templateLabel: templateLabel(vorhaben.templateId),
+              fach: vorhaben.fach || "",
+              klasse: vorhaben.klasse || "",
+              weekId: week.id,
+              weekday: wd.id,
+              cardId: card.id,
+              cardType: card.type,
+              notes: day.notiz || "",
+              lektionId: card.lektionId || null,
+              ritualId: card.ritualId || null,
+            },
+          })
+        );
       }
     }
   }
@@ -118,39 +108,43 @@ export const subscriptionToCalendarEvents = (subscription, cached) => {
   if (!subscription.enabled || !cached?.events) {
     return [];
   }
-  return cached.events.map((ev) => ({
-    id: ev.id,
-    title: ev.title,
-    start: ev.start,
-    end: ev.end,
-    allDay: ev.allDay,
-    backgroundColor: subscription.color,
-    borderColor: subscription.color,
-    editable: false,
-    extendedProps: {
-      source: "subscription",
-      subscriptionId: subscription.id,
-    },
-  }));
+  return cached.events.map((ev) =>
+    withBauhausEventStyle({
+      id: ev.id,
+      title: ev.title,
+      start: ev.start,
+      end: ev.end,
+      allDay: ev.allDay,
+      classNames: [...calendarEventClassNames("subscription"), "cal-event--readonly"],
+      editable: false,
+      extendedProps: {
+        source: "subscription",
+        subscriptionId: subscription.id,
+        eventAccent: subscription.color || "#1040c0",
+      },
+    })
+  );
 };
 
 export const localToCalendarEvents = (localEvents) =>
-  (localEvents || []).map((ev) => ({
-    id: `local-${ev.id}`,
-    title: ev.title,
-    start: ev.start,
-    end: ev.end || ev.start,
-    allDay: ev.allDay,
-    backgroundColor: ev.color || "#edd100",
-    borderColor: ev.color || "#edd100",
-    editable: true,
-    extendedProps: {
-      source: "local",
-      localEventId: ev.id,
-      vorhabenId: ev.vorhabenId,
-      notes: ev.notes || "",
-    },
-  }));
+  (localEvents || []).map((ev) =>
+    withBauhausEventStyle({
+      id: `local-${ev.id}`,
+      title: ev.title,
+      start: ev.start,
+      end: ev.end || ev.start,
+      allDay: ev.allDay,
+      classNames: calendarEventClassNames("local"),
+      editable: true,
+      extendedProps: {
+        source: "local",
+        localEventId: ev.id,
+        vorhabenId: ev.vorhabenId,
+        notes: ev.notes || "",
+        eventAccent: ev.color || "#f0c020",
+      },
+    })
+  );
 
 export const applyEventDropToVorhaben = (vorhaben, dropInfo) => {
   const props = dropInfo.event.extendedProps || {};

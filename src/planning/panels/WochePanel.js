@@ -12,12 +12,11 @@ import {
 } from "../../hooks/EditShortcutsProvider";
 import { APP_ROUTES } from "../../config/appUrls";
 import "../../calendar/calendar.css";
-import PlanningPhaseBanner from "../PlanningPhaseBanner";
-import { getLevelMeta } from "../planningLevels";
+import ThemaPanelShell from "../ThemaPanelShell";
+import WocheErinnerungen from "../WocheErinnerungen";
 import usePlanningStore from "../usePlanningStore";
 
 const WochePanel = ({ vorhaben, rituals, onChange }) => {
-  const meta = getLevelMeta("woche");
   const { store: planningStore } = usePlanningStore();
   const undoTick = useEditShortcutsTick();
   const [calStore, setCalStore] = useState(loadCalendarStore);
@@ -85,61 +84,77 @@ const WochePanel = ({ vorhaben, rituals, onChange }) => {
   });
 
   return (
-    <div className="planning-panel planning-panel--woche">
-      <PlanningPhaseBanner level="woche" />
-      <p className="planning-hint woche-cal-hint">
-        Nur dieses Vorhaben — alle Vorhaben im{" "}
-        <Link to={APP_ROUTES.kalender}>Kalender</Link>.{" "}
-        <span className="planning-kbd-hint">
-          <kbd>⌘Z</kbd> Rückgängig · <kbd>Entf</kbd> Löschen (Termin)
-        </span>
-      </p>
-      <CalendarView
-        calendarStore={calStore}
-        onCalendarStoreChange={persistCal}
-        planningStore={planningStore}
-        saveVorhaben={onChange}
-        filters={scopedFilters}
-        draftVorhabenId={vorhaben?.id}
-        rituals={rituals}
-        showExternalEvents
-        onEventClick={(info) => {
-          setEventForm(formFromFcEvent(info.event, planningStore, calStore));
-          setModalOpen(true);
-        }}
-        onDateSelect={(sel) => {
-          setEventForm(formFromSelection(sel, vorhaben?.id));
-          setModalOpen(true);
-          sel.view.calendar.unselect();
-        }}
-        initialView="timeGridWeek"
-        height={520}
-        compactExternal
-      />
-      <CalendarEventModal
-        open={modalOpen}
-        form={eventForm}
-        onChange={setEventForm}
-        onClose={closeModal}
-        onSave={() => {
-          if (!eventForm?.title?.trim()) {
-            return;
-          }
-          saveEventFromForm({
-            form: { ...eventForm, title: eventForm.title.trim() },
-            planningStore,
-            calStore,
-            onPlanningStoreChange: onChange,
-            onCalStoreChange: persistCal,
-          });
-          closeModal();
-        }}
-        onDelete={() => handleDeleteEvent()}
-        vorhabenOptions={planningStore.vorhaben}
-        lektionOptions={vorhaben?.lektionen || []}
-      />
-      {meta?.hint ? <p className="planning-hint">{meta.hint}</p> : null}
-    </div>
+    <ThemaPanelShell levelId="woche" fach={vorhaben.fach} vorhabenId={vorhaben.id}>
+      <div className="planning-panel planning-panel--woche">
+        <section className="thema-woche-block" aria-labelledby="woche-erinnerungen-block">
+          <h3 id="woche-erinnerungen-block" className="thema-woche-block-title">
+            Erinnerungen &amp; To-dos
+          </h3>
+          <WocheErinnerungen vorhaben={vorhaben} onChange={onChange} />
+        </section>
+
+        <section className="thema-woche-block" aria-labelledby="woche-cal-block">
+          <h3 id="woche-cal-block" className="thema-woche-block-title">
+            Wochenplan
+          </h3>
+          <p className="planning-hint woche-cal-hint">
+            Nur dieses Thema — alle Themen im{" "}
+            <Link to={APP_ROUTES.kalender}>Kalender</Link>.{" "}
+            <span className="planning-kbd-hint">
+              <kbd>⌘Z</kbd> Rückgängig · <kbd>Entf</kbd> Löschen (Termin)
+            </span>
+          </p>
+          <div className="thema-woche-cal-wrap">
+            <CalendarView
+              calendarStore={calStore}
+              onCalendarStoreChange={persistCal}
+              planningStore={planningStore}
+              saveVorhaben={onChange}
+              filters={scopedFilters}
+              draftVorhabenId={vorhaben?.id}
+              rituals={rituals}
+              showExternalEvents
+              onEventClick={(info) => {
+                setEventForm(formFromFcEvent(info.event, planningStore, calStore));
+                setModalOpen(true);
+              }}
+              onDateSelect={(sel) => {
+                setEventForm(formFromSelection(sel, vorhaben?.id));
+                setModalOpen(true);
+                sel.view.calendar.unselect();
+              }}
+              initialView="timeGridWeek"
+              spacious
+              height="min(64vh, 720px)"
+              compactExternal
+            />
+          </div>
+        </section>
+
+        <CalendarEventModal
+          open={modalOpen}
+          form={eventForm}
+          onChange={setEventForm}
+          onClose={closeModal}
+          onSave={() => {
+            if (!eventForm?.title?.trim()) {
+              return;
+            }
+            saveEventFromForm({
+              form: { ...eventForm, title: eventForm.title.trim() },
+              planningStore,
+              calStore,
+              onPlanningStoreChange: onChange,
+              onCalStoreChange: persistCal,
+            });
+            closeModal();
+          }}
+          onDelete={() => handleDeleteEvent()}
+          vorhabenOptions={planningStore.vorhaben}
+          lektionOptions={vorhaben?.lektionen || []}
+        />
+      </div>
+    </ThemaPanelShell>
   );
 };
 

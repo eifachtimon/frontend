@@ -7,15 +7,15 @@ const ONBOARDING_KEY = "lp21-onboarding-dismissed-v1";
 const STEPS = [
   {
     title: "1. Recherchieren",
-    body: "In der Suche Kompetenzen finden, merken oder direkt einem Vorhaben zuordnen.",
+    body: "In der Suche Kompetenzen finden, merken oder direkt einem Thema zuordnen.",
     to: APP_ROUTES.search,
     cta: "Zur Suche",
   },
   {
-    title: "2. Vorhaben anlegen",
-    body: "Ein Unterrichtsstrang mit vier Ebenen: Grob → 2 Wochen → Woche → Lektion.",
-    to: APP_ROUTES.planung,
-    cta: "Vorhaben anlegen",
+    title: "2. Thema anlegen",
+    body: "Ein Unterrichtsstrang in vier Schritten: Überblick → Zwischenziele → Woche → Lektion.",
+    to: APP_ROUTES.home,
+    cta: "Thema anlegen",
   },
   {
     title: "3. Woche planen",
@@ -35,6 +35,7 @@ const loadDismissed = () => {
 
 const PlanningOnboarding = () => {
   const [dismissed, setDismissed] = useState(loadDismissed);
+  const [expanded, setExpanded] = useState(false);
 
   if (dismissed) {
     return null;
@@ -49,18 +50,56 @@ const PlanningOnboarding = () => {
     setDismissed(true);
   };
 
+  if (!expanded) {
+    return (
+      <section className="planning-onboarding planning-onboarding--compact" aria-label="Einstieg">
+        <p className="planning-onboarding-teaser">
+          Neu hier? <strong>3 Schritte</strong> von der Suche bis zur Woche.
+        </p>
+        <div className="planning-onboarding-compact-actions">
+          <button
+            type="button"
+            className="planning-btn planning-btn--ghost planning-onboarding-expand"
+            onClick={() => setExpanded(true)}
+            aria-expanded={false}
+          >
+            Anzeigen
+          </button>
+          <button
+            type="button"
+            className="planning-onboarding-dismiss"
+            onClick={handleDismiss}
+            aria-label="Einstieg dauerhaft ausblenden"
+          >
+            Ausblenden
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="planning-onboarding" aria-labelledby="planning-onboarding-title">
       <div className="planning-onboarding-head">
         <h2 id="planning-onboarding-title">So arbeitest du in drei Schritten</h2>
-        <button
-          type="button"
-          className="planning-onboarding-dismiss"
-          onClick={handleDismiss}
-          aria-label="Hinweis ausblenden"
-        >
-          Ausblenden
-        </button>
+        <div className="planning-onboarding-head-actions">
+          <button
+            type="button"
+            className="planning-onboarding-dismiss"
+            onClick={() => setExpanded(false)}
+            aria-label="Einklappen"
+          >
+            Einklappen
+          </button>
+          <button
+            type="button"
+            className="planning-onboarding-dismiss"
+            onClick={handleDismiss}
+            aria-label="Hinweis ausblenden"
+          >
+            Ausblenden
+          </button>
+        </div>
       </div>
       <ol className="planning-onboarding-steps">
         {STEPS.map((step) => (

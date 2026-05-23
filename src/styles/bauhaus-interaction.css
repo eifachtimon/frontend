@@ -1,0 +1,285 @@
+/**
+ * Lesbarkeit bei Hover, Schatten-Hierarchie, Kontrast auf farbigen Flächen.
+ * Zuletzt laden — überschreibt App.css-Dark-Hovers und planning.css-Konflikte.
+ */
+
+/* Schatten-Hierarchie: Container behalten bh-shadow (overrides/planning.css).
+   Steuerelemente IN bereits gerahmten Flächen: flach (kein Schatten-Stack). */
+
+/* Steuerelemente IN bereits gerahmten Flächen: flach (kein Schatten-Stack) */
+.planning-view-panel .cal-page-body,
+.planning-view-panel .planning-btn,
+.planning-view-panel input,
+.planning-view-panel textarea,
+.planning-view-header .planning-btn,
+.planning-view-header .planning-btn--ghost,
+.planning-primary-cta .planning-btn,
+.planning-location-bar .planning-location-time-link,
+.planning-today-card .planning-btn,
+.planning-create-card .planning-btn,
+.planning-create-card input,
+.vorhaben-header input,
+.vorhaben-header textarea,
+.planning-panel .planning-btn,
+.report-organizer .planning-btn,
+.jahresplan-month-card .planning-btn,
+.jahresplan-month-card input,
+.jahresplan-month-card textarea,
+.cal-filter-bar .cal-filter-chip,
+.cal-filter-bar .cal-filter-search,
+.cal-filter-bar button,
+.cal-modal .planning-btn,
+.cal-modal input,
+.cal-modal textarea,
+.cal-modal select,
+.result-card .copy-button,
+.result-card .source-button,
+.result-card .bookmark-toggle-button,
+.result-card .add-to-vorhaben-btn,
+.result-card .lesson-draft-link {
+  box-shadow: none !important;
+}
+
+.planning-surface .planning-panel input:not([type="checkbox"]):not([type="radio"]),
+.planning-surface .planning-panel textarea,
+.planning-surface .planning-panel select,
+.planning-surface .planning-field input,
+.planning-surface .planning-field textarea {
+  box-shadow: none !important;
+}
+
+/* Chips/Filter in der Suche: Schatten ok, aber kein zusätzlicher Lift + Riesenschatten */
+.app-shell .quick-chip,
+.app-shell .filter-chip,
+.app-shell .active-filter-chip {
+  box-shadow: 2px 2px 0 0 var(--bh-fg) !important;
+}
+
+/* —— Buttons in Planung: einheitlich Bauhaus (planning.css-Altlasten) —— */
+.planning-surface .planning-btn {
+  border-radius: var(--bh-radius-none) !important;
+  font-family: var(--bh-font) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  font-size: 0.82rem !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-sm) !important;
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .planning-btn--primary {
+  background: var(--bh-red) !important;
+  color: var(--text-on-primary) !important;
+}
+
+.planning-surface .planning-btn--primary:hover:not(:disabled) {
+  background: #b81c1c !important;
+  color: var(--text-on-primary) !important;
+}
+
+.planning-surface .planning-btn--secondary {
+  background: var(--bh-blue) !important;
+  color: var(--text-on-primary) !important;
+}
+
+.planning-surface .planning-btn--secondary:hover:not(:disabled) {
+  background: #0d3699 !important;
+  color: var(--text-on-primary) !important;
+}
+
+.planning-surface .planning-btn--ghost {
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .planning-btn--ghost:hover:not(:disabled) {
+  background: var(--bh-muted) !important;
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .planning-btn:focus-visible {
+  outline: 2px solid var(--bh-blue) !important;
+  outline-offset: 3px !important;
+}
+
+.planning-surface .planning-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+
+.planning-surface .planning-btn:disabled {
+  opacity: 0.55 !important;
+  color: var(--text-muted) !important;
+  cursor: not-allowed;
+}
+
+/* Ghost/Toolbar auf farbigem Seitenkopf */
+.planning-view-header--blue .planning-btn--ghost,
+.planning-view-header--blue .planning-btn--ghost:hover:not(:disabled) {
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.planning-view-header--yellow .planning-btn--ghost:hover:not(:disabled) {
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+}
+
+.planning-view-header--blue .planning-view-header__lead,
+.planning-view-header--blue .planning-view-header__title {
+  color: var(--bh-white) !important;
+}
+
+/* Kalender: aktiver Toolbar-Button auf hellem Header */
+.planning-view-header .cal-toolbar-btn--active {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border) !important;
+}
+
+/* —— Suche: App.css-Dark-Hover neutralisieren —— */
+.app-shell .copy-button:hover,
+.app-shell .source-button:hover,
+.app-shell .bookmark-toggle-button:hover,
+.app-shell .bookmark-toggle-button--active:hover {
+  background: var(--bh-muted) !important;
+  border-color: var(--bh-border) !important;
+  color: var(--bh-fg) !important;
+  transform: none !important;
+}
+
+.app-shell .source-button,
+.app-shell .copy-button {
+  color: var(--bh-fg) !important;
+}
+
+.app-shell .bookmark-toggle-button--active {
+  background: var(--bh-yellow) !important;
+  border-color: var(--bh-border) !important;
+  color: var(--bh-fg) !important;
+}
+
+.app-shell .result-card:hover {
+  border-color: var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-lg) !important;
+  transform: translateY(-2px);
+}
+
+.app-shell .quick-chip:hover,
+.app-shell .filter-chip:hover,
+.app-shell .active-filter-chip:hover,
+.app-shell .template-chip:hover {
+  background: var(--bh-muted) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.app-shell .quick-chip--active:hover,
+.app-shell .filter-chip--active:hover,
+.app-shell .template-chip--active:hover,
+.app-shell .active-filter-chip:hover {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+}
+
+.app-shell .search-bar button:hover {
+  background: #b81c1c !important;
+  color: var(--text-on-primary) !important;
+}
+
+.app-shell .add-to-vorhaben-btn:hover {
+  background: #0d3699 !important;
+  color: var(--text-on-primary) !important;
+}
+
+.app-shell .recent-history-item:hover,
+.app-shell .bookmark-drawer-row-main:hover {
+  background: var(--bh-muted) !important;
+  color: var(--bh-fg) !important;
+}
+
+.app-shell .bookmark-drawer-tab:hover {
+  background: var(--bh-muted) !important;
+  color: var(--bh-fg) !important;
+}
+
+.app-shell .bookmark-drawer-tab.is-active:hover {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+}
+
+/* Landkarte */
+.curriculum-map-page .map-node:hover,
+.curriculum-map-page .map-subject-card:hover,
+.curriculum-map-page .curriculum-map-subject-chip:hover {
+  background: var(--bh-muted) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.curriculum-map-page .map-node--chain-selected:hover,
+.curriculum-map-page .map-node--context-yellow:hover {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+}
+
+/* Planung: Stepper & Hub-Karten */
+.planning-surface .vorhaben-stepper-link:hover {
+  background: var(--bh-muted) !important;
+  border-color: var(--bh-border) !important;
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .vorhaben-stepper-link--active:hover,
+.planning-surface .vorhaben-stepper-link--current:hover {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .vorhaben-stepper-link--active .vorhaben-stepper-hint {
+  color: var(--text-muted) !important;
+}
+
+.planning-surface .planning-hub-entry:hover {
+  background: var(--bh-muted) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.planning-surface .planning-hub-entry:hover .planning-hub-entry-title,
+.planning-surface .planning-hub-entry:hover .planning-hub-entry-desc {
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .planning-location-time-link:hover {
+  background: var(--bh-muted) !important;
+  color: var(--bh-fg) !important;
+}
+
+.planning-surface .planning-location-time-link--active:hover {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+}
+
+/* FullCalendar — wie planning-btn--ghost */
+.cal-fullcalendar-host .fc-button:hover:not(:disabled) {
+  background: var(--bh-muted, #e0e0e0) !important;
+  color: var(--bh-fg, #121212) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.cal-fullcalendar-host .fc-button-primary:not(:disabled).fc-button-active,
+.cal-fullcalendar-host .fc-button-primary:not(:disabled).fc-button-active:hover {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border) !important;
+}
+
+/* Dezenter Lift nur auf Top-Level-Karten (nicht verschachtelt) */
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .result-card:hover,
+  .planning-surface .planning-btn:active:not(:disabled) {
+    transform: none !important;
+  }
+}

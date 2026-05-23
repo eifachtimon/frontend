@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import CalendarView from "../calendar/CalendarView";
 import CalendarSubscriptionsPanel from "../calendar/CalendarSubscriptionsPanel";
 import CalendarAppleSync from "../calendar/CalendarAppleSync";
@@ -33,8 +32,12 @@ import {
   useRegisterEditShortcuts,
 } from "../hooks/EditShortcutsProvider";
 import usePlanningStore from "../planning/usePlanningStore";
-import PlanningContextBar from "../planning/PlanningContextBar";
-import { APP_ROUTES } from "../config/appUrls";
+import PlanningViewHeader from "../planning/PlanningViewHeader";
+import {
+  loadCalendarChromeExpanded,
+  saveCalendarChromeExpanded,
+} from "../calendar/calendarUiPrefs";
+import "../planning/planning.css";
 import "../calendar/calendar.css";
 
 const KalenderPage = () => {
@@ -52,7 +55,10 @@ const KalenderPage = () => {
   const searchRef = useRef(null);
   const lastSelectionRef = useRef(null);
   const [selectionTick, setSelectionTick] = useState(0);
+  const [chromeExpanded, setChromeExpanded] = useState(loadCalendarChromeExpanded);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const undoTick = useEditShortcutsTick();
+  const maxSpace = !chromeExpanded;
 
   const draftVorhabenId =
     planningStore.lastActiveVorhabenId || planningStore.vorhaben[0]?.id || "";
@@ -356,39 +362,70 @@ const KalenderPage = () => {
 
   const lektionOptions = draftVorhaben?.lektionen || [];
 
-  return (
-    <div className="app-shell planning-surface cal-page cal-page--fullscreen">
-      <main className="cal-page-main">
-        <header className="cal-page-toolbar">
-          <div className="cal-page-toolbar-left">
-            <Link to={APP_ROUTES.planung} className="cal-toolbar-back">
-              Mein Unterricht
-            </Link>
-            <span className="cal-toolbar-title">Woche · Kalender</span>
-          </div>
-          <div className="cal-page-toolbar-right">
-            <button
-              type="button"
-              className="planning-btn planning-btn--ghost"
-              onClick={() => setHelpOpen((h) => !h)}
-              aria-expanded={helpOpen}
-            >
-              Tasten ?
-            </button>
-            <button
-              type="button"
-              className={`planning-btn planning-btn--ghost cal-toolbar-btn ${drawerOpen ? "cal-toolbar-btn--active" : ""}`}
-              onClick={() => setDrawerOpen((o) => !o)}
-              aria-expanded={drawerOpen}
-            >
-              Abos &amp; Apple
-            </button>
-          </div>
-        </header>
+  const headerLead = draftVorhaben
+    ? `«${draftVorhaben.title}» — Termine & Stundenplan`
+    : "Termine und Stundenplan";
 
-        <div className="cal-planning-context-wrap">
-          <PlanningContextBar activeSection="woche" />
-        </div>
+  const handleToggleChrome = useCallback(() => {
+    setChromeExpanded((open) => {
+      const next = !open;
+      saveCalendarChromeExpanded(next);
+      if (!next) {
+        setFiltersExpanded(false);
+        setDrawerOpen(false);
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (maxSpace && drawerOpen) {
+      setDrawerOpen(false);
+    }
+  }, [maxSpace, drawerOpen]);
+
+  return (
+    <div className="app-shell planning-hub planning-surface planning-view--time">
+      <main
+        className={`planning-hub-main planning-hub-main--time layout ${
+          maxSpace ? "planning-hub-main--calendar-max" : ""
+        }`}
+      >
+        <PlanningViewHeader
+          title="Kalender"
+          lead={maxSpace ? null : headerLead}
+          compact={maxSpace}
+          actions={
+            <>
+              <button
+                type="button"
+                className={`planning-btn planning-btn--ghost ${maxSpace ? "planning-btn--primary" : ""}`}
+                onClick={handleToggleChrome}
+                aria-pressed={maxSpace}
+                title={maxSpace ? "Filter und Ziehen-Leiste einblenden" : "Mehr Platz für das Raster"}
+              >
+                {maxSpace ? "Leisten ein" : "Mehr Platz"}
+              </button>
+              <button
+                type="button"
+                className="planning-btn planning-btn--ghost"
+                onClick={() => setHelpOpen((h) => !h)}
+                aria-expanded={helpOpen}
+                aria-controls="cal-shortcuts-panel"
+              >
+                Tasten ?
+              </button>
+              <button
+                type="button"
+                className={`planning-btn planning-btn--ghost cal-toolbar-btn ${drawerOpen ? "cal-toolbar-btn--active" : ""}`}
+                onClick={() => setDrawerOpen((o) => !o)}
+                aria-expanded={drawerOpen}
+              >
+                Abos
+              </button>
+            </>
+          }
+        />
 
         <CalendarFilterBar
           filters={filters}
@@ -397,10 +434,18 @@ const KalenderPage = () => {
           onNewEvent={() => openCreate()}
           onInitStundenplan={handleInitStundenplan}
           searchInputRef={searchRef}
+          compact={maxSpace}
+          filtersExpanded={filtersExpanded}
+          onToggleFiltersExpanded={() => setFiltersExpanded((e) => !e)}
         />
 
         {helpOpen ? (
-          <div className="cal-shortcuts-panel" role="region" aria-label="Tastenkürzel">
+          <div
+            id="cal-shortcuts-panel"
+            className="cal-shortcuts-panel"
+            role="region"
+            aria-label="Tastenkürzel"
+          >
             <div className="cal-shortcuts-grid">
               <span><kbd>/</kbd> Suche</span>
               <span><kbd>N</kbd> Neuer Termin</span>
@@ -419,10 +464,13 @@ const KalenderPage = () => {
           </div>
         ) : null}
 
-        <div className="cal-page-body">
-          <div className="cal-page-calendar">
-            <CalendarView
+        <div className="planning-view-panel planning-view-panel--calendar">
+          <div className="cal-page-body">
+            <div className="cal-page-calendar">
+              <CalendarView
               ref={calendarRef}
+              spacious
+              showDragStrip={chromeExpanded}
               planningStore={planningStore}
               saveVorhaben={saveVorhaben}
               calendarStore={calStore}
@@ -436,10 +484,10 @@ const KalenderPage = () => {
               onStundenplanSlotClick={handleStundenplanSlotClick}
               height="100%"
               compactExternal
-            />
-          </div>
+              />
+            </div>
 
-          <aside
+            <aside
             className={`cal-side-drawer ${drawerOpen ? "cal-side-drawer--open" : ""}`}
             aria-hidden={!drawerOpen}
           >
@@ -471,6 +519,7 @@ const KalenderPage = () => {
               onClick={() => setDrawerOpen(false)}
             />
           ) : null}
+          </div>
         </div>
       </main>
 

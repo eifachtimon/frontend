@@ -1,0 +1,866 @@
+/**
+ * Landkarte — Bauhaus-Workspace (ersetzt Dark-Overlay aus App.css).
+ * Rendert per Portal in #app-main-content (siehe CurriculumMapOverlay).
+ */
+
+body.app-map-workspace-open .app-shell-main {
+  position: relative;
+  overflow: hidden;
+  min-height: calc(100vh - 3.25rem);
+}
+
+body.app-map-workspace-open .app-shell--map-open {
+  min-height: 0;
+}
+
+/* —— Workspace statt Viewport-Overlay —— */
+.app-shell-main .curriculum-map-page--workspace {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  max-width: none;
+  width: 100%;
+  background: var(--bh-bg);
+  background-image: var(--bh-dot-pattern);
+  background-size: var(--bh-dot-size);
+  color: var(--bh-fg);
+  overflow: hidden;
+  border: none;
+  box-shadow: none;
+}
+
+/* Legacy: schmales Overlay — deaktivieren wenn Workspace aktiv */
+.curriculum-map-page.curriculum-map-page--content-width {
+  inset: auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+/* —— Kopfzeile —— */
+.curriculum-map-page--workspace .curriculum-map-header--page {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--shell-pad-x);
+  background: var(--bh-yellow);
+  border-bottom: var(--bh-border-w-lg) solid var(--bh-border);
+  box-shadow: var(--bh-shadow-sm);
+}
+
+.curriculum-map-page--workspace .curriculum-map-header-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.curriculum-map-page--workspace .curriculum-map-header h2 {
+  margin: 0 0 4px;
+  font-family: var(--bh-font);
+  font-weight: 900;
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  color: var(--bh-fg);
+}
+
+.curriculum-map-page--workspace .curriculum-map-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 52rem;
+}
+
+.curriculum-map-page--workspace .curriculum-map-close,
+.curriculum-map-page--workspace .map-outline-tool-btn {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-white);
+  color: var(--bh-fg);
+  font-family: var(--bh-font);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0;
+  box-shadow: var(--bh-shadow-sm);
+  cursor: pointer;
+}
+
+.curriculum-map-page--workspace .curriculum-map-close:hover,
+.curriculum-map-page--workspace .map-outline-tool-btn:hover {
+  background: var(--bh-muted);
+}
+
+.curriculum-map-page--workspace .map-outline-tool-btn[aria-pressed="true"] {
+  background: var(--bh-blue);
+  color: var(--text-on-primary);
+}
+
+/* —— Breadcrumb —— */
+.curriculum-map-page--workspace .curriculum-map-breadcrumb {
+  flex-shrink: 0;
+  background: var(--bh-white);
+  border-bottom: var(--bh-border-w) solid var(--bh-border);
+  padding: var(--space-2) var(--shell-pad-x);
+}
+
+.curriculum-map-page--workspace .curriculum-map-crumb {
+  color: var(--bh-blue);
+  font-weight: 700;
+  border-radius: 0;
+}
+
+.curriculum-map-page--workspace .curriculum-map-crumb:hover:not(:disabled) {
+  background: var(--bh-muted);
+  color: var(--bh-fg);
+}
+
+.curriculum-map-page--workspace .curriculum-map-crumb--current {
+  color: var(--bh-fg);
+  font-weight: 800;
+}
+
+.curriculum-map-page--workspace .curriculum-map-crumb-sep {
+  color: var(--text-muted);
+}
+
+.curriculum-map-strip-hint {
+  display: none !important;
+}
+
+/* —— Split-Hinweis (legacy, nicht mehr gerendert) —— */
+.curriculum-map-split-hint {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-2) var(--shell-pad-x);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bh-white);
+  border-bottom: var(--bh-border-w) solid var(--bh-border);
+}
+
+.curriculum-map-split-hint kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  margin: 0 2px;
+  border: 1px solid var(--bh-border);
+  background: var(--bh-muted);
+  font-size: 0.7rem;
+  font-family: inherit;
+}
+
+/* —— Body & Split-Layout —— */
+.curriculum-map-page--workspace .curriculum-map-body--page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3) var(--shell-pad-x) var(--space-4);
+  overflow: hidden;
+}
+
+.curriculum-map-page--workspace .curriculum-map-page-layout {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  gap: 0;
+  align-items: stretch;
+  border: var(--bh-border-w-lg) solid var(--bh-border);
+  background: var(--bh-white);
+  box-shadow: var(--bh-shadow-lg);
+}
+
+.curriculum-map-pane-head {
+  flex-shrink: 0;
+  margin: 0 0 var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: var(--bh-border-w) solid var(--bh-border);
+  font-family: var(--bh-font);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.curriculum-map-page--workspace .curriculum-map-page-main,
+.curriculum-map-page--workspace .map-chain-panel {
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-3);
+  overflow-y: auto;
+}
+
+.curriculum-map-page--workspace .map-chain-panel {
+  position: static;
+  max-height: none;
+  border-left: var(--bh-border-w) solid var(--bh-border);
+  /* Kein Gelb im Leerzustand — Panel wie restlicher Workspace */
+  background: var(--bh-white);
+}
+
+.curriculum-map-page--workspace .map-detail-panel {
+  position: static;
+  background: var(--bh-white);
+  border: var(--bh-border-w) solid var(--bh-border);
+  border-radius: 0;
+  box-shadow: var(--bh-shadow-sm);
+  color: var(--bh-fg);
+}
+
+.curriculum-map-page--workspace .map-detail-empty,
+.curriculum-map-page--workspace .map-detail-panel h3 {
+  color: var(--bh-fg);
+}
+
+/* —— Split-Divider (ziehbar) —— */
+.curriculum-map-page--workspace .map-split-divider {
+  background: var(--bh-muted);
+  border-left: var(--bh-border-w) solid var(--bh-border);
+  border-right: var(--bh-border-w) solid var(--bh-border);
+  cursor: col-resize;
+}
+
+.curriculum-map-page--workspace .map-split-divider::before {
+  display: none;
+}
+
+.curriculum-map-page--workspace .map-split-divider {
+  position: relative;
+}
+
+.curriculum-map-page--workspace .map-split-divider-handle {
+  width: 8px;
+  height: 48px;
+  border: var(--bh-border-w) solid var(--bh-border);
+  border-radius: 0;
+  background: var(--bh-yellow);
+  box-shadow: 2px 2px 0 0 var(--bh-fg);
+}
+
+.curriculum-map-page--workspace .map-split-divider::after {
+  content: "Ziehen";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bh-fg);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.curriculum-map-page--workspace .map-split-divider:hover .map-split-divider-handle,
+.curriculum-map-page--workspace .map-split-divider:active .map-split-divider-handle {
+  background: var(--bh-red);
+  border-color: var(--bh-border);
+}
+
+/* —— Finder: Fachliste + KB-Bereich —— */
+.curriculum-map-finder {
+  display: grid;
+  grid-template-columns: minmax(10.5rem, 14rem) minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+  align-items: stretch;
+}
+
+.curriculum-map-finder--has-fach {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.curriculum-map-finder-fach {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-bg);
+  overflow: hidden;
+}
+
+.curriculum-map-finder-fach-label {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  border-bottom: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-white);
+}
+
+.curriculum-map-finder-fach-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.curriculum-map-finder-fach-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-2);
+  border: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-white);
+  color: var(--bh-fg);
+  font-family: var(--bh-font);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.curriculum-map-finder-fach-item:hover {
+  background: var(--bh-muted);
+}
+
+.curriculum-map-finder-fach-item--active {
+  background: var(--bh-yellow);
+  box-shadow: var(--bh-shadow-sm);
+  border-left: var(--bh-border-w-lg) solid var(--bh-border);
+}
+
+.curriculum-map-finder-fach-emoji {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+.curriculum-map-finder-fach-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.curriculum-map-finder-fach-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.curriculum-map-finder-fach-code {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.curriculum-map-finder-fach-meta {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+}
+
+.curriculum-map-finder-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bh-white);
+}
+
+.curriculum-map-finder-toolbar {
+  flex-shrink: 0;
+  margin: 0;
+  border-bottom: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-white) !important;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.curriculum-map-finder-fach-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.curriculum-map-fach-back {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+}
+
+.curriculum-map-finder-fach-current {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--bh-border-w) solid var(--bh-border);
+  border-left: var(--bh-border-w-lg) solid var(--bh-border);
+  background: var(--bh-yellow-pale);
+  box-shadow: var(--bh-shadow-sm);
+}
+
+.curriculum-map-finder-fach-current-name {
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.25;
+  color: var(--bh-fg);
+}
+
+.curriculum-map-finder-fach-code-inline {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.curriculum-map-page--workspace .map-outline-filter-input {
+  flex: 1;
+  min-width: 10rem;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  border-radius: 0 !important;
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  font-family: var(--bh-font);
+  font-size: 0.88rem;
+  box-shadow: none !important;
+}
+
+.curriculum-map-page--workspace .map-outline-filter-input::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.curriculum-map-page--workspace .map-outline-filter-input:focus {
+  outline: none !important;
+  border-color: var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-sm) !important;
+  background: var(--bh-yellow-pale) !important;
+}
+
+.curriculum-map-page--workspace .map-outline-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.curriculum-map-graph-pane {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2) 0 0;
+}
+
+.curriculum-map-finder-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-6) var(--space-5);
+  text-align: left;
+}
+
+.curriculum-map-finder-empty-title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.1rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.curriculum-map-finder-empty-lead {
+  margin: 0;
+  max-width: 28rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.curriculum-map-page--workspace .map-graph {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-4);
+}
+
+.curriculum-map-page--workspace .map-outline-empty {
+  margin: 0;
+  padding: var(--space-4);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  border: var(--bh-border-w) dashed var(--bh-border);
+  background: var(--bh-muted);
+}
+
+.curriculum-map-page--workspace .map-kb-card {
+  margin-bottom: 0;
+  padding: var(--space-2);
+  border: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-bg);
+  box-shadow: none;
+}
+
+.curriculum-map-page--workspace .map-aspect-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2) 0 var(--space-1) var(--space-3);
+  border-left: var(--bh-border-w-lg) solid var(--bh-border);
+}
+
+.curriculum-map-page--workspace .map-aspect-card {
+  border-left: none;
+  padding-left: 0;
+}
+
+.curriculum-map-page--workspace .map-chain-grid {
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.curriculum-map-page--workspace .map-chain-grid--indented {
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--bh-border);
+  margin-left: var(--space-1);
+}
+
+/* —— Outline / Graph-Knoten —— */
+.curriculum-map-page--workspace .map-node,
+.curriculum-map-page--workspace .map-outline-row {
+  width: 100%;
+  font-family: var(--bh-font);
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.curriculum-map-page--workspace .map-node--kb {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.curriculum-map-page--workspace .map-node--aspect {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.84rem;
+  font-weight: 700;
+  background: var(--bh-muted) !important;
+  color: var(--bh-fg) !important;
+}
+
+.curriculum-map-page--workspace .map-node--chain {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.45;
+  border-left: var(--bh-border-w-lg) solid transparent !important;
+}
+
+.curriculum-map-page--workspace .map-node-title {
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.curriculum-map-page--workspace .map-node-toggle {
+  color: var(--bh-fg) !important;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.curriculum-map-page--workspace .map-node--chain .map-node-code {
+  align-self: flex-start;
+  margin-top: 0;
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: var(--bh-white);
+  border: 1px solid var(--bh-border);
+  color: var(--text-muted) !important;
+}
+
+.curriculum-map-page--workspace .map-graph,
+.curriculum-map-page--workspace .map-outline-list {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.curriculum-map-page--workspace .map-node:hover,
+.curriculum-map-page--workspace .map-outline-row:hover {
+  background: var(--bh-yellow-pale) !important;
+  border-color: var(--bh-border) !important;
+}
+
+.curriculum-map-page--workspace .map-node--chain-selected {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+  border-color: var(--bh-border) !important;
+  border-left-color: var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-sm) !important;
+}
+
+.curriculum-map-page--workspace .map-node--context-yellow {
+  background: var(--bh-yellow) !important;
+  color: var(--bh-fg) !important;
+  box-shadow: 0 0 0 2px var(--bh-yellow);
+}
+
+.curriculum-map-page--workspace .map-node-code,
+.curriculum-map-page--workspace .map-outline-row--stage {
+  color: var(--text-muted) !important;
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.curriculum-map-page--workspace .map-outline-toolbar,
+.curriculum-map-page--workspace .map-explorer-focus-banner,
+.curriculum-map-page--workspace .curriculum-map-finder-toolbar {
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  box-shadow: none !important;
+}
+
+.curriculum-map-page--workspace .curriculum-map-status {
+  color: var(--text-muted);
+}
+
+.curriculum-map-page--workspace .curriculum-map-status--error {
+  color: #7a1212;
+}
+
+/* Kette im Split: helles Panel, Lesbarkeit (Legacy App.css = dunkel) */
+.curriculum-map-page--workspace .map-chain-panel .competency-chain-panel {
+  margin-top: 0;
+  padding: var(--space-3) var(--space-2) var(--space-4);
+  background: var(--bh-white) !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--bh-fg) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel .chain-toolbar {
+  border-bottom-color: var(--bh-border) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel .result-text,
+.curriculum-map-page--workspace .map-chain-panel .result-code-text,
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-thema,
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-context-line,
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-context-code,
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-card-text,
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-chain-heading,
+.curriculum-map-page--workspace .map-chain-panel .chain-panel-title,
+.curriculum-map-page--workspace .map-chain-panel button.chain-aufbau-context-hit {
+  color: var(--bh-fg) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-context-line--cluster,
+.curriculum-map-page--workspace .map-chain-panel .chain-status,
+.curriculum-map-page--workspace .map-chain-panel .chain-status--idle,
+.curriculum-map-page--workspace .map-chain-panel .chain-comp-meta {
+  color: var(--text-muted) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-card,
+.curriculum-map-page--workspace .map-chain-panel .result-card.chain-aufbau-card {
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--bh-shadow-sm) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-card--current.chain-aufbau-card--selected,
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-card--selected {
+  background: var(--bh-yellow) !important;
+  border-color: var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-sm) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel .chain-aufbau-card--current:not(.chain-aufbau-card--selected) {
+  border-color: var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-sm) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel .chain-back-button,
+.curriculum-map-page--workspace .map-chain-panel .chain-bookmark-button,
+.curriculum-map-page--workspace .map-chain-panel .chain-map-nav-btn {
+  color: var(--bh-fg) !important;
+  background: var(--bh-white) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--bh-shadow-sm) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel .chain-bookmark-button {
+  color: var(--bh-blue) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel .chain-status,
+.curriculum-map-page--workspace .map-chain-panel .chain-status--idle {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  padding: var(--space-4) var(--space-2);
+}
+
+/* Legacy App.css (dunkles Overlay) im Workspace neutralisieren */
+.curriculum-map-page--workspace .map-chain-panel,
+.curriculum-map-page--workspace .map-detail-panel,
+.curriculum-map-page--workspace .map-split-divider::before {
+  background: var(--bh-white) !important;
+}
+
+.curriculum-map-page--workspace .map-split-divider {
+  background: var(--bh-muted) !important;
+}
+
+.curriculum-map-page--workspace .map-split-divider-handle {
+  background: var(--bh-yellow) !important;
+  border: var(--bh-border-w) solid var(--bh-border) !important;
+}
+
+.curriculum-map-page--workspace .map-detail-empty {
+  color: var(--text-muted) !important;
+}
+
+.curriculum-map-page--workspace .map-chain-panel--split {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.curriculum-map-page--workspace .map-chain-panel--split .competency-chain-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Mobile: Split untereinander, kein Ziehen */
+@media (max-width: 1080px) {
+  .curriculum-map-finder {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .curriculum-map-finder--has-fach {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .curriculum-map-finder-fach {
+    border-right: none;
+    border-bottom: var(--bh-border-w) solid var(--bh-border);
+    max-height: min(38vh, 280px);
+  }
+
+  .curriculum-map-finder-fach-list {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: var(--space-2);
+  }
+
+  .curriculum-map-finder-fach-list li {
+    flex: 0 0 auto;
+    max-width: min(14rem, 70vw);
+  }
+
+  .curriculum-map-page--workspace .curriculum-map-page-layout {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .curriculum-map-page--workspace .map-split-divider {
+    display: none;
+  }
+
+  .curriculum-map-page--workspace .map-chain-panel {
+    border-left: none;
+    border-top: var(--bh-border-w-lg) solid var(--bh-border);
+    min-height: min(50vh, 480px);
+    background: var(--bh-white);
+  }
+
+  .curriculum-map-split-hint--desktop {
+    display: none;
+  }
+}
+
+@media (min-width: 1081px) {
+  .curriculum-map-split-hint--mobile {
+    display: none;
+  }
+}
+
+/* Dialog-Modus (fullPage=false) — heller Modal */
+.curriculum-map-backdrop {
+  background: rgba(18, 18, 18, 0.35);
+  backdrop-filter: none;
+}
+
+.curriculum-map-dialog {
+  background: var(--bh-white);
+  border: var(--bh-border-w-lg) solid var(--bh-border);
+  border-radius: 0;
+  box-shadow: var(--bh-shadow-lg);
+  color: var(--bh-fg);
+}
+
+.curriculum-map-dialog .curriculum-map-header {
+  background: var(--bh-yellow);
+  border-bottom: var(--bh-border-w-lg) solid var(--bh-border);
+}
+
+.curriculum-map-dialog .curriculum-map-header h2 {
+  color: var(--bh-fg);
+}
+
+.curriculum-map-dialog .curriculum-map-close {
+  border: var(--bh-border-w) solid var(--bh-border);
+  background: var(--bh-white);
+  color: var(--bh-fg);
+  border-radius: 0;
+}

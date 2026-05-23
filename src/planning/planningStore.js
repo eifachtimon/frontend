@@ -68,7 +68,7 @@ export const createVorhaben = (partial = {}) => {
   const t = VORHABEN_TEMPLATES.find((x) => x.id === templateId);
   return {
     id: newId("v"),
-    title: partial.title || (t ? `${t.label} …` : "Neues Vorhaben"),
+    title: partial.title || (t ? `${t.label} …` : "Neues Thema"),
     fach: partial.fach || "",
     zyklus: partial.zyklus || "",
     klasse: partial.klasse || "",
@@ -97,6 +97,92 @@ const emptyStore = () => ({
   vorhaben: [],
   lastActiveVorhabenId: null,
   kalender: buildKalenderForSchoolYear(getSchoolYearStart()),
+  /** Tages-Todos & Notizen pro ISO-Datum: { [date]: { todos, notizen } } */
+  tagesNotizen: {},
+});
+
+const emptyTagesEintrag = () => ({ todos: [], notizen: "" });
+
+/** @returns {{ id: string, text: string, done: boolean }[]} */
+export const normalizeTagesTodoList = (raw) => {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => {
+        if (!item || typeof item !== "object") {
+          return null;
+        }
+        const text =
+          item.text != null ? String(item.text).trim() : String(item.label || "").trim();
+        if (!text) {
+          return null;
+        }
+        const id =
+          item.id != null && String(item.id).trim()
+            ? String(item.id).trim()
+            : newId("td");
+        return { id, text, done: Boolean(item.done) };
+      })
+      .filter(Boolean);
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    return raw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const checked = /^\[[xX]\]\s*/.test(line);
+        const bullet = line.replace(/^[-*]\s*/, "");
+        const text = bullet.replace(/^\[[xX ]?\]\s*/, "").trim();
+        if (!text) {
+          return null;
+        }
+        return { id: newId("td"), text, done: checked };
+      })
+      .filter(Boolean);
+  }
+  return [];
+};
+
+const normalizeTagesEintrag = (raw) => {
+  if (raw == null) {
+    return emptyTagesEintrag();
+  }
+  if (typeof raw === "string") {
+    return { todos: [], notizen: String(raw) };
+  }
+  if (typeof raw === "object") {
+    return {
+      todos: normalizeTagesTodoList(raw.todos),
+      notizen: raw.notizen != null ? String(raw.notizen) : "",
+    };
+  }
+  return emptyTagesEintrag();
+};
+
+const tagesEintragHasContent = (entry) =>
+  (entry.todos?.length || 0) > 0 || Boolean(entry.notizen?.trim());
+
+export const normalizeTagesNotizenMap = (map) => {
+  if (!map || typeof map !== "object") {
+    return {};
+  }
+  const out = {};
+  for (const [iso, value] of Object.entries(map)) {
+    if (!iso || typeof iso !== "string") {
+      continue;
+    }
+    const entry = normalizeTagesEintrag(value);
+    if (tagesEintragHasContent(entry)) {
+      out[iso] = entry;
+    }
+  }
+  return out;
+};
+
+export const createTagesTodoItem = (text) => ({
+  id: newId("td"),
+  text: String(text || "").trim(),
+  done: false,
 });
 
 const normalizeVorhaben = (v) => {
@@ -139,12 +225,14 @@ export const loadPlanningStore = () => {
     const vorhaben = (Array.isArray(parsed.vorhaben) ? parsed.vorhaben : [])
       .map(normalizeVorhaben)
       .filter(Boolean);
+    const tagesNotizen = normalizeTagesNotizenMap(parsed.tagesNotizen);
     return {
       version: 2,
       rituals,
       vorhaben,
       lastActiveVorhabenId: parsed.lastActiveVorhabenId || null,
       kalender: normalizeKalender(parsed.kalender),
+      tagesNotizen,
     };
   } catch (_e) {
     return emptyStore();
@@ -183,6 +271,82 @@ export const upsertVorhaben = (store, vorhaben) => {
   savePlanningStore(next);
   return normalized;
 };
+
+export const getTodayIsoDate = (date = new Date()) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+export const getTagesEintrag = (store, isoDate = getTodayIsoDate()) => {
+  const map =
+    store?.tagesNotizen && typeof store.tagesNotizen === "object"
+      ? store.tagesNotizen
+      : {};
+  return normalizeTagesEintrag(map[isoDate]);
+};
+
+export const getTagesTodos = (store, isoDate = getTodayIsoDate()) =>
+  getTagesEintrag(store, isoDate).todos;
+
+export const getTagesNotiz = (store, isoDate = getTodayIsoDate()) =>
+  getTagesEintrag(store, isoDate).notizen;
+
+export const setTagesEintrag = (
+  store,
+  isoDate = getTodayIsoDate(),
+  partial = {}
+) => {
+  const current = getTagesEintrag(store, isoDate);
+  const next = {
+    todos:
+      partial.todos !== undefined
+        ? normalizeTagesTodoList(partial.todos)
+        : current.todos,
+    notizen:
+      partial.notizen !== undefined ? String(partial.notizen) : current.notizen,
+  };
+  const notes = { ...(store.tagesNotizen || {}) };
+  if (!tagesEintragHasContent(next)) {
+    delete notes[isoDate];
+  } else {
+    notes[isoDate] = next;
+  }
+  return { ...store, tagesNotizen: notes };
+};
+
+export const toggleTagesTodoItem = (store, isoDate, todoId) => {
+  const entry = getTagesEintrag(store, isoDate);
+  const todos = entry.todos.map((item) =>
+    item.id === todoId ? { ...item, done: !item.done } : item
+  );
+  return setTagesEintrag(store, isoDate, { todos });
+};
+
+export const addTagesTodoItem = (store, isoDate, text) => {
+  const trimmed = String(text || "").trim();
+  if (!trimmed) {
+    return store;
+  }
+  const entry = getTagesEintrag(store, isoDate);
+  return setTagesEintrag(store, isoDate, {
+    todos: [...entry.todos, createTagesTodoItem(trimmed)],
+  });
+};
+
+export const removeTagesTodoItem = (store, isoDate, todoId) => {
+  const entry = getTagesEintrag(store, isoDate);
+  return setTagesEintrag(store, isoDate, {
+    todos: entry.todos.filter((item) => item.id !== todoId),
+  });
+};
+
+export const setTagesTodos = (store, todos, isoDate = getTodayIsoDate()) =>
+  setTagesEintrag(store, isoDate, { todos });
+
+export const setTagesNotiz = (store, text, isoDate = getTodayIsoDate()) =>
+  setTagesEintrag(store, isoDate, { notizen: text });
 
 export const deleteVorhaben = (store, id) => {
   const next = {

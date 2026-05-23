@@ -85,7 +85,7 @@ export const formFromFcEvent = (fcEvent, planningStore, calStore) => {
       vorhabenTitle: v?.title,
       links: vid
         ? [
-            { to: vorhabenLevelPath(vid, "grob"), label: "Vorhaben öffnen" },
+            { to: vorhabenLevelPath(vid, "grob"), label: "Thema öffnen" },
             { to: vorhabenLevelPath(vid, "woche"), label: "Wochenplan" },
           ]
         : [],

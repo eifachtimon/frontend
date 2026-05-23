@@ -1,5 +1,6 @@
 import SearchResult from "./components/SearchResult";
-import CompetencyChainView from "./components/CompetencyChainView";
+import SearchLocationBar from "./components/SearchLocationBar";
+import CompetencyChainPanel from "./components/CompetencyChainPanel";
 import CurriculumMapOverlay from "./components/CurriculumMapOverlay";
 import React, { Component } from "react";
 import "./App.css";
@@ -11,6 +12,20 @@ import {
   truncateCompetencyLabel,
 } from "./recentCompetencyHistory";
 import { competencyEntryFromSearchResult } from "./utils/competencyUid";
+import {
+  resolveChainFetchUid,
+  resolveChainRouteSlug,
+} from "./utils/chainNavigation";
+import { getFachColorForLabel } from "./planning/fachColors";
+import {
+  applyChainFetchFailure,
+  buildChainSliceAtLookupKey,
+  createInitialChainViewState,
+  enrichChainDataWithNetworkApi,
+  fetchCompetencyChain,
+  hasEmbeddedChain,
+  resolveHighlightUidFromChainData,
+} from "./utils/competencyChainLoader";
 import {
   addFolder,
   bookmarkExists,
@@ -48,19 +63,6 @@ const API_ROOT =
 const apiUrl = (path) => {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${API_ROOT}${normalized}`;
-};
-
-/** Querverweise-Nachladen: Fokus-UID kann in einer zusammengeführten Ketten-Stufe stecken. */
-const chainStepContainsFocusUid = (step, focusUid) => {
-  if (!step || focusUid == null || focusUid === "") {
-    return false;
-  }
-  const f = String(focusUid).trim();
-  if (step.uid != null && String(step.uid).trim() === f) {
-    return true;
-  }
-  const mus = step.merged_uids;
-  return Array.isArray(mus) && mus.some((u) => u != null && String(u).trim() === f);
 };
 
 const backendDisplayLabel =
@@ -129,25 +131,6 @@ const fachByZyklus = {
     "Wirtschaft, Arbeit, Haushalt (mit Hauswirtschaft)",
   ],
 };
-const fachColors = {
-  "Mathematik": "#4a90e2",
-  "Deutsch": "#7b6fd6",
-  "Englisch": "#5aa85f",
-  "Französisch": "#d86aa3",
-  "Italienisch": "#e68a4a",
-  "Latein": "#9c6acb",
-  "Bewegung und Sport": "#e06767",
-  "Natur, Mensch, Gesellschaft (1./2. Zyklus)": "#66b26f",
-  "Natur und Technik (mit Physik, Chemie, Biologie)": "#3ca8a8",
-  "Räume, Zeiten, Gesellschaften (mit Geografie, Geschichte)": "#c07c4f",
-  "Ethik, Religionen, Gemeinschaft (mit Lebenskunde)": "#9aa657",
-  "Wirtschaft, Arbeit, Haushalt (mit Hauswirtschaft)": "#b0834a",
-  "Medien und Informatik": "#4b8ad1",
-  "Musik": "#b66bd1",
-  "Bildnerisches Gestalten": "#d97858",
-  "Textiles und Technisches Gestalten": "#5e9fca",
-  "Berufliche Orientierung": "#8a8a8a",
-};
 const zyklusColors = {
   "1": "rgb(217, 158, 70)",
   "2": "rgb(76, 141, 201)",
@@ -183,7 +166,7 @@ class App extends Component {
       /** Drag-and-Drop Zielordner (Highlight) */
       bookmarkDropTargetFolderId: null,
       /** Landkarte-Overlay (Fach → Thema → Ketten) */
-      curriculumMapOpen: false,
+      curriculumMapOpen: Boolean(props.mapOnly),
       /** Einmaliger Fokus für CurriculumMapOverlay (z. B. aus ChainView-Kontext). */
       mapExplorerFocusRequest: null,
       /** Nur Dev: null | true | false — GET /health gegen API_ROOT */
@@ -247,6 +230,11 @@ class App extends Component {
       // ignore
     }
 
+    this.bookmarkExternalSyncHandler = () => {
+      this.setState({ bookmarkStore: loadBookmarkStore() });
+    };
+    window.addEventListener("lp21-bookmarks-updated", this.bookmarkExternalSyncHandler);
+
     this.syncFromRouteProps(this.props);
   }
 
@@ -258,19 +246,21 @@ class App extends Component {
         ? String(prevProps.routeChainUid).trim()
         : "";
     if (uid && uid !== prevUid) {
-      this.handleOpenCompetencyChain(uid, null, null, {});
+      this.handleOpenCompetencyChain(uid, null, null, {
+        fromChainRoute: true,
+      });
     } else if (!uid && prevUid) {
       this.setState({ chainView: null });
     }
-    if (props.initialMapOpen) {
-      this.setState({ curriculumMapOpen: true });
+    if (props.mapOnly) {
+      this.setState({ curriculumMapOpen: true, mapExplorerFocusRequest: null });
     }
   };
 
   componentDidUpdate(prevProps, prevState) {
     const routeChanged =
       prevProps.routeChainUid !== this.props.routeChainUid ||
-      prevProps.initialMapOpen !== this.props.initialMapOpen;
+      prevProps.mapOnly !== this.props.mapOnly;
     if (routeChanged) {
       this.syncFromRouteProps(this.props, prevProps);
     }
@@ -363,6 +353,13 @@ class App extends Component {
   };
 
   componentWillUnmount() {
+    if (this.bookmarkExternalSyncHandler) {
+      window.removeEventListener(
+        "lp21-bookmarks-updated",
+        this.bookmarkExternalSyncHandler
+      );
+      this.bookmarkExternalSyncHandler = null;
+    }
     if (this.searchDebounceTimer) {
       clearTimeout(this.searchDebounceTimer);
     }
@@ -610,7 +607,7 @@ class App extends Component {
     return chip.type === "fach" ? fach.includes(chip.value) : zyklus.includes(chip.value);
   };
 
-  getFachColor = (fachName) => fachColors[fachName] || "#8f8f8f";
+  getFachColor = (fachName) => getFachColorForLabel(fachName);
   getZyklusColor = (zyklusValue) => {
     const value = String(zyklusValue || "").trim();
     return zyklusColors[value] || "#9f9f9f";
@@ -643,77 +640,39 @@ class App extends Component {
     return uid;
   };
 
-  enrichChainDataWithNetworkApi = async (chainPayload) => {
-    if (!chainPayload?.current?.uid) {
-      return chainPayload;
-    }
-    const focusUid = chainPayload.current.uid;
-    if (
-      Array.isArray(chainPayload.current.network_links) &&
-      chainPayload.current.network_links.length > 0
-    ) {
-      const has = chainPayload._has_network === true || chainPayload.current.network_links.length > 0;
-      return {
-        ...chainPayload,
-        _has_network: chainPayload._has_network ?? has,
-      };
-    }
-    const tryUrls = [
-      apiUrl(`/api/competency-network/${encodeURIComponent(focusUid)}`),
-      apiUrl(`/competency-network/${encodeURIComponent(focusUid)}`),
-    ];
-
-    for (const url of tryUrls) {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          continue;
-        }
-        const net = await response.json();
-        const outgoing = net && net.outgoing;
-        if (!Array.isArray(outgoing) || outgoing.length === 0) {
-          continue;
-        }
-        const links = outgoing.map((o) => ({
-          uid: o.uid,
-          code: o.code,
-          fach: o.fach,
-        }));
-        const fullChain = Array.isArray(chainPayload.full_chain)
-          ? chainPayload.full_chain.map((step) =>
-              step && chainStepContainsFocusUid(step, focusUid)
-                ? { ...step, network_links: links }
-                : step
-            )
-          : chainPayload.full_chain;
-        return {
-          ...chainPayload,
-          _has_network: true,
-          current: { ...chainPayload.current, network_links: links },
-          full_chain: fullChain,
-        };
-      } catch (_err) {
-        continue;
-      }
-    }
-    return chainPayload;
-  };
-
   handleOpenCompetencyChain = (rawUid, prefetchedChain, recentContext, openOptions) => {
-    const uid =
+    const raw =
       typeof rawUid === "string"
         ? rawUid.trim()
         : rawUid != null
           ? String(rawUid).trim()
           : "";
-    if (!uid) {
+    if (!raw) {
       return;
     }
 
+    const embedded = hasEmbeddedChain(prefetchedChain);
+    const fetchUid =
+      resolveChainFetchUid({
+        prefetchedChain,
+        explicitUid: raw,
+      }) || raw;
+    const codeFromContext =
+      recentContext && recentContext.code != null
+        ? String(recentContext.code).trim() || undefined
+        : embedded && embedded.code != null
+          ? String(embedded.code).trim() || undefined
+          : undefined;
+    const routeSlug =
+      resolveChainRouteSlug({ code: codeFromContext, fetchUid }) || fetchUid;
+
+    const stayOnSearchPage = Boolean(openOptions && openOptions.stayOnSearchPage);
     const { routerNavigate } = this.props;
-    const chainRoute = chainPath(uid);
-    if (routerNavigate && window.location.pathname !== chainRoute) {
-      routerNavigate(chainRoute);
+    if (!stayOnSearchPage && routerNavigate) {
+      const chainRoute = chainPath(fetchUid || routeSlug);
+      if (window.location.pathname !== chainRoute) {
+        routerNavigate(chainRoute);
+      }
     }
     if (this.state.curriculumMapOpen) {
       this.setState({ curriculumMapOpen: false, mapExplorerFocusRequest: null });
@@ -721,21 +680,17 @@ class App extends Component {
 
     const requestId = ++this._chainViewRequestId;
 
-    const highlightAnchorUid = uid;
+    const highlightAnchorUid = fetchUid;
     const searchSelectionHighlight = Boolean(
       openOptions && openOptions.searchSelectionHighlight
     );
 
-    const embedded =
-      prefetchedChain &&
-      (prefetchedChain.current || prefetchedChain["current"]);
-    const label = this.resolveRecentLabelForOpen(uid, prefetchedChain, recentContext);
-    const code =
-      recentContext && recentContext.code != null
-        ? String(recentContext.code).trim() || undefined
-        : embedded && embedded.code != null
-          ? String(embedded.code).trim() || undefined
-          : undefined;
+    const label = this.resolveRecentLabelForOpen(
+      fetchUid,
+      prefetchedChain,
+      recentContext
+    );
+    const code = codeFromContext;
     const fach =
       recentContext && recentContext.fach != null
         ? String(recentContext.fach).trim() || undefined
@@ -743,51 +698,29 @@ class App extends Component {
           ? String(embedded.fach).trim() || undefined
           : undefined;
     this.recordRecentCompetencyView({
-      uid,
+      uid: fetchUid,
       code,
       fach,
-      label: label || uid,
+      label: label || code || routeSlug || fetchUid,
     });
 
-    // Kurz eingebettete Daten zeigen, dann immer frisch laden — damit u.a.
-    // network_links und _has_network aus der aktuellen API garantiert sind.
-    if (embedded) {
-      this.setState({
-        chainView: {
-          loading: false,
-          error: null,
-          data: prefetchedChain,
-          highlightAnchorUid,
-          searchSelectionHighlight,
-        },
-      });
-    } else {
-      this.setState({
-        chainView: {
-          loading: true,
-          error: null,
-          data: null,
-          highlightAnchorUid,
-          searchSelectionHighlight,
-        },
-      });
-    }
+    this.setState({
+      chainView: createInitialChainViewState({
+        fetchUid,
+        prefetchedChain,
+        searchSelectionHighlight,
+      }),
+    });
 
-    fetch(apiUrl(`/competency-chain/${encodeURIComponent(uid)}`))
-      .then((response) => {
-        if (response.status === 404) {
-          throw new Error("not_found");
-        }
-        if (!response.ok) {
-          throw new Error("network");
-        }
-        return response.json();
-      })
-      .then((data) => this.enrichChainDataWithNetworkApi(data))
+    fetchCompetencyChain(fetchUid)
       .then((data) => {
         if (requestId !== this._chainViewRequestId) {
           return;
         }
+        const resolvedHighlightUid = resolveHighlightUidFromChainData(
+          data,
+          highlightAnchorUid
+        );
         this.setState((prev) => ({
           chainView: prev.chainView
             ? {
@@ -795,13 +728,14 @@ class App extends Component {
                 loading: false,
                 error: null,
                 data,
+                highlightAnchorUid: resolvedHighlightUid,
                 searchSelectionHighlight,
               }
             : {
                 loading: false,
                 error: null,
                 data,
-                highlightAnchorUid,
+                highlightAnchorUid: resolvedHighlightUid,
                 searchSelectionHighlight,
               },
         }));
@@ -810,31 +744,14 @@ class App extends Component {
         if (requestId !== this._chainViewRequestId) {
           return;
         }
-        const message =
-          error.message === "not_found"
-            ? "Für diese Kompetenz wurde kein Aufbau-Kontext gefunden."
-            : "Der Aufbau-Kontext konnte nicht geladen werden.";
-        if (embedded) {
-          this.setState({
-            chainView: {
-              loading: false,
-              error: message,
-              data: prefetchedChain,
-              highlightAnchorUid,
-              searchSelectionHighlight,
-            },
-          });
-        } else {
-          this.setState({
-            chainView: {
-              loading: false,
-              error: message,
-              data: null,
-              highlightAnchorUid,
-              searchSelectionHighlight,
-            },
-          });
-        }
+        this.setState({
+          chainView: applyChainFetchFailure({
+            prefetchedChain,
+            fetchUid,
+            error,
+            searchSelectionHighlight,
+          }),
+        });
       });
   };
 
@@ -848,12 +765,17 @@ class App extends Component {
 
   handleCloseCurriculumMap = () => {
     this.setState({ curriculumMapOpen: false, mapExplorerFocusRequest: null });
-    if (this.props.initialMapOpen && this.props.routerNavigate) {
+    if (this.props.mapOnly && this.props.routerNavigate) {
       this.props.routerNavigate(APP_ROUTES.search);
     }
   };
 
   handleOpenLandkarteRoute = () => {
+    const { routerNavigate } = this.props;
+    if (routerNavigate) {
+      routerNavigate(APP_ROUTES.landkarte);
+      return;
+    }
     this.setState({ curriculumMapOpen: true, mapExplorerFocusRequest: null });
   };
 
@@ -880,51 +802,49 @@ class App extends Component {
 
   handleChainSelectNeighbor = (nextUid) => {
     const { chainView } = this.state;
-    const fullChain = chainView && chainView.data && chainView.data.full_chain;
-    if (fullChain && Array.isArray(fullChain) && nextUid) {
-      const idx = fullChain.findIndex(
-        (step) =>
-          step &&
-          ((step.doc_key && step.doc_key === nextUid) ||
-            (step.uid && step.uid === nextUid))
-      );
-      if (idx !== -1) {
-        const cur = fullChain[idx];
-        const data = {
-          previous: idx > 0 ? fullChain[idx - 1] : null,
-          current: cur,
-          next: idx < fullChain.length - 1 ? fullChain[idx + 1] : null,
-          full_chain: fullChain,
-          _has_network: Boolean(cur && cur.network_links && cur.network_links.length > 0),
-        };
-        const stepUid = (cur && cur.uid) || nextUid;
-        const stepLabel =
-          truncateCompetencyLabel(cur && cur.text, 120) ||
-          (cur && cur.code ? String(cur.code).trim() : "") ||
-          stepUid;
-        this.recordRecentCompetencyView({
-          uid: stepUid,
-          code: cur && cur.code ? String(cur.code).trim() : undefined,
-          fach: cur && cur.fach ? String(cur.fach).trim() : undefined,
-          label: stepLabel,
-        });
-        const { routerNavigate } = this.props;
-        if (routerNavigate && stepUid) {
-          routerNavigate(chainPath(stepUid));
-        }
-        this.enrichChainDataWithNetworkApi(data).then((enriched) => {
-          this.setState({
-            chainView: {
-              ...chainView,
-              loading: false,
-              error: null,
-              data: enriched,
-              searchSelectionHighlight: false,
-            },
-          });
-        });
-        return;
+    const fullChain = chainView?.data?.full_chain;
+    const slice = buildChainSliceAtLookupKey(fullChain, nextUid);
+    if (slice) {
+      const { data, cur, highlightAnchorUid } = slice;
+      const stepFetchUid =
+        (cur && cur.doc_key && String(cur.doc_key).trim()) ||
+        (cur && cur.uid) ||
+        nextUid;
+      const stepCode =
+        cur && cur.code != null ? String(cur.code).trim() || undefined : undefined;
+      const stepRouteSlug =
+        resolveChainRouteSlug({ code: stepCode, fetchUid: stepFetchUid }) ||
+        stepFetchUid;
+      const stepLabel =
+        truncateCompetencyLabel(cur && cur.text, 120) ||
+        stepCode ||
+        stepFetchUid;
+      this.recordRecentCompetencyView({
+        uid: stepFetchUid,
+        code: stepCode,
+        fach: cur && cur.fach ? String(cur.fach).trim() : undefined,
+        label: stepLabel,
+      });
+      const { routerNavigate } = this.props;
+      if (routerNavigate && stepRouteSlug) {
+        routerNavigate(chainPath(stepRouteSlug));
       }
+      enrichChainDataWithNetworkApi(data).then((enriched) => {
+        this.setState({
+          chainView: {
+            ...chainView,
+            loading: false,
+            error: null,
+            data: enriched,
+            highlightAnchorUid: resolveHighlightUidFromChainData(
+              enriched,
+              highlightAnchorUid
+            ),
+            searchSelectionHighlight: false,
+          },
+        });
+      });
+      return;
     }
     this.handleOpenCompetencyChain(nextUid);
   };
@@ -982,30 +902,15 @@ class App extends Component {
     if (!result) {
       return null;
     }
-    const chain =
-      result.prefetchedChain || result.metadata?._competency_chain;
-    const fromDocKey =
-      chain?.current?.doc_key != null && String(chain.current.doc_key).trim()
-        ? String(chain.current.doc_key).trim()
-        : "";
-    const fromChainUid =
-      chain?.current?.uid != null && String(chain.current.uid).trim()
-        ? String(chain.current.uid).trim()
-        : "";
-    const fromDoc =
-      result.documentUid != null && String(result.documentUid).trim()
-        ? String(result.documentUid).trim()
-        : "";
-    const fromMeta =
-      result.metadata?.uid != null && String(result.metadata.uid).trim()
-        ? String(result.metadata.uid).trim()
-        : "";
-    const fromLp21Row =
-      result.metadata?.lp21_row_index != null &&
-      String(result.metadata.lp21_row_index).trim() !== ""
-        ? `lp21:${String(result.metadata.lp21_row_index).trim()}`
-        : "";
-    return fromDocKey || fromChainUid || fromDoc || fromLp21Row || fromMeta || null;
+    return (
+      resolveChainFetchUid({
+        prefetchedChain:
+          result.prefetchedChain || result.metadata?._competency_chain,
+        metadata: result.metadata,
+        documentUid: result.documentUid,
+        competencyUid: result.metadata?.uid,
+      }) || null
+    );
   };
 
   resolveBookmarkUidFromResult = (result) => {
@@ -1398,6 +1303,45 @@ class App extends Component {
     const { vorhabenToast } = this.state;
 
     const mapOpen = curriculumMapOpen;
+    const routeChainUid =
+      this.props.routeChainUid != null ? String(this.props.routeChainUid).trim() : "";
+    const chainData = chainView?.data;
+    const searchLocationMode = mapOpen
+      ? "landkarte"
+      : routeChainUid || chainData
+        ? "chain"
+        : null;
+    const searchChainLabel =
+      chainData?.current?.code?.trim() ||
+      truncateCompetencyLabel(chainData?.current?.text, 48) ||
+      routeChainUid ||
+      "";
+
+    const curriculumMapNode = (
+      <CurriculumMapOverlay
+        isOpen={mapOpen || Boolean(this.props.mapOnly)}
+        fullPage={true}
+        onClose={this.handleCloseCurriculumMap}
+        apiUrl={apiUrl}
+        getFachColor={this.getFachColor}
+        getZyklusColorByPart={this.getZyklusColor}
+        onRecordRecentView={this.recordRecentCompetencyView}
+        bookmarkUids={bookmarkIdSet}
+        onBookmarkToggle={this.handleToggleBookmarkEntry}
+        mapExplorerFocusRequest={mapExplorerFocusRequest}
+        onMapExplorerFocusApplied={this.handleMapExplorerFocusApplied}
+        onOpenInCurriculumMapFromChain={this.handleOpenCurriculumMapFromChainContext}
+      />
+    );
+
+    if (this.props.mapOnly) {
+      return (
+        <div className="app-shell app-shell--landkarte-only planning-surface">
+          {this.renderLocalDevWarnings()}
+          {curriculumMapNode}
+        </div>
+      );
+    }
 
     return (
       <div
@@ -1413,7 +1357,7 @@ class App extends Component {
         ) : null}
         <button
           type="button"
-          className="bookmark-drawer-fab"
+          className="bookmark-drawer-fab bookmark-drawer-mobile-only"
           onClick={this.handleOpenBookmarkDrawer}
           aria-expanded={bookmarkDrawerOpen}
           aria-controls="bookmark-drawer-panel"
@@ -1433,7 +1377,7 @@ class App extends Component {
         </button>
 
         <div
-          className={`bookmark-drawer-overlay ${bookmarkDrawerOpen ? "is-open" : ""}`}
+          className={`bookmark-drawer-overlay bookmark-drawer-mobile-only ${bookmarkDrawerOpen ? "is-open" : ""}`}
           aria-hidden={!bookmarkDrawerOpen}
           onClick={this.handleOverlayPointerClose}
           role="presentation"
@@ -1441,7 +1385,7 @@ class App extends Component {
 
         <aside
           id="bookmark-drawer-panel"
-          className={`bookmark-drawer ${bookmarkDrawerOpen ? "is-open" : ""}`}
+          className={`bookmark-drawer bookmark-drawer-mobile-only ${bookmarkDrawerOpen ? "is-open" : ""}`}
           role="dialog"
           aria-modal="true"
           aria-labelledby="sidebar-drawer-heading"
@@ -1761,21 +1705,12 @@ class App extends Component {
 
         <main className="layout search-main-content">
           <section className="content-column">
+            <SearchLocationBar mode={searchLocationMode} chainLabel={searchChainLabel} />
             <header className={`hero ${hasSearched ? "hero-compact" : ""}`}>
-              <div className="hero-title-row">
-                <h1 id="app-main-title">Lehrplan 21 Suche</h1>
-                <button
-                  type="button"
-                  className="hero-map-link"
-                  onClick={this.handleOpenLandkarteRoute}
-                  aria-expanded={curriculumMapOpen}
-                  aria-controls="curriculum-map-root"
-                >
-                  Landkarte-Explorer
-                </button>
-              </div>
+              <h1 id="app-main-title">Lehrplan 21 Suche</h1>
               <p>
-                Beschreibe kurz deine Unterrichtsidee und finde passende Kompetenzen.
+                Beschreibe kurz deine Unterrichtsidee und finde passende Kompetenzen. Die Landkarte
+                findest du in der Seitenleiste.
               </p>
 
               <div className="search-bar">
@@ -1906,19 +1841,13 @@ class App extends Component {
             {searchError && <p className="status-message error">{searchError}</p>}
 
             {chainView ? (
-              <CompetencyChainView
-                loading={Boolean(chainView.loading)}
-                error={chainView.error}
-                chainData={chainView.data}
-                highlightAnchorUid={chainView.highlightAnchorUid}
-                searchSelectionHighlight={Boolean(chainView.searchSelectionHighlight)}
+              <CompetencyChainPanel
+                variant="search"
+                chainView={chainView}
                 onBack={this.handleCloseCompetencyChain}
                 onSelectNeighbor={this.handleChainSelectNeighbor}
                 getZyklusColorByPart={this.getZyklusColor}
                 getFachColor={this.getFachColor}
-                getCompetencyNetworkUrl={(uid) =>
-                  apiUrl(`/api/competency-network/${encodeURIComponent(uid)}`)
-                }
                 bookmarkUids={bookmarkIdSet}
                 onToggleBookmarkStep={this.handleToggleBookmarkFromChainStep}
                 onOpenInCurriculumMap={this.handleOpenCurriculumMapFromChainContext}
@@ -1999,7 +1928,10 @@ class App extends Component {
                                         120
                                       ),
                                     },
-                                    { searchSelectionHighlight: true }
+                                    {
+                                      searchSelectionHighlight: true,
+                                      stayOnSearchPage: true,
+                                    }
                                   )
                                 }
                                 getCompetencyChainUrl={(uid) =>
@@ -2041,21 +1973,7 @@ class App extends Component {
           </section>
         </main>
 
-        <CurriculumMapOverlay
-          isOpen={curriculumMapOpen}
-          fullPage={true}
-          onClose={this.handleCloseCurriculumMap}
-          apiUrl={apiUrl}
-          getFachColor={this.getFachColor}
-          getZyklusColorByPart={this.getZyklusColor}
-          enrichChainDataWithNetworkApi={this.enrichChainDataWithNetworkApi}
-          onRecordRecentView={this.recordRecentCompetencyView}
-          bookmarkUids={bookmarkIdSet}
-          onBookmarkToggle={this.handleToggleBookmarkEntry}
-          mapExplorerFocusRequest={mapExplorerFocusRequest}
-          onMapExplorerFocusApplied={this.handleMapExplorerFocusApplied}
-          onOpenInCurriculumMapFromChain={this.handleOpenCurriculumMapFromChainContext}
-        />
+        {curriculumMapNode}
       </div>
     );
   }

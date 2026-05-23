@@ -2,11 +2,6 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { APP_ROUTES } from "../config/appUrls";
 
-const navItems = [
-  { to: APP_ROUTES.search, label: "Suche", end: true },
-  { to: APP_ROUTES.planung, label: "Mein Unterricht", end: false },
-];
-
 const BauhausBrandMark = () => (
   <span className="bh-brand-shapes" aria-hidden="true">
     <span className="bh-shape bh-shape--circle" />
@@ -15,28 +10,38 @@ const BauhausBrandMark = () => (
   </span>
 );
 
-const AppTopNav = () => (
-  <nav className="app-top-nav bh-band" aria-label="Hauptnavigation">
-    <div className="app-top-nav-inner">
-      <NavLink to={APP_ROUTES.search} className="app-top-nav-brand" end>
+const AppTopNav = ({
+  showMenuButton = false,
+  onMenuClick,
+  menuExpanded = false,
+  isMobile = false,
+}) => (
+  <nav className="app-top-nav bh-band app-top-nav--shell" aria-label="Kopfzeile">
+    <div className="app-top-nav-inner app-top-nav-inner--shell">
+      {showMenuButton ? (
+        <button
+          type="button"
+          className="app-top-nav-menu-btn"
+          onClick={onMenuClick}
+          aria-expanded={menuExpanded}
+          aria-controls="app-sidebar"
+          aria-label={
+            isMobile
+              ? menuExpanded
+                ? "Menü schliessen"
+                : "Menü öffnen"
+              : menuExpanded
+                ? "Seitenleiste einblenden"
+                : "Seitenleiste einklappen"
+          }
+        >
+          {isMobile ? (menuExpanded ? "×" : "☰") : menuExpanded ? "☰" : "☰"}
+        </button>
+      ) : null}
+      <NavLink to={APP_ROUTES.home} className="app-top-nav-brand" end>
         <BauhausBrandMark />
-        Lehrplan 21
+        <span>Lehrplan 21</span>
       </NavLink>
-      <ul className="app-top-nav-list">
-        {navItems.map((item) => (
-          <li key={item.to}>
-            <NavLink
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `app-top-nav-link${isActive ? " app-top-nav-link--active" : ""}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
     </div>
   </nav>
 );

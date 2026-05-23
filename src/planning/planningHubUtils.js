@@ -53,7 +53,7 @@ export const getTodayHubSummary = (store) => {
 
 export const suggestNextStepLabel = (vorhaben) => {
   if (!vorhaben) {
-    return "Lege ein Vorhaben an, um zu planen.";
+    return "Lege ein Thema an, um zu planen.";
   }
   if (!(vorhaben.competencies?.length > 0)) {
     return "Kompetenzen aus der Suche hinzufügen.";
@@ -70,4 +70,35 @@ export const suggestNextStepLabel = (vorhaben) => {
     return `Heute (${WEEKDAY_LABELS[todayWd]}): Wochenplan öffnen.`;
   }
   return "Weiter in der zuletzt besuchten Ebene.";
+};
+
+/** Ziel-Ebene für den Nächster-Schritt-Hinweis (Link nur wenn ≠ aktuelle Ebene). */
+export const getSuggestNextStepTarget = (vorhaben, currentLevel) => {
+  const label = suggestNextStepLabel(vorhaben);
+  if (!vorhaben) {
+    return { label, level: "grob", path: null, isOnTarget: true };
+  }
+
+  let level = currentLevel || vorhaben.lastVisitedLevel || "grob";
+  if (!(vorhaben.competencies?.length > 0)) {
+    level = "grob";
+  } else if (!(vorhaben.grob?.ziele || vorhaben.grob?.phasen?.length)) {
+    level = "grob";
+  } else {
+    const openMs = (vorhaben.zweiWochen?.meilensteine || []).filter((m) => !m.done).length;
+    if (openMs > 0) {
+      level = "zwei-wochen";
+    } else if (getTodayWeekdayId()) {
+      level = "woche";
+    } else {
+      level = vorhaben.lastVisitedLevel || currentLevel || "grob";
+    }
+  }
+
+  return {
+    label,
+    level,
+    path: vorhabenLevelPath(vorhaben.id, level),
+    isOnTarget: level === currentLevel,
+  };
 };

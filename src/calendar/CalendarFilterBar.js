@@ -1,4 +1,5 @@
 import React from "react";
+import { getFachCssVars, getFachToneClassName } from "../planning/fachColors";
 import { templateOptions } from "./calendarFilters";
 
 const CalendarFilterBar = ({
@@ -8,8 +9,12 @@ const CalendarFilterBar = ({
   onNewEvent,
   onInitStundenplan,
   searchInputRef,
+  compact = false,
+  filtersExpanded = false,
+  onToggleFiltersExpanded,
 }) => {
   const templates = templateOptions();
+  const showSecondary = !compact || filtersExpanded;
 
   const toggleVorhaben = (id) => {
     const set = new Set(filters.vorhabenIds || []);
@@ -32,109 +37,137 @@ const CalendarFilterBar = ({
   };
 
   return (
-    <div className="cal-filter-bar" role="search">
-      <div className="cal-filter-search-wrap">
-        <span className="cal-filter-search-icon" aria-hidden="true">
-          ⌕
-        </span>
-        <input
-          ref={searchInputRef}
-          type="search"
-          className="cal-filter-search"
-          placeholder="Suchen (Titel, Vorhaben, Fach …)"
-          value={filters.search}
-          onChange={(e) => onChange({ ...filters, search: e.target.value })}
-          aria-label="Kalender durchsuchen"
-        />
-        <span className="cal-kbd-badge" title="Tastenkürzel">
-          /
-        </span>
-      </div>
+    <div
+      className={`cal-filter-bar ${compact ? "cal-filter-bar--compact" : ""} ${
+        filtersExpanded ? "cal-filter-bar--expanded" : ""
+      }`}
+      role="search"
+    >
+      <div className="cal-filter-bar-primary">
+        <div className="cal-filter-search-wrap">
+          <span className="cal-filter-search-icon" aria-hidden="true">
+            ⌕
+          </span>
+          <input
+            ref={searchInputRef}
+            type="search"
+            className="cal-filter-search"
+            placeholder="Suchen …"
+            value={filters.search}
+            onChange={(e) => onChange({ ...filters, search: e.target.value })}
+            aria-label="Kalender durchsuchen"
+          />
+          <span className="cal-kbd-badge" title="Tastenkürzel">
+            /
+          </span>
+        </div>
 
-      <div className="cal-filter-chips" aria-label="Vorhaben filtern">
-        <button
-          type="button"
-          className={`cal-filter-chip ${!filters.vorhabenIds?.length ? "cal-filter-chip--active" : ""}`}
-          onClick={() => onChange({ ...filters, vorhabenIds: [] })}
-        >
-          Alle Vorhaben
-        </button>
-        {vorhabenList.map((v) => (
+        {compact ? (
           <button
-            key={v.id}
             type="button"
-            className={`cal-filter-chip ${
-              filters.vorhabenIds?.includes(v.id) ? "cal-filter-chip--active" : ""
+            className={`planning-btn planning-btn--ghost cal-filter-toggle ${
+              filtersExpanded ? "cal-filter-toggle--active" : ""
             }`}
-            onClick={() => toggleVorhaben(v.id)}
+            onClick={onToggleFiltersExpanded}
+            aria-expanded={filtersExpanded}
           >
-            {v.title}
-          </button>
-        ))}
-      </div>
-
-      <div className="cal-filter-chips cal-filter-chips--themes" aria-label="Thema filtern">
-        {templates.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`cal-filter-chip cal-filter-chip--theme ${
-              filters.templateIds?.includes(t.id) ? "cal-filter-chip--active" : ""
-            }`}
-            onClick={() => toggleTemplate(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="cal-filter-chips cal-filter-chips--stundenplan" aria-label="Stundenplan">
-        <button
-          type="button"
-          className={`cal-filter-chip ${filters.showStundenplan !== false ? "cal-filter-chip--active" : ""}`}
-          onClick={() =>
-            onChange({
-              ...filters,
-              showStundenplan: filters.showStundenplan === false,
-            })
-          }
-        >
-          Stundenplan
-        </button>
-        <button
-          type="button"
-          className={`cal-filter-chip ${filters.stundenplanEditMode ? "cal-filter-chip--active" : ""}`}
-          onClick={() =>
-            onChange({
-              ...filters,
-              stundenplanEditMode: !filters.stundenplanEditMode,
-            })
-          }
-          title="Zeitraum wählen = neuer Lektionsplatz"
-        >
-          Plätze bearbeiten
-        </button>
-        {onInitStundenplan ? (
-          <button
-            type="button"
-            className="cal-filter-chip cal-filter-chip--theme"
-            onClick={onInitStundenplan}
-          >
-            Raster laden
+            Filter
           </button>
         ) : null}
+
+        <div className="cal-filter-actions">
+          <button
+            type="button"
+            className="planning-btn planning-btn--primary cal-filter-new"
+            onClick={onNewEvent}
+          >
+            + Termin
+            <span className="cal-kbd-hint">N</span>
+          </button>
+        </div>
       </div>
 
-      <div className="cal-filter-actions">
-        <button
-          type="button"
-          className="planning-btn planning-btn--primary cal-filter-new"
-          onClick={onNewEvent}
-        >
-          + Termin
-          <span className="cal-kbd-hint">N</span>
-        </button>
-      </div>
+      {showSecondary ? (
+        <div className="cal-filter-bar-secondary">
+          <div className="cal-filter-chips" aria-label="Themen filtern">
+            <button
+              type="button"
+              className={`cal-filter-chip ${!filters.vorhabenIds?.length ? "cal-filter-chip--active" : ""}`}
+              onClick={() => onChange({ ...filters, vorhabenIds: [] })}
+            >
+              Alle Themen
+            </button>
+            {vorhabenList.map((v) => {
+              const toneClass = getFachToneClassName(v.fach);
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  className={`cal-filter-chip${toneClass ? ` ${toneClass}` : ""} ${
+                    filters.vorhabenIds?.includes(v.id) ? "cal-filter-chip--active" : ""
+                  }`}
+                  style={toneClass ? getFachCssVars(v.fach, v.id) : undefined}
+                  onClick={() => toggleVorhaben(v.id)}
+                >
+                  {v.title}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="cal-filter-chips cal-filter-chips--themes" aria-label="Thema filtern">
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`cal-filter-chip cal-filter-chip--theme ${
+                  filters.templateIds?.includes(t.id) ? "cal-filter-chip--active" : ""
+                }`}
+                onClick={() => toggleTemplate(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="cal-filter-chips cal-filter-chips--stundenplan" aria-label="Stundenplan">
+            <button
+              type="button"
+              className={`cal-filter-chip ${filters.showStundenplan !== false ? "cal-filter-chip--active" : ""}`}
+              onClick={() =>
+                onChange({
+                  ...filters,
+                  showStundenplan: filters.showStundenplan === false,
+                })
+              }
+            >
+              Stundenplan
+            </button>
+            <button
+              type="button"
+              className={`cal-filter-chip ${filters.stundenplanEditMode ? "cal-filter-chip--active" : ""}`}
+              onClick={() =>
+                onChange({
+                  ...filters,
+                  stundenplanEditMode: !filters.stundenplanEditMode,
+                })
+              }
+              title="Zeitraum wählen = neuer Lektionsplatz"
+            >
+              Plätze bearbeiten
+            </button>
+            {onInitStundenplan ? (
+              <button
+                type="button"
+                className="cal-filter-chip cal-filter-chip--theme"
+                onClick={onInitStundenplan}
+              >
+                Raster laden
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

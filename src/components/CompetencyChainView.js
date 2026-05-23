@@ -955,6 +955,8 @@ class CompetencyChainView extends Component {
       mapOutlineChainNav,
       mapChainNavDirection,
       chainLoadingStatusDelayMs,
+      chainIdleMessage,
+      hideToolbarBack = false,
     } = this.props;
 
     const delayMs = Number(chainLoadingStatusDelayMs) || 0;
@@ -973,23 +975,27 @@ class CompetencyChainView extends Component {
           ? "chain-panel-flow--nav-swipe-prev"
           : "";
 
+    const showToolbarBack = !hideToolbarBack && typeof this.props.onBack === "function";
+
     return (
       <section className="competency-chain-panel" aria-labelledby="chain-panel-title">
         <div className="chain-toolbar">
-          <button
-            type="button"
-            className="chain-back-button"
-            onClick={this.handleBackClick}
-            aria-label={
-              typeof backButtonAriaLabel === "string" && backButtonAriaLabel.trim()
-                ? backButtonAriaLabel.trim()
-                : "Zurück zur Suchergebnisliste"
-            }
-          >
-            {typeof backButtonLabel === "string" && backButtonLabel.trim()
-              ? backButtonLabel.trim()
-              : "← Zurück zur Suche"}
-          </button>
+          {showToolbarBack ? (
+            <button
+              type="button"
+              className="chain-back-button"
+              onClick={this.handleBackClick}
+              aria-label={
+                typeof backButtonAriaLabel === "string" && backButtonAriaLabel.trim()
+                  ? backButtonAriaLabel.trim()
+                  : "Zurück zur Suchergebnisliste"
+              }
+            >
+              {typeof backButtonLabel === "string" && backButtonLabel.trim()
+                ? backButtonLabel.trim()
+                : "← Zurück zur Suche"}
+            </button>
+          ) : null}
           <h2 id="chain-panel-title" className="chain-panel-title chain-panel-title--visually-hidden">
             Aufbau-Kette
           </h2>
@@ -1027,6 +1033,10 @@ class CompetencyChainView extends Component {
 
         {showLoadingStatusLine ? (
           <p className="chain-status">Lade Kontext …</p>
+        ) : null}
+
+        {!loading && !error && !chainData && chainIdleMessage ? (
+          <p className="chain-status chain-status--idle">{chainIdleMessage}</p>
         ) : null}
 
         {!loading && error ? (

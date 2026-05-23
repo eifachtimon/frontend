@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-do
 import "./planning/planning.css";
 import "./calendar/calendar.css";
 import App from "./App";
-import AppTopNav from "./components/AppTopNav";
+import AppShellLayout from "./shell/AppShellLayout";
 import PlanungEntwurfPage from "./pages/PlanungEntwurfPage";
 import PlanungHubPage from "./pages/PlanungHubPage";
 import VorhabenPage from "./pages/VorhabenPage";
@@ -32,7 +32,7 @@ const ChainRoute = () => {
 
 const LandkarteRoute = () => {
   const navigate = useNavigate();
-  return <App routerNavigate={navigate} initialMapOpen />;
+  return <App routerNavigate={navigate} mapOnly />;
 };
 
 const VorhabenRedirect = () => {
@@ -56,25 +56,27 @@ const MonatsplanRedirect = () => {
 
 const AppRouter = () => (
   <EditShortcutsProvider>
-    <AppTopNav />
-    <Routes>
-      <Route path={APP_ROUTES.search} element={<SearchRoute />} />
-      <Route path="/kette/:uid" element={<ChainRoute />} />
-      <Route path={APP_ROUTES.landkarte} element={<LandkarteRoute />} />
-      <Route path={APP_ROUTES.kalender} element={<KalenderPage />} />
-      <Route path={APP_ROUTES.planung} element={<PlanungHubPage />} />
-      <Route path={`${APP_ROUTES.jahresplan}/:startYear`} element={<JahresplanPage />} />
-      <Route path={APP_ROUTES.jahresplan} element={<JahresplanRedirect />} />
-      <Route
-        path={`${APP_ROUTES.monatsplan}/:year/:month`}
-        element={<MonatsplanPage />}
-      />
-      <Route path={APP_ROUTES.monatsplan} element={<MonatsplanRedirect />} />
-      <Route path="/planung/vorhaben/:id" element={<VorhabenRedirect />} />
-      <Route path="/planung/vorhaben/:id/:level" element={<VorhabenPage />} />
-      <Route path={APP_ROUTES.planungEntwurf} element={<PlanungEntwurfPage />} />
-      <Route path="*" element={<Navigate to={APP_ROUTES.search} replace />} />
-    </Routes>
+    <AppShellLayout>
+      <Routes>
+        <Route path={APP_ROUTES.home} element={<PlanungHubPage />} />
+        <Route path="/planung" element={<Navigate to={APP_ROUTES.home} replace />} />
+        <Route path={APP_ROUTES.search} element={<SearchRoute />} />
+        <Route path="/kette/:uid" element={<ChainRoute />} />
+        <Route path={APP_ROUTES.landkarte} element={<LandkarteRoute />} />
+        <Route path={APP_ROUTES.kalender} element={<KalenderPage />} />
+        <Route path={`${APP_ROUTES.jahresplan}/:startYear`} element={<JahresplanPage />} />
+        <Route path={APP_ROUTES.jahresplan} element={<JahresplanRedirect />} />
+        <Route
+          path={`${APP_ROUTES.monatsplan}/:year/:month`}
+          element={<MonatsplanPage />}
+        />
+        <Route path={APP_ROUTES.monatsplan} element={<MonatsplanRedirect />} />
+        <Route path="/planung/vorhaben/:id" element={<VorhabenRedirect />} />
+        <Route path="/planung/vorhaben/:id/:level" element={<VorhabenPage />} />
+        <Route path={APP_ROUTES.planungEntwurf} element={<PlanungEntwurfPage />} />
+        <Route path="*" element={<Navigate to={APP_ROUTES.home} replace />} />
+      </Routes>
+    </AppShellLayout>
   </EditShortcutsProvider>
 );
 

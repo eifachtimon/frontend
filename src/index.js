@@ -7,6 +7,10 @@ import './index.css';
 import AppRouter from './AppRouter';
 import './styles/bauhaus-overrides.css';
 import './styles/bauhaus-readability.css';
+import './styles/bauhaus-legacy-sweep.css';
+import './styles/bauhaus-interaction.css';
+import './styles/bauhaus-spacing.css';
+import './styles/bauhaus-layout-width.css';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

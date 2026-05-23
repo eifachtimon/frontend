@@ -2,6 +2,8 @@ import React, { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { planungEntwurfPath } from "../../config/appUrls";
 import { useRegisterEditShortcuts } from "../../hooks/EditShortcutsProvider";
+import PlanningSection from "../PlanningSection";
+import ThemaPanelShell from "../ThemaPanelShell";
 import { DURATION_OPTIONS } from "../planningDefaults";
 import { addLektion } from "../planningStore";
 
@@ -86,36 +88,40 @@ const LektionPanel = ({ vorhaben, rituals, onChange }) => {
   });
 
   return (
-    <div className="planning-panel planning-panel--lektion">
-      <div className="planning-panel-main">
+    <ThemaPanelShell levelId="lektion" fach={vorhaben.fach} vorhabenId={vorhaben.id}>
+      <div className="planning-panel planning-panel--lektion">
         <section className="lektion-entwurf-card" aria-labelledby="lektion-entwurf-title">
           <h2 id="lektion-entwurf-title" className="planning-subtitle">
             Stundenentwurf
           </h2>
           <p className="lektion-entwurf-desc">
             Kompetenzen, Dauer und Notizen für eine konkrete Stunde — verknüpft mit diesem
-            Vorhaben.
+            Thema.
           </p>
           <Link to={entwurfTo} className="planning-btn planning-btn--primary">
             Stundenentwurf öffnen
           </Link>
         </section>
 
-        <div className="lektion-toolbar">
-          <h2 className="planning-subtitle">Lektionen</h2>
-          <span className="planning-kbd-hint">
-            <kbd>⌘Z</kbd> Rückgängig · <kbd>Entf</kbd> Lektion/Block
-          </span>
-          <button type="button" className="planning-btn planning-btn--primary" onClick={handleAddLektion}>
-            + Lektion
-          </button>
-        </div>
-        {vorhaben.lektionen.length === 0 ? (
-          <p className="planning-empty">
-            Noch keine Lektionen. Lege eine an oder nutze den Stundenentwurf direkt.
-          </p>
-        ) : (
-          <ul className="lektion-list">
+        <PlanningSection title="Lektionen im Thema">
+          <div className="lektion-toolbar">
+            <span className="planning-kbd-hint">
+              <kbd>⌘Z</kbd> Rückgängig · <kbd>Entf</kbd> Lektion/Block · in die Woche ziehen
+            </span>
+            <button
+              type="button"
+              className="planning-btn planning-btn--primary"
+              onClick={handleAddLektion}
+            >
+              + Lektion
+            </button>
+          </div>
+          {vorhaben.lektionen.length === 0 ? (
+            <p className="planning-empty">
+              Noch keine Lektionen. Lege eine an oder nutze den Stundenentwurf direkt.
+            </p>
+          ) : (
+            <ul className="lektion-list">
             {vorhaben.lektionen.map((lek) => (
               <li
                 key={lek.id}
@@ -248,10 +254,11 @@ const LektionPanel = ({ vorhaben, rituals, onChange }) => {
                 </Link>
               </li>
             ))}
-          </ul>
-        )}
+            </ul>
+          )}
+        </PlanningSection>
       </div>
-    </div>
+    </ThemaPanelShell>
   );
 };
 

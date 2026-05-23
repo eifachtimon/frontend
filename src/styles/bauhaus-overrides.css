@@ -22,16 +22,36 @@ body,
 /* Canvas texture */
 .app-shell,
 .planning-surface,
-.cal-page--fullscreen {
+.cal-page--fullscreen,
+.planning-view--kalender {
   background-color: var(--bh-bg);
   background-image: var(--bh-dot-pattern);
   background-size: var(--bh-dot-size);
   color: var(--bh-fg);
 }
 
-.app-shell {
-  max-width: 80rem;
+.app-shell:not(.planning-hub):not(.planning-surface):not(.app-shell--search) {
+  max-width: var(--app-shell-max-width);
 }
+
+/* Suche: Suchfeld & Filter auf Desktop breiter */
+@media (min-width: 1200px) {
+  .hero:not(.hero-compact) .search-bar {
+    max-width: var(--search-hero-bar-max) !important;
+    width: 100%;
+  }
+
+  .hero:not(.hero-compact) ~ .filters-inline .quick-filters {
+    width: min(100%, var(--search-filters-max)) !important;
+    max-width: var(--search-filters-max) !important;
+  }
+
+  .hero.hero-compact .search-bar {
+    max-width: 100% !important;
+  }
+}
+
+/* Breite: bauhaus-layout-width.css (100 % im Main) */
 
 /* —— Top navigation —— */
 .app-top-nav {
@@ -39,6 +59,11 @@ body,
   border-bottom: var(--bh-border-w-lg) solid var(--bh-border);
   backdrop-filter: none;
   box-shadow: var(--bh-shadow-sm);
+}
+
+.app-top-nav-inner {
+  min-height: var(--app-top-nav-h, 3.125rem);
+  align-items: center;
 }
 
 .app-top-nav-brand {
@@ -296,7 +321,15 @@ mark.text-highlight {
 .planning-surface select {
   border: var(--bh-border-w) solid var(--bh-border) !important;
   border-radius: var(--bh-radius-none) !important;
-  box-shadow: 3px 3px 0 0 var(--bh-fg);
+  background: var(--bh-white) !important;
+  color: var(--bh-fg) !important;
+}
+
+/* Schatten nur auf freistehenden Feldern — nicht in Panels (interaction.css) */
+.planning-surface .planning-field input,
+.planning-surface .planning-field textarea,
+.planning-surface .planning-create-card input {
+  box-shadow: var(--bh-shadow-sm);
 }
 
 /* —— Calendar —— */
@@ -318,10 +351,22 @@ mark.text-highlight {
 
 .cal-fullcalendar-host .fc-button {
   border-radius: 0 !important;
-  box-shadow: 3px 3px 0 0 var(--bh-fg) !important;
+  background: var(--bh-white, #fff) !important;
+  color: var(--bh-fg, #121212) !important;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212) !important;
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212) !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   font-size: 0.72rem !important;
+}
+
+.cal-fullcalendar-host .fc-button:hover:not(:disabled) {
+  background: var(--bh-muted, #e0e0e0) !important;
+  color: var(--bh-fg, #121212) !important;
+}
+
+.cal-fullcalendar-host .fc-button:disabled {
+  opacity: 0.45;
 }
 
 .cal-fullcalendar-host .fc-button:active {
@@ -332,6 +377,15 @@ mark.text-highlight {
 .cal-fullcalendar-host--modern .fc-theme-standard td,
 .cal-fullcalendar-host--modern .fc-theme-standard th {
   border-color: var(--bh-fg);
+}
+
+.cal-fullcalendar-host .fc-event.cal-event {
+  font-family: var(--bh-font);
+}
+
+.cal-fullcalendar-host .fc-event.cal-event:active {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
 }
 
 .cal-modal {

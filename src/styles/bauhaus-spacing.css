@@ -1,0 +1,315 @@
+/**
+ * Spacing & vertikale Hierarchie — ein Raster für alle Hauptflächen.
+ *
+ * Ebene 1  --layout-section-gap   Zwischen Orientierung, Kopf, Inhalt
+ * Ebene 2  --layout-region-gap    Karten-Grids, Ergebnis-Blöcke
+ * Ebene 3  --layout-cluster-gap    Formularfelder, Toolbar-Zeilen
+ * Ebene 4  --layout-inline-gap     Chips, Button-Reihen
+ */
+
+/* —— Seiten-Stack (einheitlicher Rhythmus) —— */
+.planning-hub-main,
+.vorhaben-main,
+.search-main-content,
+.planung-main,
+.content-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-section-gap);
+}
+
+/* Doppel-Margins vermeiden — Abstand nur über gap */
+.planning-hub-main > *,
+.vorhaben-main > *,
+.search-main-content > *,
+.planung-main > *,
+.content-column > * {
+  margin-top: 0;
+}
+
+.planning-hub-main > :last-child,
+.vorhaben-main > :last-child,
+.search-main-content > :last-child,
+.content-column > :last-child {
+  margin-bottom: 0;
+}
+
+/* —— Ebene 1: Orientierung (schmaler als Kopf) —— */
+.planning-location-bar,
+.search-location-bar {
+  margin-bottom: 0 !important;
+  padding: var(--layout-inset-compact) var(--layout-inset-bar) !important;
+  gap: var(--layout-cluster-gap) !important;
+}
+
+.planning-location-trail,
+.search-location-trail {
+  gap: var(--layout-inline-gap) var(--layout-tight-gap) !important;
+}
+
+.planning-location-time-links,
+.planning-context-views {
+  gap: var(--layout-inline-gap) !important;
+}
+
+/* —— Ebene 1: Seitenkopf (prägnant) —— */
+.planning-view-header,
+.vorhaben-header,
+.planning-hub-header {
+  margin-bottom: 0 !important;
+  padding: var(--layout-inset-card) !important;
+  gap: var(--layout-region-gap) !important;
+}
+
+.planning-view-header__title,
+.planning-view-header__lead {
+  margin-bottom: 0 !important;
+}
+
+.planning-view-header__title {
+  margin-bottom: var(--layout-tight-gap) !important;
+}
+
+.planning-view-header__extra {
+  margin-top: var(--layout-cluster-gap) !important;
+  padding-top: var(--layout-cluster-gap) !important;
+}
+
+/* —— Ebene 1: Hub-Akzente —— */
+.planning-primary-cta,
+.planning-onboarding,
+.planning-today-card,
+.planning-create-card,
+.lektion-entwurf-card {
+  margin-bottom: 0 !important;
+  padding: var(--layout-inset-card) !important;
+}
+
+.planning-primary-cta {
+  gap: var(--layout-region-gap) !important;
+}
+
+.planning-onboarding-head {
+  margin-bottom: var(--layout-cluster-gap) !important;
+}
+
+.planning-onboarding-steps {
+  gap: var(--layout-region-gap) !important;
+}
+
+.planning-today-actions {
+  gap: var(--layout-inline-gap) !important;
+}
+
+.planning-hub-focus,
+.planning-hub-workspace {
+  gap: var(--layout-region-gap) !important;
+}
+
+.planning-hub-workspace {
+  display: grid !important;
+}
+
+.planning-hub-entries,
+.planning-hub-entries--secondary {
+  margin-bottom: 0 !important;
+  gap: var(--layout-region-gap) !important;
+}
+
+.planning-hub-footer {
+  margin-top: var(--layout-region-gap);
+  padding-top: var(--layout-cluster-gap);
+}
+
+/* —— Ebene 2: Inhaltsflächen —— */
+.planning-view-panel,
+.vorhaben-card-list,
+.monatsplan-stack,
+.monatsplan-week-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-region-gap);
+}
+
+.jahresplan-grid {
+  display: grid;
+  gap: var(--layout-region-gap);
+}
+
+.monatsplan-week-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.monatsplan-week-row {
+  margin: 0;
+}
+
+.planning-view-panel {
+  padding: var(--layout-inset-card) !important;
+}
+
+.jahresplan-grid,
+.planning-hub-entries {
+  gap: var(--layout-region-gap) !important;
+}
+
+.vorhaben-panel-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-region-gap);
+}
+
+.vorhaben-stepper-sticky {
+  margin: 0 calc(-1 * var(--layout-page-x)) 0 !important;
+  padding: var(--layout-inset-compact) var(--layout-page-x) !important;
+  background: var(--bh-white) !important;
+  border-bottom: var(--bh-border-w) solid var(--bh-border) !important;
+  box-shadow: var(--bh-shadow-sm);
+  backdrop-filter: none;
+}
+
+.vorhaben-stepper-list {
+  gap: var(--layout-inline-gap) !important;
+}
+
+.report-organizer,
+.planning-phase-details {
+  margin-bottom: 0 !important;
+}
+
+/* —— Formulare —— */
+.planning-field,
+.planung-field,
+.planung-fieldset {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-tight-gap);
+}
+
+.planning-form-stack,
+.monatsplan-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-region-gap);
+}
+
+.planning-create-row {
+  gap: var(--layout-inline-gap) !important;
+}
+
+/* —— Suche —— */
+.app-shell--search .hero {
+  margin-bottom: 0 !important;
+  padding-top: 0;
+  padding-bottom: var(--layout-cluster-gap);
+}
+
+.app-shell--search .hero:not(.hero-compact) {
+  padding-top: var(--layout-inset-compact);
+}
+
+.app-shell--search .filters-inline {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0;
+  gap: var(--layout-cluster-gap);
+}
+
+.app-shell--search .hero:not(.hero-compact) ~ .filters-inline {
+  padding-top: var(--layout-cluster-gap);
+}
+
+.results-panel {
+  margin-top: 0 !important;
+  padding-top: var(--layout-region-gap) !important;
+}
+
+.results-header {
+  margin-bottom: var(--layout-region-gap) !important;
+  padding-bottom: var(--layout-cluster-gap) !important;
+  gap: var(--layout-inline-gap) !important;
+}
+
+.results-groups {
+  gap: var(--layout-section-gap) !important;
+}
+
+.results-grid,
+.fach-section .results-grid {
+  gap: var(--layout-region-gap) !important;
+}
+
+.fach-section {
+  margin-bottom: 0;
+}
+
+.fach-section + .fach-section {
+  margin-top: 0;
+}
+
+.result-card {
+  padding: var(--layout-inset-bar) var(--layout-inset-card) !important;
+}
+
+.result-card-layout {
+  gap: var(--layout-cluster-gap) !important;
+}
+
+/* —— Kalender (Zeit-Ansichten) —— */
+.planning-hub-main--time {
+  gap: var(--layout-section-gap);
+}
+
+.cal-filter-bar {
+  padding: var(--layout-inset-compact) var(--layout-inset-bar) !important;
+  gap: var(--layout-inline-gap) var(--layout-cluster-gap) !important;
+}
+
+.cal-shortcuts-panel {
+  padding: var(--layout-inset-compact) var(--layout-inset-bar) !important;
+}
+
+/* —— Top-Nav & Sidebar —— */
+.app-top-nav-inner {
+  padding: var(--layout-inset-compact) var(--layout-page-x) !important;
+  gap: var(--layout-inline-gap) !important;
+}
+
+.app-sidebar {
+  padding: var(--layout-inset-bar) var(--layout-inset-compact) !important;
+  gap: var(--layout-cluster-gap) !important;
+}
+
+.app-sidebar-group {
+  gap: var(--layout-tight-gap);
+}
+
+.app-sidebar-nav-link {
+  padding: var(--layout-inset-compact) var(--layout-inline-gap) !important;
+}
+
+/* —— Kette / Modals —— */
+.competency-chain-panel {
+  padding: var(--layout-inset-card) !important;
+}
+
+.add-to-vorhaben-modal {
+  padding: var(--layout-inset-card) !important;
+  gap: var(--layout-region-gap) !important;
+}
+
+/* —— Mobile: etwas kompakter —— */
+@media (max-width: 720px) {
+  :root {
+    --layout-section-gap: var(--space-4);
+    --layout-inset-card: var(--space-4);
+  }
+
+  .planning-view-header,
+  .planning-location-bar {
+    padding: var(--layout-inset-compact) var(--layout-inset-bar) !important;
+  }
+}

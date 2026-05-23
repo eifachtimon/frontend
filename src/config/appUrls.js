@@ -1,10 +1,13 @@
 /** Internal SPA routes — no external localhost:3003 links. */
 
 export const APP_ROUTES = {
-  search: "/",
+  /** Startseite — Mein Unterricht */
+  home: "/",
+  search: "/suche",
   landkarte: "/landkarte",
   kalender: "/kalender",
-  planung: "/planung",
+  /** Alias für Links (gleich wie home) */
+  planung: "/",
   planungEntwurf: "/planung/entwurf",
   jahresplan: "/planung/jahr",
   monatsplan: "/planung/monat",
@@ -34,10 +37,11 @@ export const vorhabenPath = (id) => `/planung/vorhaben/${encodeURIComponent(id)}
 export const vorhabenLevelPath = (id, level) =>
   `${vorhabenPath(id)}/${encodeURIComponent(level)}`;
 
-export const chainPath = (uid) => {
-  const id = uid != null ? String(uid).trim() : "";
+/** @param {string} slug Kompetenzcode oder fetch-UID für die Route */
+export const chainPath = (slug) => {
+  const id = slug != null ? String(slug).trim() : "";
   if (!id) {
-    return APP_ROUTES.search;
+    return APP_ROUTES.home;
   }
   return `/kette/${encodeURIComponent(id)}`;
 };

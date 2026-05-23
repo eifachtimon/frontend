@@ -1,14 +1,11 @@
 /* FullCalendar — Bauhaus (LP21) */
 
-.cal-page--fullscreen {
-  --cal-toolbar-h: 2.75rem;
+/* Kalender eingebettet in planning-hub-main (--kalender), nicht mehr Vollbild-Toolbar */
+.cal-page--fullscreen,
+.planning-view--kalender {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  height: 100vh;
-  max-height: 100vh;
-  overflow: hidden;
-  background: var(--plan-bg, #0b0b0b);
+  min-height: 0;
 }
 
 .cal-page-main {
@@ -18,20 +15,23 @@
   min-height: 0;
   width: 100%;
   max-width: none;
-  margin: 0;
-  padding: 0;
 }
 
-.cal-page-toolbar {
-  flex-shrink: 0;
+.planning-hub-main--time {
+  flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  min-height: 0;
   gap: var(--space-3);
-  height: var(--cal-toolbar-h);
-  padding: 0 var(--space-3);
-  border-bottom: var(--bh-border-w-lg, 4px) solid var(--plan-border-subtle, #121212);
-  background: var(--bh-white, #fff);
+}
+
+.planning-view-panel--calendar .cal-side-drawer {
+  max-height: 100%;
+}
+
+/* Legacy toolbar — ungenutzt, falls noch referenziert */
+.cal-page-toolbar {
+  display: none;
 }
 
 .cal-page-toolbar-left,
@@ -58,7 +58,7 @@
 .cal-toolbar-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--plan-text, #ececec);
+  color: var(--bh-fg, #121212);
   letter-spacing: -0.02em;
 }
 
@@ -107,7 +107,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 0.35rem 0.5rem 0.5rem;
+  padding: 0;
 }
 
 .cal-side-drawer {
@@ -119,9 +119,9 @@
   z-index: 50;
   padding: var(--space-4);
   overflow-y: auto;
-  background: var(--plan-card, #161616);
-  border-left: 1px solid var(--plan-border);
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+  background: var(--bh-white, #fff);
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
+  box-shadow: var(--bh-shadow-lg, 8px 8px 0 0 #121212);
   transform: translateX(100%);
   transition: transform 0.2s ease;
   pointer-events: none;
@@ -190,10 +190,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--plan-border);
-  background: var(--plan-card);
+  padding: 8px 10px;
+  border-radius: 0;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-muted, #e0e0e0);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
 }
 
 .cal-external-strip-label {
@@ -211,13 +212,6 @@
   overflow-x: auto;
   flex: 1;
   padding-bottom: 2px;
-}
-
-.cal-external-event--add {
-  cursor: pointer;
-  border-style: dashed;
-  justify-content: center;
-  font-weight: 600;
 }
 
 /* Apple Kalender */
@@ -345,9 +339,10 @@
 
 .cal-external-events {
   padding: var(--space-3);
-  border-radius: var(--plan-radius-sm);
-  border: 1px solid var(--plan-border);
-  background: var(--plan-card);
+  border-radius: 0;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-muted, #e0e0e0);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
   max-height: calc(100vh - 14rem);
   overflow-y: auto;
 }
@@ -384,22 +379,56 @@
   display: flex;
   justify-content: space-between;
   gap: 6px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   margin-bottom: 4px;
-  border-radius: 6px;
-  border: 1px solid var(--plan-border);
-  background: var(--plan-elevated);
-  color: var(--plan-text);
+  border-radius: 0;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  color: var(--bh-fg, #121212);
   font-size: 0.72rem;
+  font-weight: 600;
   cursor: grab;
+  box-shadow: 3px 3px 0 0 var(--bh-fg, #121212);
 }
 
 .fc-external-event:active {
   cursor: grabbing;
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.fc-external-event--ritual {
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-blue, #1040c0);
+  background: var(--bh-yellow-pale, #fff9c4);
 }
 
 .fc-external-event--lektion {
-  border-color: rgba(142, 184, 255, 0.35);
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-blue, #1040c0);
+}
+
+.fc-external-event--stundenplan {
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-yellow, #f0c020);
+}
+
+.fc-external-event--lifting,
+.fc-event-dragging.fc-external-event {
+  opacity: 1 !important;
+  transform: rotate(-1deg) scale(1.03);
+  box-shadow: var(--bh-shadow-md, 6px 6px 0 0 #121212) !important;
+  z-index: 9999;
+  cursor: grabbing !important;
+}
+
+.cal-external-event--add {
+  cursor: pointer;
+  border-style: dashed;
+  justify-content: center;
+  font-weight: 700;
+  background: var(--bh-white, #fff);
+}
+
+.cal-external-event--add:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
 }
 
 .cal-external-dur {
@@ -419,14 +448,16 @@
   --fc-neutral-bg-color: var(--bh-muted, #e0e0e0);
   --fc-list-event-hover-bg-color: var(--bh-yellow-pale, #fff9c4);
   --fc-today-bg-color: var(--bh-yellow-pale, #fff9c4);
+  --fc-highlight-color: rgba(240, 192, 32, 0.35);
   --fc-event-border-color: var(--bh-fg, #121212);
-  --fc-button-bg-color: var(--bh-blue, #1040c0);
+  --fc-button-bg-color: var(--bh-white, #fff);
   --fc-button-border-color: var(--bh-fg, #121212);
-  --fc-button-text-color: var(--bh-white, #fff);
-  --fc-button-hover-bg-color: #0d3699;
+  --fc-button-text-color: var(--bh-fg, #121212);
+  --fc-button-hover-bg-color: var(--bh-muted, #e0e0e0);
   --fc-button-hover-border-color: var(--bh-fg, #121212);
   --fc-button-active-bg-color: var(--bh-yellow, #f0c020);
   --fc-button-active-border-color: var(--bh-fg, #121212);
+  --fc-button-active-text-color: var(--bh-fg, #121212);
 }
 
 .cal-fullcalendar-host .fc {
@@ -448,8 +479,9 @@
   color: var(--plan-text-muted);
 }
 
-.cal-fullcalendar-host .fc-timegrid-col.fc-day-today {
-  background: rgba(237, 209, 0, 0.04);
+.cal-fullcalendar-host .fc-timegrid-col.fc-day-today,
+.cal-fullcalendar-host .fc-daygrid-day.fc-day-today {
+  background: var(--bh-yellow-pale, #fff9c4);
 }
 
 /* Heute: Datum rot */
@@ -460,6 +492,8 @@
   font-weight: 700;
 }
 
+@import "../planning/fachColors.css";
+
 /* Kalenderwochen (KW) */
 .cal-fullcalendar-host .fc-daygrid-week-number,
 .cal-fullcalendar-host .fc-timegrid-axis-cushion {
@@ -468,10 +502,62 @@
   font-weight: 600;
 }
 
-/* Vergangene Termine */
+/* —— Kalendereinträge (Bauhaus) —— */
+.cal-fullcalendar-host .fc-event.cal-event {
+  --cal-event-accent: var(--bh-blue, #1040c0);
+  background: var(--bh-white, #fff) !important;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212) !important;
+  border-left: var(--bh-border-w-lg, 4px) solid var(--cal-event-accent) !important;
+  border-radius: 0 !important;
+  box-shadow: 3px 3px 0 0 var(--bh-fg, #121212) !important;
+  color: var(--bh-fg, #121212) !important;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event .fc-event-main,
+.cal-fullcalendar-host .fc-event.cal-event .fc-event-title,
+.cal-fullcalendar-host .fc-event.cal-event .fc-event-time {
+  color: var(--bh-fg, #121212) !important;
+  font-weight: 700;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--lektion {
+  background: var(--bh-white, #fff) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--fach {
+  background: var(--cal-event-bg, #fff) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--fach.cal-event--ritual,
+.cal-fullcalendar-host .fc-event.cal-event--fach.cal-event--lektion,
+.cal-fullcalendar-host .fc-event.cal-event--fach.cal-event--notiz {
+  background: var(--cal-event-bg, #fff) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--ritual:not(.cal-event--fach) {
+  background: var(--bh-yellow-pale, #fff9c4) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--notiz {
+  background: var(--bh-muted, #e0e0e0) !important;
+  font-style: normal;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--local {
+  background: var(--bh-yellow-pale, #fff9c4) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--subscription,
+.cal-fullcalendar-host .fc-event.cal-event--readonly {
+  background: var(--bh-muted, #e0e0e0) !important;
+  cursor: default;
+}
+
 .cal-fullcalendar-host .fc-event.cal-event--past {
-  opacity: 0.42;
-  filter: saturate(0.65);
+  opacity: 0.55;
+  box-shadow: 2px 2px 0 0 var(--bh-fg, #121212) !important;
 }
 
 .cal-fullcalendar-host .fc-event.cal-event--past .fc-event-title,
@@ -479,17 +565,116 @@
   text-decoration: none;
 }
 
+.cal-fullcalendar-host .fc-event.cal-event.fc-event-selected,
+.cal-fullcalendar-host .fc-event.cal-event:focus-visible {
+  outline: 2px solid var(--bh-blue, #1040c0);
+  outline-offset: 2px;
+}
+
 /* Stundenplan-Overlay */
 .cal-fullcalendar-host .fc-event.cal-stundenplan-slot {
+  background: var(--bh-white, #fff) !important;
   border-style: dashed !important;
-  border-width: 1px !important;
+  border-width: var(--bh-border-w, 2px) !important;
+  border-color: var(--bh-fg, #121212) !important;
+  border-left: var(--bh-border-w-lg, 4px) dashed var(--cal-event-accent, #f0c020) !important;
   font-size: 0.72rem;
   z-index: 1 !important;
-  box-shadow: none;
+  box-shadow: 2px 2px 0 0 var(--bh-fg, #121212) !important;
+  font-weight: 600;
+}
+
+.cal-fullcalendar-host .fc-event.cal-stundenplan-slot--filled {
+  background: var(--bh-yellow-pale, #fff9c4) !important;
+  border-style: solid !important;
 }
 
 .cal-fullcalendar-host .fc-event.cal-stundenplan-slot .fc-event-main {
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.cal-fullcalendar-host .fc-list-event.cal-event {
+  border-left-width: var(--bh-border-w-lg, 4px) !important;
+}
+
+.cal-fullcalendar-host .fc-daygrid-block-event.cal-event .fc-event-time {
+  font-weight: 700;
+}
+
+/* —— Drag & Drop —— */
+body.cal-is-dragging,
+body.cal-is-resizing {
+  cursor: grabbing;
+}
+
+body.cal-is-dragging .cal-fullcalendar-host,
+body.cal-is-resizing .cal-fullcalendar-host {
+  --fc-highlight-color: rgba(240, 192, 32, 0.42);
+}
+
+body.cal-is-dragging .fc-external-event:not(.fc-external-event--lifting) {
+  opacity: 0.72;
+}
+
+/* Cursor-Spiegel (externe Leiste / Modal-Liste) */
+.fc-event-dragging.fc-external-event,
+.fc-event-dragging.cal-stundenplan-lektion-item {
+  background: var(--bh-white, #fff) !important;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212) !important;
+  border-left: var(--bh-border-w-lg, 4px) solid var(--cal-event-accent, #1040c0) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--bh-shadow-lg, 8px 8px 0 0 #121212) !important;
+  color: var(--bh-fg, #121212) !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+  transform: rotate(-1deg);
+  padding: 8px 10px !important;
+}
+
+/* Vorschau auf dem Raster (extern + intern verschieben) */
+.cal-fullcalendar-host .fc-event.cal-event.fc-event-mirror,
+.cal-fullcalendar-host .fc-event.cal-event.cal-event--drag-preview,
+.cal-fullcalendar-host .fc-event.cal-event.cal-event--active-drag {
+  opacity: 0.92 !important;
+  box-shadow: var(--bh-shadow-lg, 8px 8px 0 0 #121212) !important;
+  transform: scale(1.02);
+  z-index: 50 !important;
+}
+
+.cal-fullcalendar-host .fc-timegrid-event-harness-inset .fc-event-mirror {
+  margin: 0 2px;
+}
+
+/* Ablegezone: Spalte unter der Vorschau */
+body.cal-is-dragging .cal-fullcalendar-host .fc-timegrid-col:has(.fc-event-mirror),
+body.cal-is-dragging .cal-fullcalendar-host .fc-daygrid-day:has(.fc-event-mirror) {
+  background: var(--bh-yellow-pale, #fff9c4) !important;
+  outline: var(--bh-border-w, 2px) dashed var(--bh-blue, #1040c0);
+  outline-offset: -2px;
+}
+
+.cal-fullcalendar-host .fc-highlight {
+  background: var(--bh-yellow-pale, #fff9c4) !important;
+  border: var(--bh-border-w, 2px) dashed var(--bh-fg, #121212);
+}
+
+/* Resize-Griff */
+.cal-fullcalendar-host .fc-event .fc-event-resizer {
+  border-radius: 0;
+  background: var(--bh-yellow, #f0c020);
+  border: 2px solid var(--bh-fg, #121212);
+  opacity: 1;
+}
+
+.cal-fullcalendar-host .fc-event.fc-event-resizing {
+  box-shadow: var(--bh-shadow-md, 6px 6px 0 0 #121212) !important;
+  opacity: 0.95;
+}
+
+.cal-fullcalendar-host .fc-not-allowed .fc-event-mirror {
+  opacity: 0.45 !important;
+  filter: grayscale(0.6);
+  box-shadow: none !important;
 }
 
 .cal-stundenplan-modal-hint,
@@ -528,12 +713,13 @@
   width: 100%;
   text-align: left;
   padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--plan-border);
-  background: var(--plan-elevated);
-  color: var(--plan-text);
+  border-radius: 0;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  color: var(--bh-fg, #121212);
   cursor: grab;
   font-family: inherit;
+  box-shadow: 3px 3px 0 0 var(--bh-fg, #121212);
 }
 
 .cal-stundenplan-lektion-item--active {
@@ -571,8 +757,13 @@
 }
 
 .cal-fullcalendar-host .fc-button-primary:not(:disabled).fc-button-active,
-.cal-fullcalendar-host .fc-button-primary:not(:disabled):active {
-  color: var(--plan-accent);
+.cal-fullcalendar-host .fc-button-primary:not(:disabled):active,
+.cal-fullcalendar-host .fc-button-primary:not(:disabled).fc-button-active:hover {
+  color: var(--bh-fg, #121212) !important;
+}
+
+.cal-fullcalendar-host .fc-button .fc-icon {
+  color: inherit;
 }
 
 .cal-subscriptions {
@@ -695,12 +886,37 @@
 .cal-filter-bar {
   flex-shrink: 0;
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-muted, #e0e0e0);
+}
+
+.cal-filter-bar-primary {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 10px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--plan-border-subtle);
-  background: rgba(18, 18, 18, 0.98);
+  width: 100%;
+}
+
+.cal-filter-bar-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.cal-filter-bar--compact .cal-filter-search-wrap {
+  flex: 1;
+  min-width: min(100%, 12rem);
+  max-width: none;
+}
+
+.cal-filter-toggle--active {
+  border-color: var(--bh-blue, #1040c0) !important;
+  background: var(--bh-yellow-pale, #fff9c4) !important;
 }
 
 .cal-filter-search-wrap {
@@ -753,9 +969,12 @@
 
 .cal-filter-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   align-items: center;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .cal-filter-chip {
@@ -807,9 +1026,10 @@
 /* Tastenkürzel */
 .cal-shortcuts-panel {
   flex-shrink: 0;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--plan-border-subtle);
-  background: var(--plan-card);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+  border-bottom: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-yellow-pale, #fff9c4);
 }
 
 .cal-shortcuts-grid {
@@ -1027,59 +1247,108 @@ body.cal-modal-open {
 
 /* Modern FullCalendar */
 .cal-fullcalendar-host--modern .fc {
-  font-size: 0.82rem;
+  font-size: var(--cal-font-base, 0.94rem);
 }
 
-.cal-fullcalendar-host--modern .fc-event {
-  border-radius: 6px;
-  border-width: 0 0 0 3px;
-  padding: 2px 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+.cal-fullcalendar-host--modern .fc-event.cal-event {
+  padding: 4px 8px;
+  min-height: 1.65rem;
+  font-size: var(--cal-event-font, 0.88rem);
 }
 
-.cal-fullcalendar-host--modern .fc-timegrid-event {
-  border-radius: 8px;
+.cal-fullcalendar-host--modern .fc-timegrid-event.cal-event {
+  border-radius: 0;
 }
 
 .cal-fullcalendar-host--modern .fc-col-header-cell {
-  padding: 10px 4px;
-  font-weight: 600;
+  padding: 12px 6px;
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+.cal-fullcalendar-host--modern .fc-col-header-cell-cushion,
+.cal-fullcalendar-host--modern .fc-daygrid-day-number {
+  font-size: 0.92rem;
+}
+
+.cal-fullcalendar-host--modern .fc-timegrid-slot-label-cushion {
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
 .cal-fullcalendar-host--modern .fc-button {
-  border-radius: 8px !important;
-  padding: 6px 10px !important;
-  font-weight: 600;
-  text-transform: capitalize;
+  border-radius: 0 !important;
+  padding: 8px 12px !important;
+  font-weight: 700;
+  font-size: 0.78rem !important;
+  text-transform: uppercase;
+  background: var(--bh-white, #fff) !important;
+  color: var(--bh-fg, #121212) !important;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212) !important;
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212) !important;
 }
 
-.cal-fullcalendar-host--modern .fc-button-primary:not(:disabled).fc-button-active {
-  background: var(--plan-accent-bg) !important;
-  color: var(--plan-accent) !important;
+.cal-fullcalendar-host--modern .fc-button:hover:not(:disabled) {
+  background: var(--bh-muted, #e0e0e0) !important;
+  color: var(--bh-fg, #121212) !important;
+}
+
+.cal-fullcalendar-host--modern .fc-button-primary:not(:disabled).fc-button-active,
+.cal-fullcalendar-host--modern .fc-button-primary:not(:disabled).fc-button-active:hover {
+  background: var(--bh-yellow, #f0c020) !important;
+  color: var(--bh-fg, #121212) !important;
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212) !important;
 }
 
 .cal-fullcalendar-host--modern .fc-toolbar {
-  gap: 8px;
-  margin-bottom: 8px !important;
+  gap: 6px;
+  margin-bottom: 6px !important;
   flex-wrap: wrap;
+  padding: 0 2px;
+}
+
+.cal-fullcalendar-host--modern .fc-toolbar-title {
+  font-size: clamp(1rem, 2.2vw, 1.35rem) !important;
 }
 
 .cal-fullcalendar-host--modern .fc-scrollgrid {
-  border-radius: 12px;
+  border-radius: 0;
   overflow: hidden;
-  border-color: var(--plan-border) !important;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212) !important;
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
 }
 
 .cal-fullcalendar-host--modern .fc-timegrid-slot {
-  height: 2.25rem;
+  height: var(--cal-slot-height, 3.25rem);
+}
+
+.cal-fullcalendar-host--spacious .fc-timegrid-slot {
+  height: 3.5rem;
+}
+
+.cal-fullcalendar-host--spacious .fc-event.cal-event {
+  min-height: 2rem;
+  padding: 6px 10px;
+  font-size: 0.92rem;
+}
+
+.cal-fullcalendar-host--spacious .fc-col-header-cell {
+  padding: 14px 8px;
+}
+
+.cal-fullcalendar-host--spacious .fc-toolbar-title {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem) !important;
 }
 
 @media (max-width: 720px) {
   .cal-fullcalendar-host--modern .fc-toolbar-title {
-    font-size: 0.95rem !important;
+    font-size: 1rem !important;
   }
   .cal-fullcalendar-host--modern .fc-button {
-    padding: 8px 10px !important;
-    min-height: 40px;
+    padding: 10px 12px !important;
+    min-height: 44px;
+  }
+  .planning-view-panel--calendar {
+    min-height: min(65vh, calc(100dvh - 9rem));
   }
 }
