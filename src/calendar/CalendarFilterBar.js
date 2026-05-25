@@ -9,15 +9,8 @@ const CalendarFilterBar = ({
   onNewEvent,
   onInitStundenplan,
   searchInputRef,
-  filtersExpanded = false,
-  onToggleFiltersExpanded,
 }) => {
   const templates = templateOptions();
-  const activeFilterCount =
-    (filters.vorhabenIds?.length || 0) +
-    (filters.templateIds?.length || 0) +
-    (filters.showStundenplan === false ? 1 : 0) +
-    (filters.stundenplanEditMode ? 1 : 0);
 
   const toggleVorhaben = (id) => {
     const set = new Set(filters.vorhabenIds || []);
@@ -62,23 +55,6 @@ const CalendarFilterBar = ({
 
         <button
           type="button"
-          className={`cal-toolbar-icon-btn cal-filter-toggle ${
-            filtersExpanded ? "cal-toolbar-icon-btn--active" : ""
-          }`}
-          onClick={onToggleFiltersExpanded}
-          aria-expanded={filtersExpanded}
-          aria-label="Filter ein- oder ausblenden"
-          title="Filter"
-        >
-          <span aria-hidden="true">▾</span>
-          Filter
-          {activeFilterCount > 0 ? (
-            <span className="cal-filter-count">{activeFilterCount}</span>
-          ) : null}
-        </button>
-
-        <button
-          type="button"
           className="cal-toolbar-icon-btn cal-toolbar-icon-btn--primary cal-filter-new"
           onClick={onNewEvent}
           aria-label="Neuer Termin"
@@ -88,8 +64,7 @@ const CalendarFilterBar = ({
         </button>
       </div>
 
-      {filtersExpanded ? (
-        <div className="cal-filter-bar-secondary">
+      <div className="cal-filter-bar-secondary">
           <div className="cal-filter-chips" aria-label="Themen filtern">
             <button
               type="button"
@@ -168,7 +143,6 @@ const CalendarFilterBar = ({
             ) : null}
           </div>
         </div>
-      ) : null}
     </div>
   );
 };

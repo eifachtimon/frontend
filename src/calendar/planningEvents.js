@@ -127,8 +127,9 @@ export const subscriptionToCalendarEvents = (subscription, cached) => {
 };
 
 export const localToCalendarEvents = (localEvents) =>
-  (localEvents || []).map((ev) =>
-    withBauhausEventStyle({
+  (localEvents || []).map((ev) => {
+    const plain = !ev.vorhabenId && !ev.color;
+    return withBauhausEventStyle({
       id: `local-${ev.id}`,
       title: ev.title,
       start: ev.start,
@@ -141,10 +142,11 @@ export const localToCalendarEvents = (localEvents) =>
         localEventId: ev.id,
         vorhabenId: ev.vorhabenId,
         notes: ev.notes || "",
-        eventAccent: ev.color || "#f0c020",
+        plain,
+        eventAccent: ev.color || undefined,
       },
-    })
-  );
+    });
+  });
 
 export const applyEventDropToVorhaben = (vorhaben, dropInfo) => {
   const props = dropInfo.event.extendedProps || {};

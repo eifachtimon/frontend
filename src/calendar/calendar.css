@@ -714,7 +714,113 @@
 
 @import "../planning/fachColors.css";
 
-/* Kalenderwochen (KW) */
+/* Kalenderwochen (KW) — integriert in Raster-Ecke / Toolbar */
+.cal-fullcalendar-host .fc-daygrid-week-number {
+  display: none !important;
+}
+
+.cal-fullcalendar-host .fc-scrollgrid-section-header .fc-timegrid-axis,
+.cal-fullcalendar-host .fc-scrollgrid-section-header .fc-scrollgrid-shrink-frame {
+  vertical-align: middle;
+  padding: 0;
+}
+
+.cal-fullcalendar-host .fc-timegrid-axis .cal-week-badge,
+.cal-fullcalendar-host .fc-scrollgrid-section-header .fc-scrollgrid-shrink-frame .cal-week-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  padding: 6px 4px;
+  margin: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  pointer-events: none;
+  text-align: center;
+}
+
+.cal-week-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1.1;
+  color: var(--bh-fg, #121212);
+}
+
+.cal-week-badge-kw {
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cal-week-badge-year {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--plan-text-muted, #666);
+}
+
+.cal-week-badge--toolbar {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 2.75rem;
+  margin-right: 8px;
+  padding: 2px 0;
+  vertical-align: middle;
+}
+
+.cal-day-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  line-height: 1.15;
+}
+
+.cal-day-head--day-view {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.cal-day-head-weekday {
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cal-day-head-date {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--plan-text-muted, #666);
+}
+
+.cal-fullcalendar-host .fc-timeGridDay-view .fc-col-header-cell-cushion .cal-day-head--day-view {
+  align-items: flex-start;
+}
+
+.cal-fullcalendar-host .fc-list-day-cushion {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cal-fullcalendar-host .fc-list-day-text {
+  font-weight: 800;
+}
+
+.cal-fullcalendar-host .fc-list-day-side-text {
+  display: none;
+}
+
 .cal-fullcalendar-host .fc-daygrid-week-number,
 .cal-fullcalendar-host .fc-timegrid-axis-cushion {
   color: var(--plan-text-subtle);
@@ -767,6 +873,14 @@
 
 .cal-fullcalendar-host .fc-event.cal-event--local {
   background: var(--bh-yellow-pale, #fff9c4) !important;
+}
+
+/* Lokale Termine ohne Thema — weiß wie Draft-Vorschau, nicht gelb */
+.cal-fullcalendar-host .fc-event.cal-event--plain,
+.cal-fullcalendar-host .fc-event.cal-event--plain.cal-event--local,
+.cal-fullcalendar-host .fc-event.cal-event--plain.cal-event--notiz {
+  background: var(--bh-white, #fff) !important;
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212) !important;
 }
 
 .cal-fullcalendar-host .fc-event.cal-event--subscription,
@@ -851,8 +965,43 @@ body.cal-is-dragging .fc-external-event:not(.fc-external-event--lifting) {
   padding: 8px 10px !important;
 }
 
-/* Vorschau auf dem Raster (extern + intern verschieben) */
-.cal-fullcalendar-host .fc-event.cal-event.fc-event-mirror,
+/* Vorschau beim Ziehen / Draft — Layout stabil, ohne Schatten */
+.cal-fullcalendar-host .fc-event.cal-event--select-preview,
+.cal-fullcalendar-host .fc-event.cal-event--draft-preview {
+  opacity: 1 !important;
+  transform: none !important;
+  z-index: 50 !important;
+  box-shadow: none !important;
+}
+
+/* Neutral weiß: nur ohne gewähltes Thema */
+.cal-fullcalendar-host .fc-event.cal-event--select-preview.cal-event--plain,
+.cal-fullcalendar-host .fc-event.cal-event--draft-preview.cal-event--plain {
+  background: var(--bh-white, #fff) !important;
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212) !important;
+}
+
+/* Fachfarbe in Live-Vorschau, wenn Thema gewählt */
+.cal-fullcalendar-host .fc-event.cal-event--select-preview.cal-event--fach,
+.cal-fullcalendar-host .fc-event.cal-event--draft-preview.cal-event--fach {
+  background: var(--cal-event-bg, var(--bh-white, #fff)) !important;
+  border-left: var(--bh-border-w-lg, 4px) solid var(--cal-event-accent, var(--bh-blue, #1040c0)) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--select-preview .fc-event-main,
+.cal-fullcalendar-host .fc-event.cal-event--select-preview .fc-event-time,
+.cal-fullcalendar-host .fc-event.cal-event--select-preview .fc-event-title {
+  color: var(--bh-fg, #121212) !important;
+  font-weight: 700 !important;
+}
+
+.cal-fullcalendar-host .fc-timegrid-col:has(.fc-event-mirror) .fc-highlight,
+.cal-fullcalendar-host .fc-daygrid-day:has(.fc-event-mirror) .fc-highlight {
+  display: none !important;
+}
+
+/* Vorschau auf dem Raster (extern + intern verschieben) — nicht Select-Mirror */
+.cal-fullcalendar-host .fc-event.cal-event.fc-event-mirror:not(.cal-event--select-preview),
 .cal-fullcalendar-host .fc-event.cal-event.cal-event--drag-preview,
 .cal-fullcalendar-host .fc-event.cal-event.cal-event--active-drag {
   opacity: 0.92 !important;
@@ -861,7 +1010,17 @@ body.cal-is-dragging .fc-external-event:not(.fc-external-event--lifting) {
   z-index: 50 !important;
 }
 
-.cal-fullcalendar-host .fc-timegrid-event-harness-inset .fc-event-mirror {
+.cal-fullcalendar-host .fc-timegrid-event-harness-inset .fc-event-mirror,
+.cal-fullcalendar-host .fc-timegrid-event-harness-inset:has(.cal-event--draft-preview),
+body.cal-draft-preview-active
+  .cal-fullcalendar-host
+  .fc-timegrid-event-harness-inset:has(.cal-event--draft-preview) {
+  margin: 0 2px;
+}
+
+body.cal-draft-preview-active
+  .cal-fullcalendar-host
+  .fc-daygrid-event-harness:has(.cal-event--draft-preview) {
   margin: 0 2px;
 }
 
@@ -876,6 +1035,44 @@ body.cal-is-dragging .cal-fullcalendar-host .fc-daygrid-day:has(.fc-event-mirror
 .cal-fullcalendar-host .fc-highlight {
   background: var(--bh-yellow-pale, #fff9c4) !important;
   border: var(--bh-border-w, 2px) dashed var(--bh-fg, #121212);
+}
+
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-highlight {
+  display: none !important;
+}
+
+/* Hintergrund abdunkeln — Draft-Vorschau und Pop-up bleiben hell */
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-scrollgrid-section-body,
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-scrollgrid-section-header,
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-list-day-cushion,
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-list-day-text,
+body.cal-draft-preview-active .cal-view-wrap .cal-external-strip,
+body.cal-draft-preview-active .cal-view-wrap .cal-external-events {
+  opacity: 0.55;
+}
+
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-event:not(.cal-event--draft-preview) {
+  opacity: 0.42 !important;
+}
+
+body.cal-draft-preview-active .cal-page-calendar .cal-week-badge {
+  opacity: 0.55;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--draft-preview,
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-event.cal-event--draft-preview {
+  z-index: 50 !important;
+  pointer-events: none;
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-timegrid-event-harness:has(.cal-event--draft-preview),
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-daygrid-event-harness:has(.cal-event--draft-preview),
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-timegrid-event-harness-inset:has(.cal-event--draft-preview),
+body.cal-draft-preview-active .cal-fullcalendar-host .fc-list-event:has(.cal-event--draft-preview) {
+  z-index: 50 !important;
 }
 
 /* Resize-Griff */

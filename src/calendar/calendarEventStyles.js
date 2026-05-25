@@ -112,8 +112,34 @@ export const externalDragEventData = (eventEl, draftVorhabenId, draftFach = "") 
 };
 
 export const withBauhausEventStyle = (event) => {
+  const plain =
+    event.extendedProps?.plain ||
+    (event.classNames || []).includes("cal-event--plain");
   const source = event.extendedProps?.source;
   const cardType = event.extendedProps?.cardType;
+
+  if (plain) {
+    return {
+      ...event,
+      classNames: [
+        "cal-event",
+        "cal-event--plain",
+        ...(source ? [`cal-event--${source}`] : []),
+        ...(cardType ? [`cal-event--${cardType}`] : []),
+        ...(event.classNames || []),
+      ],
+      backgroundColor: "transparent",
+      borderColor: "transparent",
+      textColor: "#121212",
+      extendedProps: {
+        ...event.extendedProps,
+        plain: true,
+        eventAccent: "#121212",
+        eventBg: null,
+      },
+    };
+  }
+
   const fach = event.extendedProps?.fach || "";
   const vorhabenId = event.extendedProps?.vorhabenId || "";
   const resolved = resolvePlanningEventColors({ fach, id: vorhabenId }, cardType);

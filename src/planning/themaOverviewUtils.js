@@ -1,6 +1,20 @@
+import { getWeekdayDatesForIsoWeek } from "./calendarUtils";
 import { WEEKDAYS } from "./planningDefaults";
 
-const WEEKDAY_LABELS = Object.fromEntries(WEEKDAYS.map((d) => [d.id, d.label]));
+const WEEKDAY_LONG_LABELS = {
+  mo: "Montag",
+  di: "Dienstag",
+  mi: "Mittwoch",
+  do: "Donnerstag",
+  fr: "Freitag",
+};
+
+const formatScheduleDate = (date) => {
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yy = String(date.getFullYear() % 100).padStart(2, "0");
+  return `${dd}.${mm}.${yy}`;
+};
 
 /** Termin aus Wochenkarten oder Lektions-Feldern. */
 export const findLektionSchedule = (vorhaben, lektionId) => {
@@ -22,21 +36,6 @@ export const findLektionSchedule = (vorhaben, lektionId) => {
         };
       }
     }
-  }
-  const lek = (vorhaben.lektionen || []).find((l) => l.id === lektionId);
-  if (lek?.weekId && lek?.weekday) {
-    const week = (vorhaben.wochen || []).find((w) => w.id === lek.weekId);
-    return {
-      weekId: lek.weekId,
-      weekday: lek.weekday,
-      kw: week?.kw,
-      year: week?.year,
-      label: lek.title,
-      startMin: null,
-    };
-  }
-  if (lek?.weekday) {
-    return { weekday: lek.weekday, label: lek.title, startMin: null };
   }
   return null;
 };
@@ -148,13 +147,26 @@ export const groupLektionenByPhase = (vorhaben) => {
       return phase ? { ...l, phaseId: phase.id } : l;
     });
   }
-  const groups = phases
-    .map((ph) => ({
-      phaseId: ph.id,
-      title: ph.title || "Phase",
-      lektionen: lektionen.filter((l) => l.phaseId === ph.id),
-    }))
-    .filter((g) => g.lektionen.length > 0);
+  if (phases.length === 0) {
+    if (lektionen.length === 0) {
+      return [];
+    }
+    return [
+      {
+        phaseId: null,
+        title: "Lektionen",
+        lektionen,
+        isFallback: true,
+      },
+    ];
+  }
+
+  const groups = phases.map((ph) => ({
+    phaseId: ph.id,
+    title: ph.title || "Phase",
+    lektionen: lektionen.filter((l) => l.phaseId === ph.id),
+  }));
+
   const unassigned = lektionen.filter(
     (l) => !l.phaseId || !phases.some((p) => p.id === l.phaseId)
   );
@@ -166,19 +178,36 @@ export const groupLektionenByPhase = (vorhaben) => {
       isFallback: true,
     });
   }
-  return groups.filter((g) => g.lektionen.length > 0 || !g.isFallback);
+  return groups;
 };
 
-export const formatLektionSchedule = (lektion, vorhaben) => {
+/** Wochentag + Datum für die Lektionskarte (z. B. Dienstag / 12.05.26). */
+export const getLektionScheduleDisplay = (lektion, vorhaben) => {
   const slot = findLektionSchedule(vorhaben, lektion?.id);
   if (!slot) {
     return null;
   }
-  const dayLabel = WEEKDAY_LABELS[slot.weekday] || slot.weekday;
-  if (slot.kw) {
-    return `KW ${slot.kw} · ${dayLabel}`;
+  const weekday = WEEKDAY_LONG_LABELS[slot.weekday] || slot.weekday || null;
+  if (slot.kw != null && slot.year != null && slot.weekday) {
+    const dates = getWeekdayDatesForIsoWeek(slot.kw, slot.year);
+    const entry = dates[slot.weekday];
+    if (entry?.date) {
+      return { weekday, date: formatScheduleDate(entry.date) };
+    }
   }
-  return dayLabel || null;
+  return weekday ? { weekday, date: null } : null;
+};
+
+/** Einzeiler für Editor & Tooltips (z. B. «Dienstag 12.05.26»). */
+export const formatLektionSchedule = (lektion, vorhaben) => {
+  const display = getLektionScheduleDisplay(lektion, vorhaben);
+  if (!display) {
+    return null;
+  }
+  if (display.date) {
+    return `${display.weekday} ${display.date}`;
+  }
+  return display.weekday || null;
 };
 
 export const truncateLines = (text, maxLen = 120) => {

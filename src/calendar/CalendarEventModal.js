@@ -5,6 +5,7 @@ import {
   computeAnchoredPopoverStyle,
   measureCompactPopoverWidth,
 } from "./calendarEventAnchor";
+import { withVorhabenAssignment } from "./calendarEventResolve";
 import useOverlayPresentation from "../ui/useOverlayPresentation";
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90];
@@ -91,6 +92,10 @@ const CompactEventForm = ({
   onClose,
   onDelete,
   onExpand,
+  moreOpen,
+  onMoreOpenChange,
+  themeAssignOpen,
+  onThemeAssignOpenChange,
   titleId,
   firstFieldRef,
 }) => {
@@ -117,46 +122,97 @@ const CompactEventForm = ({
         </span>
         <button
           type="button"
-          className="cal-event-quick-expand"
-          onClick={onExpand}
+          className="cal-event-quick-header-btn cal-event-quick-expand"
+          onClick={(e) => {
+            e.stopPropagation();
+            onExpand();
+          }}
           aria-label="Erweiterte Ansicht"
           title="Erweitern"
         >
           ⤢
         </button>
-        <button
-          type="button"
-          className="cal-modal-close cal-event-quick-close"
-          onClick={onClose}
-          aria-label="Schliessen"
-        >
-          ×
-        </button>
       </header>
 
+      {canEdit && form.mode === "create" && vorhabenOptions.length > 0 ? (
+        <div className="cal-event-theme-block">
+          <button
+            type="button"
+            className={`cal-event-dur-chip cal-event-dur-chip--theme${
+              themeAssignOpen ? " cal-event-dur-chip--theme-open" : ""
+            }`}
+            aria-pressed={themeAssignOpen}
+            onClick={() => {
+              const next = !themeAssignOpen;
+              onThemeAssignOpenChange(next);
+              if (!next) {
+                onChange(withVorhabenAssignment(form, "", null, vorhabenOptions));
+              }
+            }}
+          >
+            Themen hinzufügen
+          </button>
+          {themeAssignOpen ? (
+            <label className="cal-event-quick-field cal-event-theme-field">
+              <span>Thema</span>
+              <select
+                id="cal-ev-vorhaben-quick"
+                value={form.vorhabenId || ""}
+                onChange={(e) =>
+                  onChange(
+                    withVorhabenAssignment(form, e.target.value, null, vorhabenOptions)
+                  )
+                }
+              >
+                <option value="">Thema wählen…</option>
+                {vorhabenOptions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="cal-event-modal-body cal-event-modal-body--quick">
-        {form.vorhabenTitle ? (
+        {form.mode !== "create" && form.vorhabenTitle ? (
           <p className="cal-event-quick-meta">{form.vorhabenTitle}</p>
         ) : null}
 
         {form.allDay ? (
-          <div className="cal-event-quick-when">
-            <label className="cal-event-quick-field">
-              <span>Datum</span>
-              <input
-                id="cal-ev-start-date"
-                type="date"
-                value={toDateInput(form.start)}
-                onChange={(e) =>
-                  onChange({
-                    ...form,
-                    start: new Date(`${e.target.value}T08:00`).toISOString(),
-                  })
-                }
-                readOnly={!canEdit}
-              />
-            </label>
-          </div>
+          <>
+            <div className="cal-event-quick-when">
+              <label className="cal-event-quick-field">
+                <span>Datum</span>
+                <input
+                  id="cal-ev-start-date"
+                  type="date"
+                  value={toDateInput(form.start)}
+                  onChange={(e) =>
+                    onChange({
+                      ...form,
+                      start: new Date(`${e.target.value}T08:00`).toISOString(),
+                    })
+                  }
+                  readOnly={!canEdit}
+                />
+              </label>
+            </div>
+            {canEdit ? (
+              <div className="cal-event-quick-duration">
+                <button
+                  type="button"
+                  className="cal-event-dur-chip cal-event-dur-chip--allday cal-event-dur-chip--active"
+                  aria-pressed
+                  onClick={() => onChange({ ...form, allDay: false })}
+                >
+                  Ganztägig
+                </button>
+              </div>
+            ) : null}
+          </>
         ) : (
           <>
             <div className="cal-event-quick-when">
@@ -195,53 +251,68 @@ const CompactEventForm = ({
               </label>
             </div>
             {canEdit ? (
-              <div className="cal-event-dur-chips" role="group" aria-label="Dauer">
-                {DURATION_OPTIONS.map((min) => (
-                  <button
-                    key={min}
-                    type="button"
-                    className={`cal-event-dur-chip${
-                      durationMin === min ? " cal-event-dur-chip--active" : ""
-                    }`}
-                    aria-pressed={durationMin === min}
-                    onClick={() => onChange(withSyncedEnd(form, { durationMin: min }))}
-                  >
-                    {min}′
-                  </button>
-                ))}
+              <div className="cal-event-quick-duration">
+                <div className="cal-event-dur-chips" role="group" aria-label="Dauer">
+                  {DURATION_OPTIONS.map((min) => (
+                    <button
+                      key={min}
+                      type="button"
+                      className={`cal-event-dur-chip${
+                        durationMin === min ? " cal-event-dur-chip--active" : ""
+                      }`}
+                      aria-pressed={durationMin === min}
+                      onClick={() => onChange(withSyncedEnd(form, { durationMin: min }))}
+                    >
+                      {min}′
+                    </button>
+                  ))}
+                </div>
+                {endLabel ? (
+                  <span className="cal-event-quick-end">
+                    Ende <strong>{endLabel}</strong>
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  className={`cal-event-dur-chip cal-event-dur-chip--allday${
+                    form.allDay ? " cal-event-dur-chip--active" : ""
+                  }`}
+                  aria-pressed={form.allDay}
+                  onClick={() => onChange({ ...form, allDay: !form.allDay })}
+                >
+                  Ganztägig
+                </button>
               </div>
-            ) : null}
-            {endLabel ? (
-              <p className="cal-event-quick-end">Ende {endLabel}</p>
             ) : null}
           </>
         )}
 
-        {canEdit ? (
-          <label className="cal-event-allday-inline">
-            <input
-              type="checkbox"
-              checked={form.allDay}
-              onChange={(e) => onChange({ ...form, allDay: e.target.checked })}
-            />
-            Ganztägig
-          </label>
-        ) : null}
-
-        <details className="cal-event-modal-more">
-          <summary>Mehr Optionen</summary>
-          {canEdit && vorhabenOptions.length > 0 ? (
+        <button
+          type="button"
+          className="cal-event-more-toggle"
+          aria-expanded={moreOpen}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoreOpenChange(!moreOpen);
+          }}
+        >
+          Mehr Optionen
+        </button>
+        {moreOpen ? (
+          <div
+            className="cal-event-modal-more-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+          {canEdit && vorhabenOptions.length > 0 && form.mode !== "create" ? (
             <label className="cal-event-quick-field">
               <span>Thema</span>
               <select
                 id="cal-ev-vorhaben"
                 value={form.vorhabenId || ""}
                 onChange={(e) =>
-                  onChange({
-                    ...form,
-                    vorhabenId: e.target.value,
-                    source: e.target.value ? "planning" : "local",
-                  })
+                  onChange(
+                    withVorhabenAssignment(form, e.target.value, null, vorhabenOptions)
+                  )
                 }
               >
                 <option value="">Nur Kalender</option>
@@ -344,7 +415,8 @@ const CompactEventForm = ({
               placeholder="Optional …"
             />
           </label>
-        </details>
+          </div>
+        ) : null}
 
         {form.readonly ? (
           <p className="cal-modal-readonly-hint">
@@ -402,10 +474,15 @@ const CalendarEventModal = ({
   const titleId = useId();
   const firstFieldRef = useRef(null);
   const modalRef = useRef(null);
+  const anchoredLeftRef = useRef({ key: "", left: null });
+  const layoutWidthLockRef = useRef(null);
+  const layoutAnchorKeyRef = useRef("");
   const [expanded, setExpanded] = useState(false);
   const [popoverStyle, setPopoverStyle] = useState(null);
   const [compactStyle, setCompactStyle] = useState(null);
   const [borderFrame, setBorderFrame] = useState(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [themeAssignOpen, setThemeAssignOpen] = useState(false);
   const overlayClass = useOverlayPresentation(open && expanded);
 
   const showCompact = !expanded;
@@ -416,11 +493,26 @@ const CalendarEventModal = ({
       : "cal-modal-overlay--compact-standalone"
     : overlayClass || "app-overlay--float-panel";
 
+  const formMode = form?.mode;
+  const formVorhabenId = form?.vorhabenId;
+
   useEffect(() => {
     if (!open) {
       setExpanded(false);
+      setMoreOpen(false);
+      setThemeAssignOpen(false);
+      layoutWidthLockRef.current = null;
+      layoutAnchorKeyRef.current = "";
+      return;
     }
-  }, [open]);
+    if (formMode === "create" && formVorhabenId) {
+      setThemeAssignOpen(true);
+    }
+  }, [open, formMode, formVorhabenId]);
+
+  const anchorLayoutKey =
+    anchor &&
+    `${Math.round(anchor.top)}|${Math.round(anchor.left)}|${Math.round(anchor.width)}|${Math.round(anchor.height)}`;
 
   useLayoutEffect(() => {
     if (!open || !showCompact || !modalRef.current) {
@@ -430,54 +522,144 @@ const CalendarEventModal = ({
       return undefined;
     }
 
-    const updateLayout = () => {
-      const el = modalRef.current;
-      if (!el) {
+    if (anchorLayoutKey !== layoutAnchorKeyRef.current) {
+      layoutAnchorKeyRef.current = anchorLayoutKey || "";
+      layoutWidthLockRef.current = null;
+      anchoredLeftRef.current = { key: "", left: null };
+    }
+    const el = modalRef.current;
+    let frameId = 0;
+    let widthFrameId = 0;
+    let lastAppliedWidth = "";
+    let lastPopoverKey = "";
+    let lastBorderKey = "";
+    let lastCompactKey = "";
+
+    const applyLayout = (remeasureWidth = false) => {
+      if (!modalRef.current) {
         return;
       }
-      const width = measureCompactPopoverWidth(el, form?.title);
-      el.style.width = `${width}px`;
-      el.style.maxWidth = `${width}px`;
+      const node = modalRef.current;
+      let width;
+      if (layoutWidthLockRef.current != null && !remeasureWidth) {
+        width = layoutWidthLockRef.current;
+      } else {
+        const measured = measureCompactPopoverWidth(node, form?.title);
+        width =
+          layoutWidthLockRef.current == null
+            ? measured
+            : Math.max(layoutWidthLockRef.current, measured);
+        layoutWidthLockRef.current = width;
+      }
+      const widthPx = `${width}px`;
+      if (lastAppliedWidth !== widthPx) {
+        lastAppliedWidth = widthPx;
+        node.style.width = widthPx;
+        node.style.maxWidth = widthPx;
+      }
 
-      const height = Math.max(el.offsetHeight, el.getBoundingClientRect().height);
+      const height = Math.max(node.offsetHeight, node.getBoundingClientRect().height);
 
       if (isAnchored && anchor) {
-        const layout = computeAnchoredPopoverStyle(anchor, { width, height });
-        const { beakSide: side, beakTop, top, left, width: panelWidth, maxHeight } = layout;
-        setPopoverStyle({
-          top,
-          left,
-          width: panelWidth,
-          maxHeight,
+        const anchorKey = `${Math.round(anchor.top)}|${Math.round(anchor.left)}|${Math.round(anchor.width)}|${Math.round(anchor.height)}`;
+        if (anchoredLeftRef.current.key !== anchorKey) {
+          anchoredLeftRef.current = { key: anchorKey, left: null };
+        }
+        const layout = computeAnchoredPopoverStyle(anchor, {
+          width,
+          height,
+          expandFull: moreOpen,
         });
-        setBorderFrame(
-          side && side !== "none" ? { beakTop, side } : null
-        );
-        setCompactStyle(null);
+        const { beakSide: side, beakTop, top, left, width: panelWidth } = layout;
+        if (anchoredLeftRef.current.left === null) {
+          anchoredLeftRef.current.left = left;
+        }
+        const popLeft = anchoredLeftRef.current.left;
+        const popoverKey = `${top}|${popLeft}|${panelWidth}`;
+        const borderKey =
+          side && side !== "none" ? `${beakTop}|${side}` : "none";
+
+        if (popoverKey !== lastPopoverKey) {
+          lastPopoverKey = popoverKey;
+          setPopoverStyle({ top, left: popLeft, width: panelWidth });
+        }
+        if (borderKey !== lastBorderKey) {
+          lastBorderKey = borderKey;
+          setBorderFrame(
+            side && side !== "none" ? { beakTop, side } : null
+          );
+        }
+        if (lastCompactKey !== "") {
+          lastCompactKey = "";
+          setCompactStyle(null);
+        }
       } else {
-        setPopoverStyle(null);
-        setBorderFrame(null);
-        setCompactStyle({ width, maxWidth: width });
+        const compactKey = `${width}`;
+        if (lastPopoverKey !== "") {
+          lastPopoverKey = "";
+          setPopoverStyle(null);
+        }
+        if (lastBorderKey !== "") {
+          lastBorderKey = "";
+          setBorderFrame(null);
+        }
+        if (compactKey !== lastCompactKey) {
+          lastCompactKey = compactKey;
+          setCompactStyle({ width, maxWidth: width });
+        }
       }
     };
 
-    updateLayout();
-    const raf = window.requestAnimationFrame(updateLayout);
-    const ro = new ResizeObserver(updateLayout);
-    ro.observe(modalRef.current);
-    window.addEventListener("resize", updateLayout);
-    window.addEventListener("scroll", updateLayout, true);
+    const scheduleLayout = (remeasureWidth = false) => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0;
+        applyLayout(remeasureWidth);
+      });
+    };
+
+    const scheduleWidthRemeasure = () => {
+      if (widthFrameId) {
+        window.clearTimeout(widthFrameId);
+      }
+      widthFrameId = window.setTimeout(() => {
+        widthFrameId = 0;
+        scheduleLayout(true);
+      }, 120);
+    };
+
+    applyLayout(true);
+    const ro = new ResizeObserver(() => scheduleLayout(false));
+    ro.observe(el);
+    const titleInput = el.querySelector(".cal-event-quick-title");
+    const titleRo = titleInput
+      ? new ResizeObserver(() => scheduleWidthRemeasure())
+      : null;
+    titleRo?.observe(titleInput);
+    const onWinResize = () => scheduleLayout(true);
+    const onWinScroll = () => scheduleLayout(false);
+    window.addEventListener("resize", onWinResize);
+    window.addEventListener("scroll", onWinScroll, true);
     return () => {
-      window.cancelAnimationFrame(raf);
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+      if (widthFrameId) {
+        window.clearTimeout(widthFrameId);
+      }
       ro.disconnect();
-      window.removeEventListener("resize", updateLayout);
-      window.removeEventListener("scroll", updateLayout, true);
+      titleRo?.disconnect();
+      window.removeEventListener("resize", onWinResize);
+      window.removeEventListener("scroll", onWinScroll, true);
+      anchoredLeftRef.current = { key: "", left: null };
       if (modalRef.current) {
         modalRef.current.style.width = "";
         modalRef.current.style.maxWidth = "";
       }
     };
-  }, [open, showCompact, isAnchored, anchor, form?.title, form]);
+  }, [open, showCompact, isAnchored, anchor, anchorLayoutKey, moreOpen, form?.allDay, form?.title]);
 
   useEffect(() => {
     if (open) {
@@ -540,6 +722,10 @@ const CalendarEventModal = ({
         onClose={onClose}
         onDelete={onDelete}
         onExpand={() => setExpanded(true)}
+        moreOpen={moreOpen}
+        onMoreOpenChange={setMoreOpen}
+        themeAssignOpen={themeAssignOpen}
+        onThemeAssignOpenChange={setThemeAssignOpen}
         titleId={titleId}
         firstFieldRef={firstFieldRef}
       />
@@ -555,6 +741,8 @@ const CalendarEventModal = ({
       <div
         ref={modalRef}
         className={`cal-modal cal-event-modal${showCompact ? " cal-event-modal--compact" : ""}${
+          moreOpen ? " cal-event-modal--more-open" : ""
+        }${
           borderFrame
             ? ` cal-event-modal--beaked${
                 borderFrame.side === "left"
@@ -642,18 +830,16 @@ const CalendarEventModal = ({
                   />
                 </div>
 
-                {canEdit && vorhabenOptions.length > 0 ? (
+                {canEdit && vorhabenOptions.length > 0 && form.mode !== "create" ? (
                   <div className="cal-modal-field">
                     <label htmlFor="cal-ev-vorhaben">Thema</label>
                     <select
                       id="cal-ev-vorhaben"
                       value={form.vorhabenId || ""}
                       onChange={(e) =>
-                        onChange({
-                          ...form,
-                          vorhabenId: e.target.value,
-                          source: e.target.value ? "planning" : "local",
-                        })
+                        onChange(
+                          withVorhabenAssignment(form, e.target.value, null, vorhabenOptions)
+                        )
                       }
                     >
                       <option value="">— Nur Kalender (lokal) —</option>

@@ -814,7 +814,7 @@
   color: var(--text-muted, #5a5a5a);
 }
 
-/* Raster-Zeilen für Toggle-Blöcke */
+/* Vorbereitung: Voraussetzungen | Kompetenzen/Ziele, darunter Todos/Material */
 .thema-overview--unified {
   --thema-cal-height: min(48vh, 520px);
   display: flex;
@@ -823,42 +823,101 @@
   width: 100%;
 }
 
-.thema-overview-raster {
-  display: grid;
+.thema-overview-prep {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
   width: 100%;
-  align-items: start;
 }
 
-.thema-overview-raster > .thema-overview-tm {
+.thema-overview-prep__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.thema-overview-prep__top > .thema-overview-tm {
   min-width: 0;
   align-self: start;
 }
 
-.thema-overview-raster--cols-2 {
-  grid-template-columns: 1fr;
+@media (min-width: 720px) {
+  .thema-overview-prep__top {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.15fr);
+    gap: var(--space-2);
+    align-items: start;
+  }
 }
 
-.thema-overview-raster--cols-3 {
+/* Kombinierter Toggle-Body */
+.thema-overview-tm-body--duo-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: 1px solid rgba(18, 18, 18, 0.08);
+}
+
+.thema-overview-tm-body--duo-row {
+  display: grid;
   grid-template-columns: 1fr;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: 1px solid rgba(18, 18, 18, 0.08);
 }
 
 @media (min-width: 720px) {
-  .thema-overview-raster--cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .thema-overview-tm-body--duo-row {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   }
 }
 
-@media (min-width: 900px) {
-  .thema-overview-raster--cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+.thema-overview-tm-pane {
+  min-width: 0;
+}
+
+.thema-overview-tm-pane + .thema-overview-tm-pane {
+  padding-top: var(--space-3);
+  border-top: 1px dashed rgba(18, 18, 18, 0.14);
+}
+
+.thema-overview-tm-body--duo-row .thema-overview-tm-pane + .thema-overview-tm-pane {
+  padding-top: 0;
+  border-top: none;
+  padding-left: var(--space-3);
+  border-left: 1px dashed rgba(18, 18, 18, 0.14);
+}
+
+@media (max-width: 719px) {
+  .thema-overview-tm-body--duo-row .thema-overview-tm-pane + .thema-overview-tm-pane {
+    padding-left: 0;
+    border-left: none;
+    padding-top: var(--space-3);
+    border-top: 1px dashed rgba(18, 18, 18, 0.14);
   }
 }
 
-@media (min-width: 720px) and (max-width: 899px) {
-  .thema-overview-raster--cols-3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.thema-overview-tm-pane-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #5a5a5a);
+}
+
+.thema-overview-tm-pane--scroll {
+  max-height: min(16rem, 34vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.thema-overview-tm--combined[open] .thema-overview-tm-body--duo-stack,
+.thema-overview-tm--combined[open] .thema-overview-tm-body--duo-row {
+  animation: none;
 }
 
 /* —— Übersicht: alter Kopfbereich (nur Nicht-Übersicht) —— */
@@ -1239,12 +1298,13 @@
   text-decoration: underline;
 }
 
-/* Lektionen | Planung (K&Z) + Kalender */
+/* Lektionen (horizontal) über Kalender */
 .thema-dashboard {
   display: grid;
   gap: var(--space-3);
   width: 100%;
   grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(var(--thema-cal-height), 1fr);
   grid-template-areas:
     "lektionen"
     "woche";
@@ -1331,6 +1391,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  max-height: none;
+  overflow: visible;
 }
 
 .thema-dashboard__lektionen .thema-overview-section-head {
@@ -1338,39 +1400,307 @@
   margin-bottom: var(--space-2);
 }
 
+.thema-dashboard__lektionen .thema-overview-lektionen-body {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: var(--space-2);
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  padding-bottom: var(--space-2);
+  -webkit-overflow-scrolling: touch;
+}
+
+.thema-dashboard__lektionen .thema-overview-phase {
+  flex: 0 0 248px;
+  width: 248px;
+  max-width: 248px;
+  min-width: 248px;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  isolation: isolate;
+}
+
+.thema-dashboard__lektionen .thema-overview-phase-title {
+  margin: 0 0 var(--space-2);
+  padding-bottom: var(--space-1);
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  color: var(--text-muted, #3a3a3a);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  border-bottom: var(--bh-border-w, 2px) solid var(--bh-muted, #e0e0e0);
+}
+
+.thema-lek-drop-placeholder {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.thema-lek-drop-placeholder__inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 4.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: var(--bh-border-w, 2px) dashed var(--bh-border, #121212);
+  background: var(--bh-muted, #ececec);
+}
+
+.thema-lek-drop-placeholder__label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--text-muted, #5a5a5a);
+}
+
+.thema-dashboard__lektionen .thema-overview-lek-list {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: var(--space-2);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: visible;
+  min-height: 5.25rem;
+}
+
+.thema-dashboard__lektionen--reordering .thema-overview-lek-list {
+  padding-bottom: var(--space-2);
+}
+
+.thema-overview-lek-list--empty {
+  min-height: 5.25rem;
+}
+
+.thema-lek-drop-slot {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0.75rem;
+  flex-shrink: 0;
+}
+
+.thema-dashboard__lektionen--reordering .thema-lek-drop-slot {
+  min-height: 1.5rem;
+}
+
+.thema-dashboard__lektionen .thema-overview-lek-item {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  list-style: none;
+}
+
+/* Lektionskarte — Bauhaus wie Toggle/Todo (scharf, 2px, Offset-Schatten) */
+.thema-dashboard__lektionen .thema-lek-card.fc-external-event {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  min-height: 4.5rem;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  border-radius: 0;
+  background: var(--bh-white, #fff);
+  color: var(--bh-fg, #121212);
+  font-size: inherit;
+  font-weight: inherit;
+  cursor: grab;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.thema-dashboard__lektionen .thema-lek-card.fc-external-event:active {
+  cursor: grabbing;
+}
+
+.thema-dashboard__lektionen .thema-lek-card.fc-external-event:active {
+  transform: none;
+}
+
+.thema-dashboard__lektionen .thema-lek-card.fc-external-event--lifting,
+.thema-dashboard__lektionen .fc-event-dragging.thema-lek-card.fc-external-event {
+  opacity: 1 !important;
+  transform: rotate(-1deg) scale(1.03);
+  box-shadow: var(--bh-shadow-md, 6px 6px 0 0 #121212) !important;
+  border-style: solid !important;
+  z-index: 5;
+  cursor: grabbing !important;
+}
+
+.thema-lek-card__main {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: inherit;
+  font-family: inherit;
+  transition: background var(--bh-transition, 0.12s ease);
+}
+
+.thema-lek-card__main:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.thema-lek-card__main:focus-visible {
+  outline: 2px solid var(--bh-blue, #1040c0);
+  outline-offset: -2px;
+}
+
+.thema-lek-card__main[role="button"] {
+  cursor: pointer;
+}
+
+.thema-lek-card__title {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: var(--space-1);
+  color: var(--bh-fg, #121212);
+}
+
+.thema-lek-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.thema-lek-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  color: var(--bh-fg, #121212);
+}
+
+.thema-lek-card__status {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 5.75rem;
+  padding: var(--space-2) var(--space-1);
+  border: none;
+  border-left: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  text-align: center;
+}
+
+.thema-lek-card__status--offen {
+  background: var(--bh-yellow-pale, #fff9c4);
+  box-shadow: inset 0 0 0 2px var(--bh-border, #121212);
+}
+
+.thema-lek-card__status-primary {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--bh-fg, #121212);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thema-lek-card__status--offen .thema-lek-card__status-primary {
+  font-size: 0.68rem;
+}
+
+.thema-lek-card__status-date {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--text-muted, #3a3a3a);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thema-dashboard__lektionen .thema-overview-phase-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 5.25rem;
+  padding: var(--space-2);
+  border: var(--bh-border-w, 2px) dashed var(--bh-border, #121212);
+  border-radius: 0;
+  background: var(--bh-white, #fff);
+}
+
+.thema-dashboard__lektionen .thema-overview-phase--empty-all {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.thema-overview-phase-empty-text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted, #5a5a5a);
+}
+
+@media (max-width: 600px) {
+  .thema-dashboard__lektionen .thema-overview-phase {
+    flex: 0 0 min(220px, 78vw);
+    width: min(220px, 78vw);
+    min-width: min(220px, 78vw);
+    max-width: min(220px, 78vw);
+  }
+}
+
 .thema-overview-lektionen-body {
   min-height: 0;
-}
-
-@media (min-width: 900px) {
-  .thema-dashboard {
-    grid-template-columns: minmax(220px, min(300px, 26vw)) minmax(0, 1fr);
-    grid-template-rows: minmax(min(calc(100dvh - 18rem), 480px), 1fr);
-    grid-template-areas: "lektionen woche";
-    align-items: stretch;
-  }
-
-  .thema-dashboard__lektionen {
-    max-height: min(calc(100dvh - 12rem), 880px);
-    overflow: hidden;
-    align-self: stretch;
-  }
-
-  .thema-overview-lektionen-body {
-    flex: 1;
-    min-height: 8rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-    padding-right: 2px;
-  }
-}
-
-@media (min-width: 1101px) {
-  .thema-dashboard {
-    grid-template-columns: minmax(240px, min(320px, 22vw)) minmax(0, 1fr);
-    grid-template-rows: minmax(min(calc(100dvh - 13rem), 560px), 1fr);
-  }
 }
 
 .thema-overview-pillars--pair > * {
@@ -1464,7 +1794,7 @@
     flex-direction: column;
   }
 
-  .thema-overview-raster {
+  .thema-overview-prep {
     flex-shrink: 0;
   }
 
@@ -1472,9 +1802,11 @@
     flex: 1;
     min-height: 0;
     align-items: stretch;
-    grid-template-columns: minmax(260px, min(380px, 30vw)) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    grid-template-areas: "lektionen woche";
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "lektionen"
+      "woche";
   }
 
   .thema-dashboard__woche {
@@ -1497,12 +1829,8 @@
     height: 100%;
   }
 
-  .thema-dashboard__lektionen {
-    max-height: min(calc(100dvh - 16rem), 920px);
-  }
-
-  .thema-overview-lektionen-body {
-    min-height: 12rem;
+  .thema-dashboard__lektionen .thema-overview-lektionen-body {
+    max-height: none;
   }
 }
 
@@ -1515,32 +1843,6 @@
 @media (max-width: 1100px) {
   .thema-overview--unified {
     --thema-cal-height: min(48vh, 520px);
-  }
-
-  .thema-dashboard {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "lektionen"
-      "woche";
-  }
-
-  .thema-dashboard__lektionen {
-    max-height: none;
-    overflow: visible;
-  }
-
-  .thema-overview-lektionen-body {
-    overflow: visible;
-    max-height: none;
-  }
-}
-
-@media (max-width: 899px) {
-  .thema-dashboard {
-    grid-template-areas:
-      "lektionen"
-      "woche";
   }
 }
 
@@ -1683,8 +1985,8 @@
   margin-bottom: var(--space-2);
 }
 
-.thema-dashboard__lektionen .thema-overview-phase {
-  margin-bottom: var(--space-2);
+.thema-dashboard__lektionen .thema-overview-phase:not(:last-child) {
+  margin-bottom: 0;
 }
 
 .thema-dashboard__lektionen .thema-overview-phase-title {
@@ -1780,114 +2082,14 @@
 }
 
 .thema-overview-lek-item--dragging {
-  opacity: 0.45;
+  height: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.thema-overview-lek-item--drop-target .thema-overview-lek-card {
-  outline: 3px dashed var(--bh-blue, #1040c0);
-  outline-offset: 2px;
-}
-
-.thema-overview-lek-card {
-  display: flex;
-  align-items: stretch;
-  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
-  background: var(--bh-white, #fff);
-  box-shadow: 3px 3px 0 0 var(--bh-border, #121212);
-}
-
-.thema-overview-lek-drag-handle {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  padding: 0;
-  border: none;
-  border-right: 2px solid var(--bh-border, #121212);
-  background: var(--bh-muted, #e8e8e8);
-  color: var(--text-muted, #3a3a3a);
-  cursor: grab;
-  font-family: inherit;
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.thema-overview-lek-drag-handle:active {
-  cursor: grabbing;
-}
-
-.thema-overview-lek-cal-drag {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  cursor: grab;
-}
-
-.thema-overview-lek-cal-drag:active {
-  cursor: grabbing;
-}
-
-.thema-overview-lek-cal-drag .thema-overview-lek-card-btn {
-  width: 100%;
-}
-
-.thema-overview-lek-card:not(.thema-overview-lek-card--scheduled) {
-  border-style: dashed;
-  border-color: var(--text-muted, #888);
-}
-
-.thema-overview-lek-card--warn {
-  border-color: var(--bh-red, #e02020);
-}
-
-.thema-overview-lek-card.fach-tone {
-  border-left-width: 6px;
-  border-left-color: var(--fach-base, var(--bh-border, #121212));
-}
-
-.thema-overview-lek-card-btn {
-  flex: 1;
-  min-width: 0;
-  padding: var(--space-2) var(--space-3);
-  border: none;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.thema-overview-lek-title {
-  display: block;
-  font-size: 0.92rem;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.thema-overview-lek-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  font-size: 0.72rem;
-  color: var(--text-muted, #3a3a3a);
-}
-
-
-.thema-overview-lek-cal {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  flex-shrink: 0;
-  border-left: 2px solid var(--bh-border, #121212);
-  font-size: 0.85rem;
-  color: var(--text-muted, #3a3a3a);
-}
-
-.thema-overview-lek-cal--on {
-  color: var(--fach-base, var(--bh-blue, #1040c0));
-  font-weight: 900;
-}
 
 .thema-overview-termine-alert {
   margin-bottom: var(--space-3);

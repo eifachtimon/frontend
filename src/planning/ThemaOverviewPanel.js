@@ -1,8 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { vorhabenLektionPath } from "../config/appUrls";
-import ThemaKompetenzenZieleSection from "./ThemaKompetenzenZieleSection";
-import ThemaTodosMaterialSection from "./ThemaTodosMaterialSection";
+import ThemaOverviewPrepSection from "./ThemaOverviewPrepSection";
 import ThemaWeekCalendarBlock from "./ThemaWeekCalendarBlock";
 import ThemaOverviewLektionen from "./ThemaOverviewLektionen";
 import { openThemaOverviewHash } from "./themaOverviewToggleUtils";
@@ -34,16 +33,14 @@ const ThemaOverviewPanel = ({ vorhaben, onChange, rituals = [] }) => {
 
   return (
     <div className="thema-overview thema-overview--unified">
-      <ThemaKompetenzenZieleSection vorhaben={vorhaben} onChange={onChange} />
-
-      <ThemaTodosMaterialSection vorhaben={vorhaben} onChange={onChange} />
+      <ThemaOverviewPrepSection vorhaben={vorhaben} onChange={onChange} />
 
       <div className="thema-dashboard" aria-label="Lektionen und Kalender">
         <ThemaOverviewLektionen
           vorhaben={vorhaben}
           onChange={onChange}
           onOpenLektion={openLektionPlan}
-          onAddLektion={() => handleAddLektion()}
+          onAddLektion={handleAddLektion}
           unscheduledCount={unscheduledCount}
         />
 

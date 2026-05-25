@@ -111,8 +111,13 @@
 
 /* —— Kalender-Filterleiste —— */
 .cal-filter-bar {
-  background: var(--bh-white) !important;
-  border-bottom: var(--bh-border-w-lg) solid var(--bh-border) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.cal-filter-bar-secondary {
+  border: none !important;
 }
 
 .cal-filter-chip {

@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -27,13 +28,23 @@ import {
   localToCalendarEvents,
   subscriptionToCalendarEvents,
 } from "./planningEvents";
-import { applyEventDropToPlanningStore } from "./calendarActions";
+import {
+  applyEventDropToPlanningStore,
+  dropLektionOnCalendarAtPointer,
+} from "./calendarActions";
+import { slotFromCalendarPointer } from "./calendarDropFromPointer";
+import { hasLektionDrag, LEKTION_DRAG_MIME } from "../planning/planningDragMime";
 import { applyStundenplanEventDrop } from "./stundenplanActions";
 import { updateLocalEvent, upsertStundenplanSlot } from "./calendarStore";
 import {
   applyFachEventElementStyles,
   resolvePlanningEventColors,
 } from "../planning/fachColors";
+import {
+  DRAFT_PREVIEW_DEFAULT_TITLE,
+  DRAFT_PREVIEW_EVENT_ID,
+  formToDraftPreviewEvent,
+} from "./calendarEventResolve";
 import {
   accentForExternalKind,
   externalDragEventData,
@@ -44,6 +55,36 @@ import {
   slotFromFcEvent,
   stundenplanToCalendarEvents,
 } from "./stundenplanEvents";
+
+const formatDayHeaderHtml = (date, viewType) => {
+  const isDayHeader = viewType === "timeGridDay";
+  const weekday = date.toLocaleDateString("de-DE", {
+    weekday: isDayHeader ? "long" : "short",
+  });
+  if (viewType === "dayGridMonth") {
+    return `<span class="cal-day-head-weekday">${weekday}</span>`;
+  }
+  const dateLine = isDayHeader
+    ? date.toLocaleDateString("de-DE", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : date.toLocaleDateString("de-DE", {
+        day: "numeric",
+        month: "numeric",
+      });
+  const mod = isDayHeader ? " cal-day-head--day-view" : " cal-day-head--week-view";
+  return `<div class="cal-day-head${mod}"><span class="cal-day-head-weekday">${weekday}</span><span class="cal-day-head-date">${dateLine}</span></div>`;
+};
+
+const buildWeekBadgeEl = (kw, year, extraClass = "") => {
+  const badge = document.createElement("div");
+  badge.className = `cal-week-badge${extraClass ? ` ${extraClass}` : ""}`;
+  badge.setAttribute("aria-label", `Kalenderwoche ${kw}, ${year}`);
+  badge.innerHTML = `<span class="cal-week-badge-kw">KW ${kw}</span><span class="cal-week-badge-year">${year}</span>`;
+  return badge;
+};
 
 const applyDragAccent = (el, accent) => {
   if (!el || !accent) {
@@ -79,6 +120,10 @@ const CalendarView = forwardRef(
       /** Kein gelbes Heute-Raster (Home) */
       muteTodayHighlight = false,
       initialDate,
+      /** Formular „Neuer Termin“ → Live-Vorschau im Raster */
+      draftPreviewForm = null,
+      onDraftPreviewMount = null,
+      focusedFcEventId = null,
     },
     ref
   ) => {
@@ -220,11 +265,124 @@ const CalendarView = forwardRef(
       filters?.showStundenplan,
     ]);
 
+    const draftPreviewEvent = useMemo(
+      () => formToDraftPreviewEvent(draftPreviewForm, planningStore),
+      [draftPreviewForm, planningStore]
+    );
+
     const allEvents = useMemo(() => {
       const merged = [...subscriptionEvents, ...localEvents, ...planningEvents];
       const filtered = filterCalendarEvents(merged, filters);
-      return [...stundenplanEvents, ...filtered];
-    }, [subscriptionEvents, localEvents, planningEvents, stundenplanEvents, filters]);
+      const base = [...stundenplanEvents, ...filtered];
+      return draftPreviewEvent ? [...base, draftPreviewEvent] : base;
+    }, [
+      subscriptionEvents,
+      localEvents,
+      planningEvents,
+      stundenplanEvents,
+      filters,
+      draftPreviewEvent,
+    ]);
+
+    useLayoutEffect(() => {
+      if (!draftPreviewForm || draftPreviewForm.mode !== "create") {
+        document.body.classList.remove("cal-draft-preview-active");
+        return undefined;
+      }
+      document.body.classList.add("cal-draft-preview-active");
+
+      let frame = 0;
+      const unselectWhenDraftReady = () => {
+        const api = calendarRef.current?.getApi?.();
+        const draftEl = api?.getEventById(DRAFT_PREVIEW_EVENT_ID)?.el;
+        if (draftEl) {
+          api?.unselect?.();
+          return;
+        }
+        frame = window.requestAnimationFrame(unselectWhenDraftReady);
+      };
+      frame = window.requestAnimationFrame(unselectWhenDraftReady);
+
+      return () => {
+        window.cancelAnimationFrame(frame);
+        document.body.classList.remove("cal-draft-preview-active");
+      };
+    }, [draftPreviewForm]);
+
+    useEffect(() => {
+      const api = calendarRef.current?.getApi?.();
+      if (!draftPreviewForm) {
+        return;
+      }
+      const ev = api?.getEventById(DRAFT_PREVIEW_EVENT_ID);
+      if (!ev) {
+        return;
+      }
+      const title = draftPreviewForm.title?.length
+        ? draftPreviewForm.title
+        : DRAFT_PREVIEW_DEFAULT_TITLE;
+      ev.setProp("title", title);
+      ev.setAllDay(Boolean(draftPreviewForm.allDay));
+      if (draftPreviewForm.start) {
+        ev.setStart(draftPreviewForm.start);
+      }
+      const end =
+        draftPreviewForm.end ||
+        new Date(
+          new Date(draftPreviewForm.start).getTime() +
+            (draftPreviewForm.durationMin || 45) * 60000
+        ).toISOString();
+      ev.setEnd(end);
+
+      const preview = formToDraftPreviewEvent(draftPreviewForm, planningStore);
+      if (preview?.extendedProps) {
+        Object.entries(preview.extendedProps).forEach(([key, value]) => {
+          ev.setExtendedProp(key, value);
+        });
+      }
+      if (preview?.classNames) {
+        ev.setProp("classNames", preview.classNames);
+      }
+      const el = ev.el;
+      if (el && preview?.extendedProps) {
+        el.classList.remove("cal-event--plain", "cal-event--fach");
+        Array.from(el.classList)
+          .filter((cls) => cls.startsWith("fach-tone"))
+          .forEach((cls) => el.classList.remove(cls));
+        el.style.removeProperty("--cal-event-bg");
+        if (preview.extendedProps.plain) {
+          el.classList.add("cal-event--plain");
+          applyDragAccent(el, "#121212");
+        } else {
+          applyFachEventElementStyles(
+            el,
+            preview.extendedProps.fach,
+            preview.extendedProps.vorhabenId,
+            preview.extendedProps.cardType
+          );
+          applyDragAccent(el, preview.extendedProps.eventAccent);
+        }
+      }
+    }, [draftPreviewForm, planningStore]);
+
+    useEffect(() => {
+      if (!draftPreviewForm || !onDraftPreviewMount) {
+        return undefined;
+      }
+      const frame = window.requestAnimationFrame(() => {
+        const api = calendarRef.current?.getApi?.();
+        const el = api?.getEventById(DRAFT_PREVIEW_EVENT_ID)?.el;
+        if (el) {
+          onDraftPreviewMount(el);
+        }
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }, [
+      draftPreviewForm?.start,
+      draftPreviewForm?.end,
+      draftPreviewForm?.allDay,
+      onDraftPreviewMount,
+    ]);
 
     const draftVorhaben = draftVorhabenId
       ? getVorhabenById(planningStore, draftVorhabenId)
@@ -236,7 +394,7 @@ const CalendarView = forwardRef(
           return undefined;
         }
         return new Draggable(containerEl, {
-          itemSelector: ".fc-external-event:not(.cal-external-event--add)",
+          itemSelector: ".fc-external-event:not(.cal-external-event--add):not(.thema-lek-card)",
           eventData: (eventEl) =>
             externalDragEventData(eventEl, draftVorhabenId, draftVorhaben?.fach),
         });
@@ -249,14 +407,53 @@ const CalendarView = forwardRef(
       if (showExternalEvents && externalRef.current) {
         draggables.push(setupDraggable(externalRef.current));
       }
-      draggables.push(setupDraggable(document.body));
       return () => draggables.forEach((d) => d?.destroy?.());
-    }, [showExternalEvents, draftVorhabenId, draftVorhaben?.lektionen, setupDraggable]);
+    }, [showExternalEvents, setupDraggable]);
+
+    const calHostRef = useRef(null);
+
+    const handleCalendarHostDragOver = useCallback(
+      (e) => {
+        if (!hasLektionDrag(e.dataTransfer)) {
+          return;
+        }
+        const slot = slotFromCalendarPointer(calHostRef.current, e.clientX, e.clientY);
+        if (slot) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+        }
+      },
+      []
+    );
+
+    const handleCalendarHostDrop = useCallback(
+      (e) => {
+        if (!hasLektionDrag(e.dataTransfer)) {
+          return;
+        }
+        e.preventDefault();
+        const lektionId = e.dataTransfer.getData(LEKTION_DRAG_MIME);
+        dropLektionOnCalendarAtPointer({
+          planningStore,
+          draftVorhabenId,
+          lektionId,
+          clientX: e.clientX,
+          clientY: e.clientY,
+          calendarRoot: calHostRef.current,
+          saveVorhaben,
+        });
+      },
+      [planningStore, draftVorhabenId, saveVorhaben]
+    );
 
     useEffect(() => {
       const onPointerDown = (e) => {
         const el = e.target.closest?.(".fc-external-event");
-        if (!el || el.classList.contains("cal-external-event--add")) {
+        if (
+          !el ||
+          el.classList.contains("cal-external-event--add") ||
+          el.classList.contains("thema-lek-card")
+        ) {
           return;
         }
         const kind = el.dataset.kind || "generic";
@@ -460,26 +657,166 @@ const CalendarView = forwardRef(
       setVisibleRange({ start: arg.start, end: arg.end });
     }, []);
 
-    const eventClassNames = useCallback((arg) => {
-      const props = arg.event.extendedProps || {};
-      const classes = [...(arg.event.classNames || [])];
-      const end = arg.event.end || arg.event.start;
-      if (end && end < new Date()) {
-        classes.push("cal-event--past");
+    const syncWeekBadge = useCallback(() => {
+      const root = wrapRef.current;
+      if (!root) {
+        return;
       }
-      return classes;
-    }, []);
+      root.querySelectorAll(".cal-week-badge").forEach((node) => node.remove());
 
-    const handleEventDidMount = useCallback((info) => {
-      const props = info.event.extendedProps || {};
-      applyFachEventElementStyles(
-        info.el,
-        props.fach,
-        props.vorhabenId,
-        props.cardType
-      );
-      applyDragAccent(info.el, props.eventAccent);
-    }, []);
+      if (isDayView) {
+        return;
+      }
+
+      const api = calendarRef.current?.getApi?.();
+      const viewType = api?.view?.type || "";
+      const focal = api?.getDate?.() || visibleRange.start;
+      if (!focal || !api) {
+        return;
+      }
+      const { kw, year } = getIsoWeek(focal);
+
+      if (viewType.startsWith("list")) {
+        const toolbarChunk = root.querySelector(
+          ".fc-header-toolbar .fc-toolbar-chunk:first-child"
+        );
+        if (toolbarChunk) {
+          toolbarChunk.prepend(buildWeekBadgeEl(kw, year, "cal-week-badge--toolbar"));
+        }
+        return;
+      }
+
+      if (viewType === "dayGridMonth") {
+        const corner = root.querySelector(
+          ".fc-dayGridMonth-view .fc-scrollgrid-section-header .fc-scrollgrid-shrink-frame"
+        );
+        if (corner) {
+          corner.replaceChildren(buildWeekBadgeEl(kw, year));
+        }
+        return;
+      }
+
+      const axisCell =
+        root.querySelector(
+          ".fc-timeGridWeek-view .fc-scrollgrid-section-header .fc-timegrid-axis"
+        ) ||
+        root.querySelector(
+          ".fc-timeGridDay-view .fc-scrollgrid-section-header .fc-timegrid-axis"
+        );
+
+      if (axisCell) {
+        axisCell.replaceChildren(buildWeekBadgeEl(kw, year));
+      }
+    }, [isDayView, visibleRange.start]);
+
+    const renderDayHeader = useCallback(
+      (arg) => ({ html: formatDayHeaderHtml(arg.date, arg.view.type) }),
+      []
+    );
+
+    useLayoutEffect(() => {
+      syncWeekBadge();
+    }, [syncWeekBadge]);
+
+    const handleDatesSetWithBadge = useCallback(
+      (info) => {
+        if (isDayView && info?.start) {
+          const start = new Date(info.start);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(start);
+          end.setDate(end.getDate() + 1);
+          setVisibleRange({ start, end });
+        } else {
+          handleDatesSet(info);
+        }
+        info.view.calendar.setOption(
+          "stickyHeaderDates",
+          info.view.type !== "timeGridDay"
+        );
+        requestAnimationFrame(() => syncWeekBadge());
+      },
+      [handleDatesSet, isDayView, syncWeekBadge]
+    );
+
+    const eventClassNames = useCallback(
+      (arg) => {
+        const classes = [...(arg.event.classNames || [])];
+        const end = arg.event.end || arg.event.start;
+        if (!arg.event.extendedProps?.isDraftPreview && end && end < new Date()) {
+          classes.push("cal-event--past");
+        }
+        if (focusedFcEventId && arg.event.id === focusedFcEventId) {
+          classes.push("cal-event--editing-focus");
+        }
+        return classes;
+      },
+      [focusedFcEventId]
+    );
+
+    const handleEventDidMount = useCallback(
+      (info) => {
+        const props = info.event.extendedProps || {};
+        const isSelectMirror =
+          Boolean(info.isMirror) ||
+          info.event.classNames?.includes?.("fc-event-mirror") ||
+          info.el?.classList?.contains?.("fc-event-mirror");
+
+        if (isSelectMirror && !props.isDraftPreview && info.el) {
+          info.el.classList.add(
+            "cal-event",
+            "cal-event--local",
+            "cal-event--plain",
+            "cal-event--select-preview"
+          );
+          info.el.style.background = "#fff";
+          info.el.style.boxShadow = "none";
+          applyDragAccent(info.el, "#121212");
+          try {
+            info.event.setProp("title", DRAFT_PREVIEW_DEFAULT_TITLE);
+          } catch {
+            /* mirror may not support setProp in all views */
+          }
+          const titleEl = info.el.querySelector(".fc-event-title");
+          if (titleEl) {
+            titleEl.textContent = DRAFT_PREVIEW_DEFAULT_TITLE;
+          } else {
+            const main = info.el.querySelector(".fc-event-main");
+            if (main) {
+              const node = document.createElement("div");
+              node.className = "fc-event-title";
+              node.textContent = DRAFT_PREVIEW_DEFAULT_TITLE;
+              main.prepend(node);
+            }
+          }
+        } else if (props.isDraftPreview && info.el) {
+          info.el.classList.add("cal-event--select-preview");
+          if (props.plain) {
+            info.el.classList.add("cal-event--plain");
+            applyDragAccent(info.el, "#121212");
+          } else {
+            applyFachEventElementStyles(
+              info.el,
+              props.fach,
+              props.vorhabenId,
+              props.cardType
+            );
+            applyDragAccent(info.el, props.eventAccent);
+          }
+        } else if (props.plain && info.el) {
+          info.el.classList.add("cal-event--plain");
+          applyDragAccent(info.el, "#121212");
+        } else {
+          applyFachEventElementStyles(
+            info.el,
+            props.fach,
+            props.vorhabenId,
+            props.cardType
+          );
+          applyDragAccent(info.el, props.eventAccent);
+        }
+      },
+      []
+    );
 
     const slotMin = calendarStore.settings?.slotMinTime || "06:00:00";
     const slotMax = calendarStore.settings?.slotMaxTime || "20:00:00";
@@ -549,9 +886,12 @@ const CalendarView = forwardRef(
         className={`cal-view-wrap ${compactExternal ? "cal-view-wrap--compact" : ""}`}
       >
         <div
+          ref={calHostRef}
           className={`cal-fullcalendar-host cal-fullcalendar-host--modern ${
             spacious ? "cal-fullcalendar-host--spacious" : ""
           }${muteTodayHighlight ? " cal-fullcalendar-host--mute-today" : ""}`}
+          onDragOver={handleCalendarHostDragOver}
+          onDrop={handleCalendarHostDrop}
         >
           <FullCalendar
             ref={calendarRef}
@@ -586,8 +926,11 @@ const CalendarView = forwardRef(
             stickyHeaderDates
             allDaySlot
             nowIndicator
-            weekNumbers={!isDayView}
+            weekNumbers={false}
             weekNumberCalculation="ISO"
+            dayHeaderContent={renderDayHeader}
+            listDayFormat={{ weekday: "long", day: "numeric", month: "long" }}
+            listDaySideFormat={false}
             editable
             droppable
             selectable
@@ -625,17 +968,7 @@ const CalendarView = forwardRef(
             eventReceive={handleEventReceive}
             select={handleDateSelect}
             eventClick={handleEventClick}
-            datesSet={(info) => {
-              if (isDayView && info?.start) {
-                const start = new Date(info.start);
-                start.setHours(0, 0, 0, 0);
-                const end = new Date(start);
-                end.setDate(end.getDate() + 1);
-                setVisibleRange({ start, end });
-                return;
-              }
-              handleDatesSet(info);
-            }}
+            datesSet={handleDatesSetWithBadge}
           />
         </div>
         {externalStrip}

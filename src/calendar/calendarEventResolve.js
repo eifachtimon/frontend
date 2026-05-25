@@ -5,7 +5,14 @@ import {
 } from "../config/appUrls";
 import { VORHABEN_TEMPLATES, WEEKDAYS } from "../planning/planningDefaults";
 import { getVorhabenById } from "../planning/planningStore";
+import { calendarEventClassNames, withBauhausEventStyle } from "./calendarEventStyles";
 import { weekdayIdFromDate } from "./planningEvents";
+
+const DRAFT_PREVIEW_ID = "__cal-draft-preview__";
+
+export const DRAFT_PREVIEW_EVENT_ID = DRAFT_PREVIEW_ID;
+
+export const DRAFT_PREVIEW_DEFAULT_TITLE = "Neuer Termin";
 
 const templateLabel = (id) =>
   VORHABEN_TEMPLATES.find((t) => t.id === id)?.label || id || "—";
@@ -30,6 +37,25 @@ export const buildEmptyForm = (partial = {}) => ({
   subscriptionId: partial.subscriptionId || null,
   readonly: Boolean(partial.readonly),
 });
+
+export const withVorhabenAssignment = (form, vorhabenId, planningStore, vorhabenOptions = []) => {
+  if (!vorhabenId) {
+    return {
+      ...form,
+      vorhabenId: "",
+      source: "local",
+      vorhabenTitle: "",
+    };
+  }
+  const fromList = vorhabenOptions.find((v) => v.id === vorhabenId);
+  const vorhaben = fromList || getVorhabenById(planningStore, vorhabenId);
+  return {
+    ...form,
+    vorhabenId,
+    source: "planning",
+    vorhabenTitle: vorhaben?.title || "",
+  };
+};
 
 export const formFromFcEvent = (fcEvent, planningStore, calStore) => {
   const props = fcEvent.extendedProps || {};
@@ -126,18 +152,59 @@ const buildPlanningLinks = (vorhaben, props, lektion) => {
   return links;
 };
 
-export const formFromSelection = (selectInfo, defaultVorhabenId) => {
+/** Live-Vorschau im Raster während „Neuer Termin“ (neutral bis Thema gewählt). */
+export const formToDraftPreviewEvent = (form, planningStore) => {
+  if (!form || form.mode !== "create" || !form.start) {
+    return null;
+  }
+  const vorhabenId = form.vorhabenId || "";
+  const vorhaben = vorhabenId ? getVorhabenById(planningStore, vorhabenId) : null;
+  const source = vorhabenId ? "planning" : "local";
+  const cardType = form.cardType || "notiz";
+  const title = form.title?.length ? form.title : DRAFT_PREVIEW_DEFAULT_TITLE;
+  const end =
+    form.end ||
+    new Date(new Date(form.start).getTime() + (form.durationMin || 45) * 60000).toISOString();
+
+  const base = {
+    id: DRAFT_PREVIEW_ID,
+    title,
+    start: form.start,
+    end,
+    allDay: Boolean(form.allDay),
+    editable: false,
+    display: "block",
+    classNames: [
+      ...calendarEventClassNames(source, cardType),
+      "cal-event--draft-preview",
+      "cal-event--select-preview",
+      "cal-event--editing-focus",
+    ],
+    extendedProps: {
+      source,
+      cardType,
+      vorhabenId,
+      fach: vorhaben?.fach || "",
+      isDraftPreview: true,
+      plain: !vorhabenId,
+    },
+  };
+
+  return withBauhausEventStyle(base);
+};
+
+export const formFromSelection = (selectInfo) => {
   const start = selectInfo.start;
   const end = selectInfo.end || new Date(start.getTime() + 45 * 60000);
   const weekday = weekdayIdFromDate(start);
   return buildEmptyForm({
     mode: "create",
-    source: defaultVorhabenId ? "planning" : "local",
+    source: "local",
     title: "",
     start: start.toISOString(),
     end: end.toISOString(),
     allDay: selectInfo.allDay,
-    vorhabenId: defaultVorhabenId || "",
+    vorhabenId: "",
     weekday,
     durationMin: selectInfo.allDay
       ? 0

@@ -528,23 +528,38 @@ export const addDayCard = (vorhaben, weekId, weekday, card) => {
 };
 
 export const removeDayCard = (vorhaben, weekId, weekday, cardId) => {
+  const week = vorhaben.wochen.find((w) => w.id === weekId);
+  const day = week?.days?.[weekday] || emptyDay();
+  const removed = day.cards.find((c) => c.id === cardId);
+  const lektionId = removed?.lektionId || null;
+
   const wochen = vorhaben.wochen.map((w) => {
     if (w.id !== weekId) {
       return w;
     }
-    const day = w.days[weekday] || emptyDay();
+    const d = w.days[weekday] || emptyDay();
     return {
       ...w,
       days: {
         ...w.days,
         [weekday]: {
-          ...day,
-          cards: day.cards.filter((c) => c.id !== cardId),
+          ...d,
+          cards: d.cards.filter((c) => c.id !== cardId),
         },
       },
     };
   });
-  return { ...vorhaben, wochen };
+
+  let next = { ...vorhaben, wochen };
+  if (lektionId) {
+    next = {
+      ...next,
+      lektionen: (next.lektionen || []).map((l) =>
+        l.id === lektionId ? { ...l, weekId: null, weekday: null } : l
+      ),
+    };
+  }
+  return next;
 };
 
 export const moveDayCard = (vorhaben, weekId, cardId, fromWeekday, toWeekday, patch = {}) => {

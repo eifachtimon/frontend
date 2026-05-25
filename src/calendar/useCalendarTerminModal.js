@@ -32,15 +32,15 @@ const useCalendarTerminModal = ({
       setEventForm(
         buildEmptyForm({
           mode: "create",
-          source: draftVorhabenId ? "planning" : "local",
-          vorhabenId: draftVorhabenId,
+          source: "local",
+          vorhabenId: "",
           start: start.toISOString(),
           end: end.toISOString(),
         })
       );
       setModalOpen(true);
     },
-    [draftVorhabenId]
+    []
   );
 
   const handleEventClick = useCallback(
@@ -60,10 +60,10 @@ const useCalendarTerminModal = ({
     (selectInfo) => {
       const anchor = anchorFromSelectInfo(selectInfo);
       setEventAnchor(anchor);
-      setEventForm(formFromSelection(selectInfo, draftVorhabenId));
+      setEventForm(formFromSelection(selectInfo));
       setModalOpen(true);
     },
-    [draftVorhabenId]
+    []
   );
 
   const canDeleteEvent =

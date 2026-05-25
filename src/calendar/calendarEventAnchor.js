@@ -7,9 +7,9 @@ export const anchorFromSelectInfo = (selectInfo) => {
   const calEl = selectInfo?.view?.calendar?.el;
   if (calEl) {
     const candidates = [
+      calEl.querySelector(".fc-event-mirror"),
       calEl.querySelector(".fc-highlight"),
       calEl.querySelector(".fc-timegrid-selection"),
-      calEl.querySelector(".fc-event-mirror"),
     ].filter(Boolean);
     for (const el of candidates) {
       const r = el.getBoundingClientRect();
@@ -28,6 +28,18 @@ export const anchorFromSelectInfo = (selectInfo) => {
     };
   }
   return null;
+};
+
+/** @returns {AnchorRect | null} */
+export const anchorFromElement = (el) => {
+  if (!el?.getBoundingClientRect) {
+    return null;
+  }
+  const r = el.getBoundingClientRect();
+  if (r.width <= 0 && r.height <= 0) {
+    return null;
+  }
+  return { top: r.top, left: r.left, width: r.width, height: r.height };
 };
 
 /** @returns {AnchorRect | null} */
@@ -52,7 +64,8 @@ const PANEL_MIN_W = 280;
 const PANEL_MAX_W = 440;
 const PANEL_MAX_H = 300;
 const WHEN_ROW_MIN_W = 272;
-const GAP = 8;
+/** Abstand Popover-Kante → Auswahl; Pfeil ragt ~11px nach links */
+const GAP = 5;
 const MARGIN = 12;
 export const BEAK_HALF = 7;
 /**
@@ -109,28 +122,41 @@ export const measureCompactPopoverWidth = (modalEl, title = "") => {
  */
 export const computeAnchoredPopoverStyle = (anchor, measured = {}) => {
   const panelW = measured.width || PANEL_MIN_W;
-  const panelH = measured.height || PANEL_MAX_H;
+  const panelH = measured.height || 0;
+  const expandFull = Boolean(measured.expandFull);
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+  const viewportMax = vh - MARGIN * 2;
 
   const anchorRight = anchor.left + anchor.width;
   const anchorCenterY = anchor.top + anchor.height / 2;
 
-  let left = anchorRight + GAP;
+  const roomRight = vw - MARGIN - (anchorRight + GAP);
+  const roomLeft = anchor.left - GAP - MARGIN;
   let beakSide = "left";
+  let left = anchorRight + GAP;
 
-  if (left + panelW > vw - MARGIN) {
-    left = anchor.left - panelW - GAP;
+  /* Seite nur nach Platz am Anker — nicht nach gemessener Popup-Breite (verhindert Sprung) */
+  if (roomRight < PANEL_MIN_W && roomLeft > roomRight) {
     beakSide = "right";
+    left = anchor.left - panelW - GAP;
   }
   if (left < MARGIN) {
     left = MARGIN;
   }
+  if (beakSide === "right" && left + panelW > vw - MARGIN) {
+    left = Math.max(MARGIN, vw - MARGIN - panelW);
+  }
+
+  const maxH = expandFull && panelH > 0
+    ? Math.min(panelH, viewportMax)
+    : Math.min(PANEL_MAX_H, viewportMax);
+  const layoutHeight =
+    expandFull && panelH > 0 ? Math.min(panelH, viewportMax) : maxH;
 
   let top = anchor.top;
-  const maxH = Math.min(PANEL_MAX_H, vh - MARGIN * 2);
-  if (top + panelH > vh - MARGIN) {
-    top = vh - MARGIN - Math.min(panelH, maxH);
+  if (top + layoutHeight > vh - MARGIN) {
+    top = Math.max(MARGIN, vh - MARGIN - layoutHeight);
   }
   if (top < MARGIN) {
     top = MARGIN;
@@ -138,14 +164,14 @@ export const computeAnchoredPopoverStyle = (anchor, measured = {}) => {
 
   const beakTop = Math.max(
     BEAK_HALF + 4,
-    Math.min(maxH - BEAK_HALF - 4, anchorCenterY - top - BEAK_HALF)
+    Math.min(layoutHeight - BEAK_HALF - 4, anchorCenterY - top - BEAK_HALF)
   );
 
   return {
     top: Math.round(top),
     left: Math.round(left),
     width: panelW,
-    maxHeight: maxH,
+    maxHeight: expandFull ? undefined : maxH,
     beakSide,
     beakTop: Math.round(beakTop),
   };

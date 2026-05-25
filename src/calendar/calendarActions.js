@@ -12,6 +12,7 @@ import {
   removeLocalEvent,
   updateLocalEvent,
 } from "./calendarStore";
+import { slotFromCalendarPointer } from "./calendarDropFromPointer";
 import { applyEventDropToVorhaben, weekdayIdFromDate } from "./planningEvents";
 
 const parseFormTimes = (form) => {
@@ -34,7 +35,12 @@ export const saveEventFromForm = ({
   const startMin = form.allDay ? null : start.getHours() * 60 + start.getMinutes();
   const weekday = weekdayIdFromDate(start) || form.weekday || "mo";
 
-  if (form.source === "local" || (!form.vorhabenId && form.source !== "subscription")) {
+  const planningVorhaben =
+    form.vorhabenId && form.source !== "subscription"
+      ? getVorhabenById(planningStore, form.vorhabenId)
+      : null;
+
+  if (!planningVorhaben) {
     if (form.localEventId) {
       onCalStoreChange(
         updateLocalEvent(calStore, form.localEventId, {
@@ -61,10 +67,7 @@ export const saveEventFromForm = ({
     return;
   }
 
-  let vorhaben = getVorhabenById(planningStore, form.vorhabenId);
-  if (!vorhaben) {
-    return;
-  }
+  let vorhaben = planningVorhaben;
   const { kw, year } = getIsoWeek(start);
   const { vorhaben: v0, week } = getOrCreateWeek(vorhaben, kw, year);
   let v = v0;
@@ -145,6 +148,39 @@ export const deleteEventFromForm = ({
       removeDayCard(v, form.weekId, form.weekday, form.cardId)
     );
   }
+};
+
+/** Lektion aus Themen-Übersicht per HTML5-Drop auf Kalender-Raster terminieren. */
+export const dropLektionOnCalendarAtPointer = ({
+  planningStore,
+  draftVorhabenId,
+  lektionId,
+  clientX,
+  clientY,
+  calendarRoot,
+  saveVorhaben,
+}) => {
+  if (!saveVorhaben || !draftVorhabenId || !lektionId || !calendarRoot) {
+    return false;
+  }
+  const slot = slotFromCalendarPointer(calendarRoot, clientX, clientY);
+  if (!slot) {
+    return false;
+  }
+  let vorhaben = getVorhabenById(planningStore, draftVorhabenId);
+  if (!vorhaben) {
+    return false;
+  }
+  const lek = vorhaben.lektionen?.find((l) => l.id === lektionId);
+  if (!lek) {
+    return false;
+  }
+  const { kw, year } = getIsoWeek(slot.start);
+  const { vorhaben: v, week } = getOrCreateWeek(vorhaben, kw, year);
+  saveVorhaben(
+    linkLektionToWeekDay({ ...v }, week.id, slot.weekday, lektionId, slot.startMin)
+  );
+  return true;
 };
 
 export const applyEventDropToPlanningStore = (planningStore, dropInfo, saveVorhaben) => {

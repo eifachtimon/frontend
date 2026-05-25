@@ -53,6 +53,7 @@ const KalenderPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [eventForm, setEventForm] = useState(null);
   const [eventAnchor, setEventAnchor] = useState(null);
+  const [focusedFcEventId, setFocusedFcEventId] = useState(null);
   const [stpModalOpen, setStpModalOpen] = useState(false);
   const [stpSlot, setStpSlot] = useState(null);
   const calendarRef = useRef(null);
@@ -60,7 +61,6 @@ const KalenderPage = () => {
   const lastSelectionRef = useRef(null);
   const [selectionTick, setSelectionTick] = useState(0);
   const [showDragStrip, setShowDragStrip] = useState(loadCalendarChromeExpanded);
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const undoTick = useEditShortcutsTick();
 
   const draftVorhabenId =
@@ -115,6 +115,7 @@ const KalenderPage = () => {
     setModalOpen(false);
     setEventForm(null);
     setEventAnchor(null);
+    setFocusedFcEventId(null);
   }, []);
 
   const closeStpModal = useCallback(() => {
@@ -180,15 +181,15 @@ const KalenderPage = () => {
       setEventForm(
         buildEmptyForm({
           mode: "create",
-          source: draftVorhabenId ? "planning" : "local",
-          vorhabenId: draftVorhabenId,
+          source: "local",
+          vorhabenId: "",
           start: start.toISOString(),
           end: end.toISOString(),
         })
       );
       setModalOpen(true);
     },
-    [draftVorhabenId]
+    []
   );
 
   const handleDateSelect = useCallback(
@@ -201,8 +202,9 @@ const KalenderPage = () => {
         return;
       }
       const anchor = anchorFromSelectInfo(selectInfo);
-      setEventForm(formFromSelection(selectInfo, draftVorhabenId));
+      setEventForm(formFromSelection(selectInfo));
       setEventAnchor(anchor);
+      setFocusedFcEventId(null);
       setModalOpen(true);
     },
     [draftVorhabenId, filters.stundenplanEditMode]
@@ -217,6 +219,7 @@ const KalenderPage = () => {
       setSelectionTick((t) => t + 1);
       info.jsEvent.preventDefault();
       setEventAnchor(anchorFromEventClick(info));
+      setFocusedFcEventId(info.event.id);
       setEventForm(formFromFcEvent(info.event, planningStore, calStore));
       setModalOpen(true);
     },
@@ -368,12 +371,14 @@ const KalenderPage = () => {
 
   const lektionOptions = draftVorhaben?.lektionen || [];
 
+  const draftPreviewForm =
+    modalOpen && eventForm?.mode === "create" ? eventForm : null;
+
   const handleToggleDragStrip = useCallback(() => {
     setShowDragStrip((open) => {
       const next = !open;
       saveCalendarChromeExpanded(next);
       if (!next) {
-        setFiltersExpanded(false);
         setDrawerOpen(false);
       }
       return next;
@@ -399,8 +404,6 @@ const KalenderPage = () => {
             onNewEvent={() => openCreate()}
             onInitStundenplan={handleInitStundenplan}
             searchInputRef={searchRef}
-            filtersExpanded={filtersExpanded}
-            onToggleFiltersExpanded={() => setFiltersExpanded((e) => !e)}
           />
 
           <div className="cal-page-toolbar-actions">
@@ -478,6 +481,8 @@ const KalenderPage = () => {
               onEventClick={handleEventClick}
               onDateSelect={handleDateSelect}
                 onStundenplanSlotClick={handleStundenplanSlotClick}
+                draftPreviewForm={draftPreviewForm}
+                focusedFcEventId={focusedFcEventId}
                 height="100%"
                 compactExternal
               />

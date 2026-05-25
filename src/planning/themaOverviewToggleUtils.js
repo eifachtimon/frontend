@@ -7,19 +7,25 @@ export const truncateToggleMeta = (text, max = 48) => {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 };
 
-/** Sprungmarke — öffnet nur die angezielte Kachel. */
+const COMBINED_PARENT = {
+  todos: "todos-material",
+  material: "todos-material",
+  kompetenzen: "kompetenzen-ziele",
+  ziele: "kompetenzen-ziele",
+};
+
+/** Sprungmarke — öffnet kombinierten oder einzelnen Toggle, scrollt zum Unterabschnitt. */
 export const openThemaOverviewHash = (hash) => {
   if (!hash) {
     return;
   }
-  const sectionId = hash === "kompetenzen-ziele" ? "voraussetzungen" : hash;
-  const el = document.getElementById(`thema-section-${sectionId}`);
-  if (el && el.tagName === "DETAILS") {
-    el.open = true;
+
+  const parentId = COMBINED_PARENT[hash] || hash;
+  const parent = document.getElementById(`thema-section-${parentId}`);
+  if (parent && parent.tagName === "DETAILS") {
+    parent.open = true;
   }
-  const scrollTarget =
-    hash === "kompetenzen-ziele"
-      ? document.getElementById("thema-section-kompetenzen-ziele")
-      : el;
-  scrollTarget?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const scrollTarget = document.getElementById(`thema-section-${hash}`);
+  (scrollTarget || parent)?.scrollIntoView({ behavior: "smooth", block: "start" });
 };
