@@ -21,10 +21,11 @@ const ThemaPageAside = ({ vorhaben, level, onChange }) => {
           </span>
         </div>
         <p className="thema-aside-hint">
-          Aus der{" "}
-          <Link to={APP_ROUTES.search}>Suche</Link> oder Bibliothek (Sidebar) ins Thema.
+          Am ganzen Thema — aus{" "}
+          <Link to={APP_ROUTES.search}>Suche</Link> oder Merkliste.
         </p>
         <CompetencyPicker
+          variant="thema"
           selected={vorhaben.competencies || []}
           onChange={(competencies) => onChange({ ...vorhaben, competencies })}
           maxSelected={12}

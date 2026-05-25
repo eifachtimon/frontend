@@ -87,7 +87,7 @@ export const createVorhaben = (partial = {}) => {
     wochen: [emptyWeek(kw, year)],
     lektionen: [],
     erinnerungen: [],
-    lastVisitedLevel: "grob",
+    lastVisitedLevel: "uebersicht",
   };
 };
 
@@ -185,6 +185,51 @@ export const createTagesTodoItem = (text) => ({
   done: false,
 });
 
+/** Checkbox-Liste (Todos, Ziele, Material). */
+export const normalizeChecklistList = normalizeTagesTodoList;
+
+export const createChecklistItem = (text, idPrefix = "ck") => ({
+  id: newId(idPrefix),
+  text: String(text || "").trim(),
+  done: false,
+});
+
+export const checklistToPlainText = (list) =>
+  (list || [])
+    .map((i) => i.text)
+    .filter(Boolean)
+    .join("\n");
+
+const normalizeGrob = (grob, templateId) => {
+  const base = grob || templateGrob(templateId || "thema");
+  const zieleListe = normalizeChecklistList(
+    Array.isArray(base.zieleListe) ? base.zieleListe : base.ziele
+  );
+  return {
+    ...base,
+    zieleListe,
+    ziele: checklistToPlainText(zieleListe) || String(base.ziele || "").trim(),
+  };
+};
+
+const normalizeZweiWochen = (zweiWochen) => {
+  const base = zweiWochen || {
+    label: "Nächste 2 Wochen",
+    meilensteine: [],
+    beobachtung: "",
+    material: "",
+    notizen: "",
+  };
+  const materialListe = normalizeChecklistList(
+    Array.isArray(base.materialListe) ? base.materialListe : base.material
+  );
+  return {
+    ...base,
+    materialListe,
+    material: checklistToPlainText(materialListe) || String(base.material || "").trim(),
+  };
+};
+
 const normalizeVorhaben = (v) => {
   if (!v || !v.id) {
     return null;
@@ -193,21 +238,21 @@ const normalizeVorhaben = (v) => {
   return {
     ...v,
     competencies: Array.isArray(v.competencies) ? v.competencies : [],
-    grob: v.grob || templateGrob(v.templateId || "thema"),
-    zweiWochen: v.zweiWochen || {
-      label: "Nächste 2 Wochen",
-      meilensteine: [],
-      beobachtung: "",
-      material: "",
-      notizen: "",
-    },
+    grob: normalizeGrob(v.grob, v.templateId),
+    zweiWochen: normalizeZweiWochen(v.zweiWochen),
     wochen:
       Array.isArray(v.wochen) && v.wochen.length > 0
         ? v.wochen
         : [emptyWeek(kw, year)],
-    lektionen: Array.isArray(v.lektionen) ? v.lektionen : [],
+    lektionen: (Array.isArray(v.lektionen) ? v.lektionen : []).map((l) => ({
+      ...l,
+      phaseId: l.phaseId ?? null,
+      ziele: l.ziele ?? "",
+      competencies: Array.isArray(l.competencies) ? l.competencies : [],
+    })),
     erinnerungen: Array.isArray(v.erinnerungen) ? v.erinnerungen : [],
-    lastVisitedLevel: v.lastVisitedLevel || "grob",
+    lastVisitedLevel:
+      v.lastVisitedLevel === "grob" ? "uebersicht" : v.lastVisitedLevel || "uebersicht",
   };
 };
 
@@ -384,6 +429,8 @@ export const addLektion = (vorhaben, partial = {}) => {
     id: newId("l"),
     title: partial.title || "Neue Lektion",
     durationMin: partial.durationMin ?? 45,
+    phaseId: partial.phaseId ?? null,
+    ziele: partial.ziele || "",
     competencies: partial.competencies || [],
     ablaufBlocks: partial.ablaufBlocks || [],
     material: partial.material || "",
@@ -394,6 +441,29 @@ export const addLektion = (vorhaben, partial = {}) => {
     weekday: partial.weekday || null,
   };
   return { ...vorhaben, lektionen: [...vorhaben.lektionen, lektion], lektion };
+};
+
+/** Lektion in der Themenliste verschieben (optional Phase der Ziel-Lektion übernehmen). */
+export const reorderLektion = (vorhaben, lektionId, beforeLektionId, phaseId = undefined) => {
+  const list = [...(vorhaben.lektionen || [])];
+  const fromIdx = list.findIndex((l) => l.id === lektionId);
+  if (fromIdx < 0) {
+    return vorhaben;
+  }
+  const [item] = list.splice(fromIdx, 1);
+  let toIdx =
+    beforeLektionId != null
+      ? list.findIndex((l) => l.id === beforeLektionId)
+      : list.length;
+  if (toIdx < 0) {
+    toIdx = list.length;
+  } else if (fromIdx < toIdx) {
+    toIdx -= 1;
+  }
+  const nextItem =
+    phaseId !== undefined ? { ...item, phaseId: phaseId ?? null } : item;
+  list.splice(toIdx, 0, nextItem);
+  return { ...vorhaben, lektionen: list };
 };
 
 export const addErinnerung = (vorhaben, partial = {}) => {

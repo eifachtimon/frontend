@@ -9,12 +9,15 @@ const CalendarFilterBar = ({
   onNewEvent,
   onInitStundenplan,
   searchInputRef,
-  compact = false,
   filtersExpanded = false,
   onToggleFiltersExpanded,
 }) => {
   const templates = templateOptions();
-  const showSecondary = !compact || filtersExpanded;
+  const activeFilterCount =
+    (filters.vorhabenIds?.length || 0) +
+    (filters.templateIds?.length || 0) +
+    (filters.showStundenplan === false ? 1 : 0) +
+    (filters.stundenplanEditMode ? 1 : 0);
 
   const toggleVorhaben = (id) => {
     const set = new Set(filters.vorhabenIds || []);
@@ -37,13 +40,8 @@ const CalendarFilterBar = ({
   };
 
   return (
-    <div
-      className={`cal-filter-bar ${compact ? "cal-filter-bar--compact" : ""} ${
-        filtersExpanded ? "cal-filter-bar--expanded" : ""
-      }`}
-      role="search"
-    >
-      <div className="cal-filter-bar-primary">
+    <div className="cal-filter-shell" role="search">
+      <div className="cal-filter-bar">
         <div className="cal-filter-search-wrap">
           <span className="cal-filter-search-icon" aria-hidden="true">
             ⌕
@@ -57,37 +55,40 @@ const CalendarFilterBar = ({
             onChange={(e) => onChange({ ...filters, search: e.target.value })}
             aria-label="Kalender durchsuchen"
           />
-          <span className="cal-kbd-badge" title="Tastenkürzel">
+          <span className="cal-kbd-badge cal-kbd-badge--desktop" title="Tastenkürzel">
             /
           </span>
         </div>
 
-        {compact ? (
-          <button
-            type="button"
-            className={`planning-btn planning-btn--ghost cal-filter-toggle ${
-              filtersExpanded ? "cal-filter-toggle--active" : ""
-            }`}
-            onClick={onToggleFiltersExpanded}
-            aria-expanded={filtersExpanded}
-          >
-            Filter
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className={`cal-toolbar-icon-btn cal-filter-toggle ${
+            filtersExpanded ? "cal-toolbar-icon-btn--active" : ""
+          }`}
+          onClick={onToggleFiltersExpanded}
+          aria-expanded={filtersExpanded}
+          aria-label="Filter ein- oder ausblenden"
+          title="Filter"
+        >
+          <span aria-hidden="true">▾</span>
+          Filter
+          {activeFilterCount > 0 ? (
+            <span className="cal-filter-count">{activeFilterCount}</span>
+          ) : null}
+        </button>
 
-        <div className="cal-filter-actions">
-          <button
-            type="button"
-            className="planning-btn planning-btn--primary cal-filter-new"
-            onClick={onNewEvent}
-          >
-            + Termin
-            <span className="cal-kbd-hint">N</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          className="cal-toolbar-icon-btn cal-toolbar-icon-btn--primary cal-filter-new"
+          onClick={onNewEvent}
+          aria-label="Neuer Termin"
+          title="Neuer Termin (N)"
+        >
+          + Termin
+        </button>
       </div>
 
-      {showSecondary ? (
+      {filtersExpanded ? (
         <div className="cal-filter-bar-secondary">
           <div className="cal-filter-chips" aria-label="Themen filtern">
             <button

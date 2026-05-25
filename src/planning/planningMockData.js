@@ -60,7 +60,7 @@ export const buildMockPlanningStore = () => {
     klasse: "5b",
   });
   brueche.id = "mock-v-brueche";
-  brueche.lastVisitedLevel = "woche";
+  brueche.lastVisitedLevel = "uebersicht";
   brueche.competencies = [
     mockComp(
       "mock-mu-1",
@@ -120,10 +120,14 @@ export const buildMockPlanningStore = () => {
 
   const lek1Id = "mock-l-brueche-1";
   const lek2Id = "mock-l-brueche-2";
+  const ph0 = brueche.grob.phasen[0]?.id;
+  const ph2 = brueche.grob.phasen[2]?.id;
   brueche.lektionen = [
     {
       id: lek1Id,
       title: "Einstieg: Anteile sichtbar machen",
+      phaseId: ph0 || null,
+      ziele: "Bruchteile als Anteile erkennen und benennen.",
       durationMin: 45,
       competencies: [brueche.competencies[0]],
       ablaufBlocks: [
@@ -141,6 +145,8 @@ export const buildMockPlanningStore = () => {
     {
       id: lek2Id,
       title: "Stationen: Brüche anwenden",
+      phaseId: ph2 || null,
+      ziele: "Brüche in Alltagssituationen anwenden.",
       durationMin: 45,
       competencies: [brueche.competencies[1]],
       ablaufBlocks: [

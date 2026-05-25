@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { vorhabenLevelPath } from "../config/appUrls";
+import { vorhabenLevelPath, vorhabenOverviewSectionPath } from "../config/appUrls";
 import { getFachCssVars, getFachToneClassName } from "./fachColors";
 
 const ThemaHeroMeta = ({
@@ -9,11 +9,96 @@ const ThemaHeroMeta = ({
   compCount,
   lekCount,
   openReminders,
+  variant = "default",
 }) => {
   const update = (patch) => onChange({ ...vorhaben, ...patch });
   const id = vorhaben.id;
   const toneClass = getFachToneClassName(vorhaben.fach);
   const fachStyle = toneClass ? getFachCssVars(vorhaben.fach, id) : undefined;
+  const isOverview = variant === "overview";
+
+  const metaFields = (
+    <>
+      <label
+        className={`thema-meta-field${toneClass ? ` ${toneClass}` : ""}`}
+        style={fachStyle}
+      >
+        <span className="thema-meta-field-label">Fach</span>
+        <input
+          type="text"
+          value={vorhaben.fach || ""}
+          onChange={(e) => update({ fach: e.target.value })}
+          placeholder="z. B. Mathematik"
+          aria-label="Fach"
+        />
+      </label>
+      <label className="thema-meta-field">
+        <span className="thema-meta-field-label">Zyklus</span>
+        <input
+          type="text"
+          value={vorhaben.zyklus || ""}
+          onChange={(e) => update({ zyklus: e.target.value })}
+          placeholder="z. B. 2"
+          aria-label="Zyklus"
+        />
+      </label>
+      <label className="thema-meta-field">
+        <span className="thema-meta-field-label">Klasse</span>
+        <input
+          type="text"
+          value={vorhaben.klasse || ""}
+          onChange={(e) => update({ klasse: e.target.value })}
+          placeholder="z. B. 5b"
+          aria-label="Klasse"
+        />
+      </label>
+    </>
+  );
+
+  const stats = (
+    <div className="thema-hero-stats" role="list" aria-label="Überblick">
+      <a
+        href={vorhabenOverviewSectionPath(id, "kompetenzen-ziele")}
+        className={`thema-hero-stat${toneClass ? ` ${toneClass}` : ""}`}
+        style={fachStyle}
+        role="listitem"
+      >
+        <span className="thema-hero-stat-n">{compCount}</span>
+        <span className="thema-hero-stat-label">Komp. &amp; Ziele</span>
+      </a>
+      <Link
+        to={vorhabenLevelPath(id, "uebersicht")}
+        className={`thema-hero-stat${toneClass ? ` ${toneClass}` : ""}`}
+        style={fachStyle}
+        role="listitem"
+      >
+        <span className="thema-hero-stat-n">{lekCount}</span>
+        <span className="thema-hero-stat-label">Lektionen</span>
+      </Link>
+      {openReminders > 0 ? (
+        <a
+          href={vorhabenOverviewSectionPath(id, "todos")}
+          className={`thema-hero-stat thema-hero-stat--accent${toneClass ? ` ${toneClass}` : ""}`}
+          style={fachStyle}
+          role="listitem"
+        >
+          <span className="thema-hero-stat-n">{openReminders}</span>
+          <span className="thema-hero-stat-label">Todos</span>
+        </a>
+      ) : null}
+    </div>
+  );
+
+  if (isOverview) {
+    return (
+      <div className="thema-hero-meta thema-hero-meta--overview">
+        <div className="thema-hero-meta-row" role="group" aria-label="Fach, Zyklus, Klasse">
+          {metaFields}
+        </div>
+        {stats}
+      </div>
+    );
+  }
 
   return (
     <div className="thema-hero-meta">
@@ -53,17 +138,17 @@ const ThemaHeroMeta = ({
         </label>
       </div>
       <div className="thema-hero-stats" role="list" aria-label="Überblick">
-        <Link
-          to={vorhabenLevelPath(id, "grob")}
+        <a
+          href={vorhabenOverviewSectionPath(id, "kompetenzen-ziele")}
           className={`thema-stat-pill${toneClass ? ` ${toneClass}` : ""}`}
           style={fachStyle}
           role="listitem"
         >
           <span className="thema-stat-pill-n">{compCount}</span>
-          Kompetenzen
-        </Link>
+          Komp. &amp; Ziele
+        </a>
         <Link
-          to={vorhabenLevelPath(id, "lektion")}
+          to={vorhabenLevelPath(id, "uebersicht")}
           className={`thema-stat-pill${toneClass ? ` ${toneClass}` : ""}`}
           style={fachStyle}
           role="listitem"
@@ -72,15 +157,15 @@ const ThemaHeroMeta = ({
           Lektionen
         </Link>
         {openReminders > 0 ? (
-          <Link
-            to={vorhabenLevelPath(id, "woche")}
+          <a
+            href={vorhabenOverviewSectionPath(id, "todos")}
             className={`thema-stat-pill thema-stat-pill--accent${toneClass ? ` ${toneClass}` : ""}`}
             style={fachStyle}
             role="listitem"
           >
             <span className="thema-stat-pill-n">{openReminders}</span>
-            Erinnerungen
-          </Link>
+            Todos
+          </a>
         ) : null}
       </div>
     </div>

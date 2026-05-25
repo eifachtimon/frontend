@@ -70,24 +70,44 @@ const CalendarView = forwardRef(
       compactExternal = false,
       spacious = false,
       height = "100%",
-      /** Nur heutiger Tag, Tagesraster ohne Toolbar (Home) */
+      /** Einzeltag ohne Toolbar (Home) */
+      dayView = false,
+      /** @deprecated — alias für dayView */
       dayViewToday = false,
+      /** FullCalendar-Ansicht (z. B. timeGridWeek) */
+      initialView: initialViewProp,
+      /** Kein gelbes Heute-Raster (Home) */
+      muteTodayHighlight = false,
       initialDate,
     },
     ref
   ) => {
     const calendarRef = useRef(null);
+    const wrapRef = useRef(null);
     const externalRef = useRef(null);
-    const todayAnchor = useMemo(() => {
+    const [measuredHeight, setMeasuredHeight] = useState(null);
+    const isDayView = dayView || dayViewToday;
+    const dayAnchor = useMemo(() => {
       const d = initialDate ? new Date(initialDate) : new Date();
       if (Number.isNaN(d.getTime())) {
         return new Date();
       }
       return d;
     }, [initialDate]);
+
+    useEffect(() => {
+      if (!isDayView || !initialDate) {
+        return;
+      }
+      const api = calendarRef.current?.getApi?.();
+      if (api) {
+        api.gotoDate(dayAnchor);
+      }
+    }, [isDayView, initialDate, dayAnchor]);
+
     const [visibleRange, setVisibleRange] = useState(() => {
       const now = initialDate ? new Date(initialDate) : new Date();
-      if (dayViewToday) {
+      if (isDayView) {
         const start = new Date(now);
         start.setHours(0, 0, 0, 0);
         const end = new Date(start);
@@ -104,6 +124,40 @@ const CalendarView = forwardRef(
     useImperativeHandle(ref, () => ({
       getApi: () => calendarRef.current?.getApi?.(),
     }));
+
+    useEffect(() => {
+      if (height !== "100%") {
+        setMeasuredHeight(null);
+        return undefined;
+      }
+      const el = wrapRef.current;
+      if (!el) {
+        return undefined;
+      }
+      const measure = () => {
+        const next = Math.floor(el.getBoundingClientRect().height);
+        if (next > 120) {
+          setMeasuredHeight((prev) => (prev === next ? prev : next));
+        }
+      };
+      measure();
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      window.addEventListener("resize", measure);
+      const t = window.setTimeout(measure, 50);
+      return () => {
+        ro.disconnect();
+        window.removeEventListener("resize", measure);
+        window.clearTimeout(t);
+      };
+    }, [height]);
+
+    useEffect(() => {
+      if (!measuredHeight) {
+        return;
+      }
+      calendarRef.current?.getApi?.()?.updateSize();
+    }, [measuredHeight]);
 
     const planningEvents = useMemo(
       () => allVorhabenToCalendarEvents(planningStore?.vorhaben || []),
@@ -433,6 +487,11 @@ const CalendarView = forwardRef(
     const dragStripVisible =
       showDragStrip !== undefined ? showDragStrip : showExternalEvents;
 
+    const resolvedHeight =
+      height === "100%"
+        ? measuredHeight || Math.max(360, Math.floor(window.innerHeight * 0.55))
+        : height;
+
     const externalStrip =
       showExternalEvents && draftVorhaben && dragStripVisible ? (
         <div
@@ -463,6 +522,7 @@ const CalendarView = forwardRef(
               <div
                 key={lek.id}
                 className="fc-external-event cal-external-event--lektion"
+                data-testid={`cal-external-lektion-${lek.id}`}
                 data-kind="lektion"
                 data-title={lek.title}
                 data-duration={lek.durationMin}
@@ -485,25 +545,26 @@ const CalendarView = forwardRef(
 
     return (
       <div
+        ref={wrapRef}
         className={`cal-view-wrap ${compactExternal ? "cal-view-wrap--compact" : ""}`}
       >
         <div
           className={`cal-fullcalendar-host cal-fullcalendar-host--modern ${
             spacious ? "cal-fullcalendar-host--spacious" : ""
-          }`}
+          }${muteTodayHighlight ? " cal-fullcalendar-host--mute-today" : ""}`}
         >
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
             locale={deLocale}
             initialView={
-              dayViewToday
+              isDayView
                 ? "timeGridDay"
-                : calendarStore.settings?.defaultView || "timeGridWeek"
+                : initialViewProp || calendarStore.settings?.defaultView || "timeGridWeek"
             }
-            initialDate={dayViewToday ? todayAnchor : undefined}
+            initialDate={isDayView ? dayAnchor : undefined}
             headerToolbar={
-              dayViewToday
+              isDayView
                 ? false
                 : {
                     left: "prev,next today",
@@ -518,14 +579,14 @@ const CalendarView = forwardRef(
               day: "Tag",
               list: "Liste",
             }}
-            height={height}
+            height={resolvedHeight}
             slotMinTime={slotMin}
             slotMaxTime={slotMax}
             expandRows
             stickyHeaderDates
             allDaySlot
             nowIndicator
-            weekNumbers={!dayViewToday}
+            weekNumbers={!isDayView}
             weekNumberCalculation="ISO"
             editable
             droppable
@@ -565,15 +626,8 @@ const CalendarView = forwardRef(
             select={handleDateSelect}
             eventClick={handleEventClick}
             datesSet={(info) => {
-              if (dayViewToday && info?.start) {
-                const anchor = new Date(todayAnchor);
-                anchor.setHours(0, 0, 0, 0);
-                const seen = new Date(info.start);
-                seen.setHours(0, 0, 0, 0);
-                if (seen.getTime() !== anchor.getTime()) {
-                  calendarRef.current?.getApi?.()?.gotoDate(todayAnchor);
-                }
-                const start = new Date(todayAnchor);
+              if (isDayView && info?.start) {
+                const start = new Date(info.start);
                 start.setHours(0, 0, 0, 0);
                 const end = new Date(start);
                 end.setDate(end.getDate() + 1);

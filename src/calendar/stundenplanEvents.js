@@ -13,29 +13,44 @@ const atMinutes = (baseDate, minutesFromMidnight) => {
 
 /** Wöchentliches Raster → FullCalendar-Events im sichtbaren Bereich. */
 export const stundenplanToCalendarEvents = (stundenplan, rangeStart, rangeEnd) => {
-  if (!stundenplan?.enabled || !Array.isArray(stundenplan.slots)) {
+  if (!stundenplan?.enabled || !Array.isArray(stundenplan.slots) || !stundenplan.slots.length) {
     return [];
   }
+  const slotsByWeekday = {};
+  for (const slot of stundenplan.slots) {
+    if (!slot.weekday) {
+      continue;
+    }
+    if (!slotsByWeekday[slot.weekday]) {
+      slotsByWeekday[slot.weekday] = [];
+    }
+    slotsByWeekday[slot.weekday].push(slot);
+  }
+  if (!Object.keys(slotsByWeekday).length) {
+    return [];
+  }
+
   const start = new Date(rangeStart);
   const end = new Date(rangeEnd);
   start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
   const events = [];
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const wd = weekdayIdFromDate(new Date(d));
+    const wd = weekdayIdFromDate(d);
     if (!wd) {
       continue;
     }
-    const day = new Date(d);
-    for (const slot of stundenplan.slots) {
-      if (slot.weekday !== wd) {
-        continue;
-      }
+    const daySlots = slotsByWeekday[wd];
+    if (!daySlots?.length) {
+      continue;
+    }
+    const dayKey = d.toISOString().slice(0, 10);
+    for (const slot of daySlots) {
       const startMin = slot.startMin ?? 8 * 60;
       const endMin = slot.endMin ?? startMin + (slot.durationMin || 45);
-      const evStart = atMinutes(day, startMin);
-      const evEnd = atMinutes(day, endMin);
-      const dayKey = day.toISOString().slice(0, 10);
+      const evStart = atMinutes(d, startMin);
+      const evEnd = atMinutes(d, endMin);
       events.push(
         withBauhausEventStyle({
           id: `stp-${slot.id}-${dayKey}`,

@@ -31,6 +31,12 @@ body.app-has-sidebar {
   -webkit-overflow-scrolling: touch;
 }
 
+.app-shell-main:has(.cal-page) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .app-shell-main--mobile {
   width: 100%;
 }
@@ -434,10 +440,36 @@ body.app-has-sidebar {
   max-width: 9.5rem;
 }
 
+.app-sidebar-tree-fach {
+  list-style: none;
+  margin: 0 0 4px;
+}
+
+.app-sidebar-fach-folder-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 0;
+}
+
+.app-sidebar-fach-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #3a3a3a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .app-sidebar-tree-children {
   list-style: none;
-  margin: 0 0 6px 1.5rem;
-  padding: 0;
+  margin: 0 0 6px 0.25rem;
+  padding: 0 0 0 0.5rem;
+  border-left: 2px solid var(--bh-muted, #e0e0e0);
 }
 
 .app-sidebar-level-link {
@@ -608,6 +640,12 @@ body.app-has-sidebar {
 }
 
 /* App shell: volle Breite im Main-Bereich (neben Sidebar) */
+.app-shell-layout .app-shell.cal-page {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .app-shell-layout .app-shell.planning-hub,
 .app-shell-layout .app-shell.planning-surface,
 .app-shell-layout .app-shell.vorhaben-page,

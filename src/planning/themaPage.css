@@ -1,4 +1,5 @@
 /* Thema-Planung — UI-Verfeinerung (Bauhaus, hell, ruhig) */
+@import "../ui/overlay.css";
 
 .thema-page {
   --thema-gap: var(--space-4);
@@ -172,6 +173,18 @@
   color: var(--text-muted, #3a3a3a);
 }
 
+.thema-panel-card--compact .thema-panel-card-head {
+  padding: var(--space-2) var(--space-3);
+}
+
+.thema-panel-card--compact .thema-panel-card-title {
+  font-size: 0.95rem;
+}
+
+.thema-panel-card-focus--compact {
+  font-size: 0.78rem;
+}
+
 .thema-panel-card-body {
   padding: var(--space-4);
 }
@@ -220,9 +233,52 @@
 }
 
 .thema-woche-cal-wrap {
-  border: 2px solid var(--bh-border, #121212);
   padding: var(--space-2);
   background: var(--bh-white, #fff);
+}
+
+.thema-woche-block--primary {
+  margin-bottom: var(--space-3);
+}
+
+.thema-woche-erinnerungen-details {
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+}
+
+.thema-woche-erinnerungen-summary {
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.thema-woche-erinnerungen-summary::-webkit-details-marker {
+  display: none;
+}
+
+.thema-woche-erinnerungen-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  padding: 0 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-accent, #ff6b35);
+  color: #fff;
+}
+
+.thema-woche-erinnerungen-body {
+  padding: 0 var(--space-3) var(--space-3);
+  border-top: 1px solid var(--plan-border-subtle, #eee);
 }
 
 .thema-page .woche-erinnerungen {
@@ -321,4 +377,2219 @@
   .thema-aside-wrap {
     top: 4.25rem;
   }
+}
+
+/* —— Schlanke Planungs-Nav (statt Stepper) —— */
+.thema-planung-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.thema-planung-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--bh-fg, #121212);
+  font-family: inherit;
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.thema-planung-nav-link:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.thema-planung-nav-link--active,
+.thema-planung-nav-link.active {
+  background: var(--bh-yellow, #edd100);
+  box-shadow: 3px 3px 0 0 var(--bh-border, #121212);
+}
+
+.thema-planung-nav-link--muted {
+  font-weight: 600;
+  color: var(--text-muted, #3a3a3a);
+  box-shadow: none;
+  border-color: var(--plan-border-subtle, #ccc);
+}
+
+.thema-planung-nav-badge {
+  min-width: 1.25rem;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--bh-red, #e02020);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.thema-planung-nav--sub {
+  gap: var(--space-2);
+}
+
+.thema-planung-nav-back {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--bh-blue, #1040c0);
+  text-decoration: none;
+}
+
+.thema-planung-nav-current {
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vorhaben-main--overview {
+  max-width: none;
+  width: 100%;
+  padding-inline: clamp(0.75rem, 1.25vw, 1.5rem);
+  box-sizing: border-box;
+}
+
+.vorhaben-page .vorhaben-main.vorhaben-main--overview {
+  max-width: none;
+}
+
+/* —— Übersicht: Hero (kompakt, eine Zeile ab Tablet) —— */
+.thema-overview-hero {
+  margin-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--bh-border-w, 2px) solid var(--fach-base, var(--bh-border, #121212));
+  border-radius: 8px;
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 var(--fach-base, #121212));
+}
+
+.thema-overview-hero__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .thema-overview-hero__main {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-2) var(--space-3);
+  }
+}
+
+@media (min-width: 1101px) {
+  .thema-overview-hero__main {
+    flex-wrap: nowrap;
+  }
+}
+
+/* Schreibzeilen: nur Unterstrich (überschreibt .planning-surface input) */
+.planning-surface.vorhaben-page .thema-overview-hero input.thema-overview-hero__line-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.45rem 0.2rem 0.6rem;
+  border: none;
+  border-bottom: 2px solid rgba(18, 18, 18, 0.32);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-family: inherit;
+  line-height: 1.3;
+  color: var(--bh-fg, #121212);
+  cursor: text;
+  -webkit-appearance: none;
+  appearance: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    border-bottom-width 0.1s ease;
+}
+
+.planning-surface.vorhaben-page .thema-overview-hero input.thema-overview-hero__line-input::placeholder {
+  color: rgba(18, 18, 18, 0.38);
+  font-weight: 500;
+}
+
+.planning-surface.vorhaben-page .thema-overview-hero input.thema-overview-hero__line-input:hover {
+  border: none;
+  border-bottom: 2px solid rgba(18, 18, 18, 0.5);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.planning-surface.vorhaben-page .thema-overview-hero input.thema-overview-hero__line-input:focus {
+  outline: none;
+  border: none;
+  border-bottom: 3px solid var(--fach-base, var(--bh-fg, #121212));
+  background: rgba(255, 255, 255, 0.42);
+  padding-bottom: calc(0.6rem - 1px);
+}
+
+.thema-overview-hero__fach {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 0 1 7.5rem;
+}
+
+@media (min-width: 640px) {
+  .thema-overview-hero__fach {
+    flex: 0 0 6.5rem;
+  }
+}
+
+.thema-overview-hero__fach-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #4a4a4a);
+}
+
+.planning-surface.vorhaben-page .thema-overview-hero__fach input.thema-overview-hero__line-input {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--fach-base, var(--bh-fg, #121212));
+}
+
+.planning-surface.vorhaben-page .thema-overview-hero__title.thema-overview-hero__line-input {
+  flex: 1 1 10rem;
+  min-width: 0;
+  width: 100%;
+  padding: 0.35rem 0.1rem 0.5rem;
+  font-family: var(--bh-font, "Outfit", sans-serif);
+  font-weight: 900;
+  font-size: clamp(1.05rem, 1.8vw, 1.4rem);
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.planning-surface.vorhaben-page .thema-overview-hero__title.thema-overview-hero__line-input:focus {
+  padding-bottom: calc(0.5rem - 1px);
+}
+
+.thema-overview-hero__inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.thema-overview-hero__inline-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #6b6b6b);
+}
+
+.planning-surface.vorhaben-page .thema-overview-hero input.thema-overview-hero__line-input--short {
+  width: 4rem;
+  min-width: 3.25rem;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Todos & Material — oben, ausklappbar */
+.thema-overview-tm {
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  border-radius: 8px;
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+}
+
+.thema-overview-tm-summary {
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  user-select: none;
+}
+
+.thema-overview-tm-summary::-webkit-details-marker {
+  display: none;
+}
+
+.thema-overview-tm-summary::before {
+  content: "▸";
+  margin-right: var(--space-2);
+  font-size: 0.85rem;
+  transition: transform 0.15s ease;
+}
+
+.thema-overview-tm[open] > .thema-overview-tm-summary::before {
+  transform: rotate(90deg);
+}
+
+.thema-overview-tm-summary-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.thema-overview-tm-summary-meta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted, #5a5a5a);
+}
+
+.thema-overview-tm-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+  border-top: 1px solid rgba(18, 18, 18, 0.08);
+}
+
+.thema-overview-tm-body--single {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.thema-overview-tm-body--comp {
+  max-height: min(22rem, 42vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.thema-overview-tm-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-muted, #5a5a5a);
+}
+
+.thema-overview-tm-hint a {
+  font-weight: 600;
+  color: var(--bh-blue, #1040c0);
+}
+
+.thema-overview-tm-footnote {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-muted, #6b6b6b);
+}
+
+.thema-overview-tm-footnote a {
+  font-weight: 600;
+  color: var(--bh-blue, #1040c0);
+}
+
+/* Freitext wie Todo-Liste (ohne Checkbox) */
+.thema-overview-field-panel {
+  margin: 0;
+}
+
+.thema-overview-field-panel__label {
+  display: block;
+  margin: 0;
+  cursor: text;
+}
+
+.planning-surface .thema-overview-field-panel__input,
+.thema-overview-field-panel__input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--space-2) var(--space-2);
+  border: var(--bh-border-w, 2px) solid var(--plan-border, #121212) !important;
+  border-radius: 0 !important;
+  background: var(--bh-white, #fff) !important;
+  box-shadow: none !important;
+  font-family: inherit;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--bh-fg, #121212);
+  resize: vertical;
+  min-height: 4rem;
+}
+
+.thema-overview-field-panel__input:focus {
+  outline: 2px solid var(--bh-blue, #1040c0);
+  outline-offset: 2px;
+}
+
+.thema-overview-tm-inline-link {
+  margin: 0 0 var(--space-1);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-muted, #5a5a5a);
+}
+
+.thema-overview-tm-inline-link a {
+  font-weight: 600;
+  color: var(--bh-blue, #1040c0);
+}
+
+/* Todos in Toggle-Kachel: Checkbox & Zeilen */
+.thema-overview-tm .unterricht-todos {
+  margin: 0;
+  max-height: none;
+}
+
+.thema-overview-tm .unterricht-todo-item {
+  align-items: center;
+  padding: var(--space-2) var(--space-2);
+}
+
+.thema-overview-tm .unterricht-todo-label {
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.thema-overview-tm .unterricht-todo-label input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--fach-base, var(--bh-red, #d02020));
+  cursor: pointer;
+}
+
+.thema-overview-tm .unterricht-todo-text {
+  padding-top: 0.1rem;
+  line-height: 1.35;
+}
+
+.thema-overview-tm .unterricht-todo-remove {
+  align-self: center;
+  margin-top: 0;
+}
+
+.thema-overview-tm .unterricht-todo-add {
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px dashed rgba(18, 18, 18, 0.12);
+}
+
+.thema-overview-tm .unterricht-todo-add-input {
+  min-height: 2.35rem;
+}
+
+.thema-overview-tm-body--scroll {
+  max-height: min(14rem, 32vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.thema-overview-tm .thema-material-inline {
+  margin-top: 0;
+}
+
+.thema-material-inline__lek-heading {
+  margin: var(--space-2) 0 var(--space-1);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #5a5a5a);
+}
+
+/* Raster-Zeilen für Toggle-Blöcke */
+.thema-overview--unified {
+  --thema-cal-height: min(48vh, 520px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.thema-overview-raster {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  align-items: start;
+}
+
+.thema-overview-raster > .thema-overview-tm {
+  min-width: 0;
+  align-self: start;
+}
+
+.thema-overview-raster--cols-2 {
+  grid-template-columns: 1fr;
+}
+
+.thema-overview-raster--cols-3 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .thema-overview-raster--cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .thema-overview-raster--cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 720px) and (max-width: 899px) {
+  .thema-overview-raster--cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* —— Übersicht: alter Kopfbereich (nur Nicht-Übersicht) —— */
+.thema-page.vorhaben-main--overview .vorhaben-header.thema-hero {
+  margin-bottom: var(--space-4);
+  padding: 0 0 var(--space-3);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.thema-page.vorhaben-main--overview .vorhaben-header .vorhaben-title-input {
+  margin-bottom: var(--space-4);
+  padding: 0;
+  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.thema-page.vorhaben-main--overview .thema-hero-meta--overview {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.thema-page.vorhaben-main--overview .thema-hero-meta-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bh-white, #fff);
+  border-radius: 10px;
+  box-shadow: 0 1px 0 rgba(18, 18, 18, 0.06), 0 4px 16px rgba(18, 18, 18, 0.04);
+}
+
+@media (max-width: 640px) {
+  .thema-page.vorhaben-main--overview .thema-hero-meta-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+.thema-page.vorhaben-main--overview .thema-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.thema-page.vorhaben-main--overview .thema-meta-field.fach-tone {
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--fach-base, var(--bh-border, #121212));
+}
+
+.thema-page.vorhaben-main--overview .thema-meta-field-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #6b6b6b);
+}
+
+.thema-page.vorhaben-main--overview .thema-meta-field input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--bh-fg, #121212);
+}
+
+.thema-page.vorhaben-main--overview .thema-meta-field input:focus {
+  outline: none;
+}
+
+.thema-page.vorhaben-main--overview .thema-meta-field:focus-within {
+  outline: 2px solid var(--bh-blue, #1040c0);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.thema-page.vorhaben-main--overview .thema-meta-field input::placeholder {
+  color: #aaa;
+  font-weight: 400;
+}
+
+.thema-page.vorhaben-main--overview .thema-hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: 0 var(--space-1);
+}
+
+.thema-page.vorhaben-main--overview .thema-hero-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted, #4a4a4a);
+  transition: color 0.15s ease;
+}
+
+.thema-page.vorhaben-main--overview .thema-hero-stat:hover {
+  color: var(--bh-blue, #1040c0);
+}
+
+.thema-page.vorhaben-main--overview .thema-hero-stat-n {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--bh-fg, #121212);
+}
+
+.thema-page.vorhaben-main--overview .thema-hero-stat--accent .thema-hero-stat-n {
+  color: var(--bh-red, #e02020);
+}
+
+.thema-page.vorhaben-main--overview .thema-hero-stat--accent:hover {
+  color: var(--bh-red, #c01818);
+}
+
+.thema-page.vorhaben-main--overview .thema-toolbar-sticky {
+  margin-bottom: var(--space-2);
+}
+
+.thema-body--overview {
+  width: 100%;
+  max-width: none;
+}
+
+.thema-body--overview .thema-body-main {
+  max-width: none;
+  width: 100%;
+}
+
+.thema-body--overview .vorhaben-panel-area {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.thema-overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.thema-overview-pillars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.thema-overview-pillars--featured {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .thema-overview-pillars--featured {
+    grid-template-columns: 1fr;
+  }
+}
+
+.thema-pillar-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 6.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.thema-pillar-card:hover,
+.thema-pillar-card:focus-visible {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.thema-pillar-card--warn {
+  border-color: var(--bh-red, #e02020);
+  box-shadow: 3px 3px 0 0 var(--bh-red, #e02020);
+}
+
+.thema-pillar-card--muted .thema-pillar-card-metric {
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-pillar-card-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-pillar-card-metric {
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--bh-fg, #121212);
+}
+
+.thema-pillar-card-caption {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--bh-fg, #121212);
+}
+
+.thema-pillar-card-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-pillar-card--featured {
+  min-height: 10.5rem;
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-1);
+  border-width: var(--bh-border-w-lg, 4px);
+  box-shadow: var(--bh-shadow, 6px 6px 0 0 #121212);
+}
+
+.thema-pillar-card--featured:hover,
+.thema-pillar-card--featured:focus-visible {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 0 var(--bh-border, #121212);
+}
+
+.vorhaben-main--overview .thema-pillar-card--featured {
+  border-width: 2px;
+  box-shadow: 0 1px 0 rgba(18, 18, 18, 0.06), 0 6px 20px rgba(18, 18, 18, 0.05);
+}
+
+.vorhaben-main--overview .thema-pillar-card--featured:hover,
+.vorhaben-main--overview .thema-pillar-card--featured:focus-visible {
+  transform: none;
+  background: var(--bh-yellow-pale, #fffde7);
+  box-shadow: 0 2px 0 rgba(18, 18, 18, 0.08), 0 8px 24px rgba(18, 18, 18, 0.07);
+}
+
+.thema-pillar-card-kicker {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--bh-blue, #1040c0);
+}
+
+.thema-pillar-card--featured .thema-pillar-card-title {
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.thema-pillar-card--featured .thema-pillar-card-metric {
+  font-size: 2.25rem;
+  margin: var(--space-1) 0;
+}
+
+.thema-pillar-card-caption--featured {
+  font-size: 0.92rem;
+  line-height: 1.4;
+  max-width: 36rem;
+}
+
+.thema-pillar-card--featured .thema-pillar-card-hint {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.thema-pillar-card-cta {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bh-blue, #1040c0);
+}
+
+.thema-sheet-lead {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border-left: 4px solid var(--bh-yellow, #edd100);
+  background: var(--bh-yellow-pale, #fffde7);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--bh-fg, #121212);
+}
+
+.thema-sheet-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.thema-sheet-section-head .thema-sheet-section-title {
+  margin: 0;
+}
+
+/* —— Vereinte Themen-Übersicht (Dashboard) —— */
+@media (min-width: 1101px) {
+  .thema-overview--unified {
+    --thema-cal-height: min(calc(100dvh - 19rem), 860px);
+  }
+}
+
+@media (min-width: 1400px) {
+  .thema-overview--unified {
+    --thema-cal-height: min(calc(100dvh - 17rem), 920px);
+  }
+}
+
+@media (min-width: 1800px) {
+  .thema-overview--unified {
+    --thema-cal-height: min(calc(100dvh - 15rem), 980px);
+  }
+}
+
+.thema-overview-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.thema-overview-section-head .thema-overview-section-title {
+  margin-bottom: 0.25rem;
+}
+
+.thema-overview-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.thema-overview-inline-alert {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--bh-red, #e02020);
+}
+
+.thema-overview-cal-link {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--bh-blue, #1040c0);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.thema-overview-cal-link:hover {
+  text-decoration: underline;
+}
+
+/* Lektionen | Planung (K&Z) + Kalender */
+.thema-dashboard {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "lektionen"
+    "woche";
+  align-items: start;
+}
+
+.thema-material-inline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.thema-material-lek-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.thema-material-lek-link {
+  display: block;
+  padding: var(--space-2);
+  text-decoration: none;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--bh-fg, #121212);
+  border: 1px solid rgba(18, 18, 18, 0.1);
+  border-radius: 6px;
+  background: var(--bh-muted, #f5f5f5);
+}
+
+.thema-material-lek-link:hover {
+  border-color: var(--bh-blue, #1040c0);
+}
+
+.thema-material-lek-title {
+  display: block;
+  font-weight: 700;
+}
+
+.thema-material-lek-preview {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted, #5a5a5a);
+}
+
+.thema-dashboard__woche {
+  grid-area: woche;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.thema-dashboard__woche .thema-woche-cal-wrap {
+  flex: 1;
+  min-height: var(--thema-cal-height);
+  display: flex;
+  flex-direction: column;
+}
+
+.thema-dashboard__woche .cal-view-wrap {
+  flex: 1;
+  min-height: var(--thema-cal-height);
+}
+
+.thema-dashboard__woche .cal-fullcalendar-host {
+  flex: 1;
+  min-height: var(--thema-cal-height);
+  height: 100%;
+}
+
+.thema-dashboard__woche .cal-fullcalendar-host--spacious .fc-timegrid-slot {
+  min-height: 2.85rem;
+}
+
+.thema-dashboard__lektionen {
+  grid-area: lektionen;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.thema-dashboard__lektionen .thema-overview-section-head {
+  flex-shrink: 0;
+  margin-bottom: var(--space-2);
+}
+
+.thema-overview-lektionen-body {
+  min-height: 0;
+}
+
+@media (min-width: 900px) {
+  .thema-dashboard {
+    grid-template-columns: minmax(220px, min(300px, 26vw)) minmax(0, 1fr);
+    grid-template-rows: minmax(min(calc(100dvh - 18rem), 480px), 1fr);
+    grid-template-areas: "lektionen woche";
+    align-items: stretch;
+  }
+
+  .thema-dashboard__lektionen {
+    max-height: min(calc(100dvh - 12rem), 880px);
+    overflow: hidden;
+    align-self: stretch;
+  }
+
+  .thema-overview-lektionen-body {
+    flex: 1;
+    min-height: 8rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding-right: 2px;
+  }
+}
+
+@media (min-width: 1101px) {
+  .thema-dashboard {
+    grid-template-columns: minmax(240px, min(320px, 22vw)) minmax(0, 1fr);
+    grid-template-rows: minmax(min(calc(100dvh - 13rem), 560px), 1fr);
+  }
+}
+
+.thema-overview-pillars--pair > * {
+  min-width: 0;
+  display: flex;
+}
+
+.thema-overview-pillars--pair .thema-pillar-card {
+  width: 100%;
+  flex: 1;
+}
+
+.thema-pillar-card--dual {
+  align-items: stretch;
+  text-align: left;
+  gap: var(--space-2);
+}
+
+.thema-pillar-dual {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  gap: 0;
+}
+
+.thema-pillar-dual-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-1) 0;
+}
+
+.thema-pillar-dual-section--todos {
+  flex: 1;
+  padding-bottom: var(--space-2);
+}
+
+.thema-pillar-dual-section--material {
+  padding-top: var(--space-2);
+}
+
+.thema-pillar-dual-divider {
+  height: 1px;
+  margin: 0;
+  background: rgba(18, 18, 18, 0.1);
+  border: none;
+}
+
+.thema-pillar-dual-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted, #6b6b6b);
+}
+
+.thema-pillar-dual-metric {
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--bh-fg, #121212);
+}
+
+.thema-pillar-dual-section--material .thema-pillar-dual-metric {
+  font-size: 1.5rem;
+}
+
+.thema-pillar-dual-caption {
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--bh-fg, #121212);
+}
+
+.thema-pillar-dual-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted, #6b6b6b);
+}
+
+.thema-pillar-card--dual .thema-pillar-card-cta {
+  margin-top: var(--space-1);
+}
+
+/* Grosser Monitor: Kalender volle Breite, nutzt Resthöhe des Viewports */
+@media (min-width: 1400px) {
+  .thema-overview--unified {
+    --thema-cal-height: 100%;
+    min-height: calc(100dvh - 9.5rem);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .thema-overview-raster {
+    flex-shrink: 0;
+  }
+
+  .thema-dashboard {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+    grid-template-columns: minmax(260px, min(380px, 30vw)) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "lektionen woche";
+  }
+
+  .thema-dashboard__woche {
+    min-height: min(calc(100dvh - 21rem), 820px);
+    height: 100%;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .thema-dashboard__woche .thema-woche-cal-wrap {
+    flex: 1;
+    min-height: min(calc(100dvh - 24rem), 760px);
+  }
+
+  .thema-dashboard__woche .cal-view-wrap,
+  .thema-dashboard__woche .cal-fullcalendar-host {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+  }
+
+  .thema-dashboard__lektionen {
+    max-height: min(calc(100dvh - 16rem), 920px);
+  }
+
+  .thema-overview-lektionen-body {
+    min-height: 12rem;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1399px) {
+  .thema-dashboard__woche .thema-woche-cal-wrap {
+    min-height: min(calc(100dvh - 20rem), 820px);
+  }
+}
+
+@media (max-width: 1100px) {
+  .thema-overview--unified {
+    --thema-cal-height: min(48vh, 520px);
+  }
+
+  .thema-dashboard {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "lektionen"
+      "woche";
+  }
+
+  .thema-dashboard__lektionen {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .thema-overview-lektionen-body {
+    overflow: visible;
+    max-height: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .thema-dashboard {
+    grid-template-areas:
+      "lektionen"
+      "woche";
+  }
+}
+
+@media (max-width: 600px) {
+  .thema-overview--unified {
+    --thema-cal-height: min(44vh, 420px);
+  }
+
+  .thema-overview-pillars {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .thema-pillar-card {
+    flex: 0 0 min(42vw, 9.5rem);
+    min-height: 4.75rem;
+  }
+
+  .thema-overview-section-head {
+    flex-direction: column;
+  }
+
+  .thema-overview-section-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.thema-unified-section {
+  padding: var(--space-3);
+  border: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+  scroll-margin-top: 7rem;
+}
+
+.thema-unified-section--woche {
+  min-width: 0;
+}
+
+.thema-unified-section-lead {
+  margin: 0 0 var(--space-2);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-unified-section-lead--desktop {
+  display: block;
+}
+
+@media (max-width: 1100px) {
+  .thema-unified-section-lead--desktop {
+    display: none;
+  }
+}
+
+.thema-unified-kbd--desktop {
+  display: block;
+}
+
+@media (max-width: 1100px) {
+  .thema-unified-kbd--desktop {
+    display: none;
+  }
+}
+
+.thema-ms-label-inline {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.thema-unified-section-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  vertical-align: middle;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-accent, #ff6b35);
+  color: #fff;
+}
+
+.thema-week-focus-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: min(100%, 280px);
+  flex: 1 1 200px;
+  max-width: 420px;
+}
+
+.thema-week-focus-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-week-focus-field input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 2px solid var(--bh-border, #121212);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.thema-unified-termine-ok {
+  margin: 0 0 var(--space-2);
+}
+
+.thema-unified-kbd {
+  margin: var(--space-2) 0 0;
+  font-size: 0.72rem;
+}
+
+.thema-ms-label-field {
+  margin-bottom: var(--space-2);
+}
+
+.thema-ms-list {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+.thema-dashboard__lektionen .thema-overview-section-title {
+  margin-bottom: var(--space-2);
+}
+
+.thema-dashboard__lektionen .thema-overview-phase {
+  margin-bottom: var(--space-2);
+}
+
+.thema-dashboard__lektionen .thema-overview-phase-title {
+  margin: 0 0 6px;
+}
+
+.thema-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, min(32vw, 400px));
+  gap: var(--space-4);
+  align-items: start;
+  width: 100%;
+}
+
+@media (min-width: 1400px) {
+  .thema-overview-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .thema-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.thema-overview-section-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.thema-overview-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bh-blue, #1040c0);
+  text-decoration: none;
+}
+
+.thema-overview-link:hover {
+  text-decoration: underline;
+}
+
+.thema-overview-lektionen {
+  padding: var(--space-3);
+  border: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+}
+
+.thema-overview-lek-head,
+.thema-overview-termine-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.thema-overview-phase {
+  margin-bottom: var(--space-4);
+}
+
+.thema-overview-phase-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--bh-muted, #e0e0e0);
+}
+
+.thema-overview-phase-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-overview-lek-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.thema-overview-lek-item--dragging {
+  opacity: 0.45;
+}
+
+.thema-overview-lek-item--drop-target .thema-overview-lek-card {
+  outline: 3px dashed var(--bh-blue, #1040c0);
+  outline-offset: 2px;
+}
+
+.thema-overview-lek-card {
+  display: flex;
+  align-items: stretch;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  box-shadow: 3px 3px 0 0 var(--bh-border, #121212);
+}
+
+.thema-overview-lek-drag-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  padding: 0;
+  border: none;
+  border-right: 2px solid var(--bh-border, #121212);
+  background: var(--bh-muted, #e8e8e8);
+  color: var(--text-muted, #3a3a3a);
+  cursor: grab;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.thema-overview-lek-drag-handle:active {
+  cursor: grabbing;
+}
+
+.thema-overview-lek-cal-drag {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  cursor: grab;
+}
+
+.thema-overview-lek-cal-drag:active {
+  cursor: grabbing;
+}
+
+.thema-overview-lek-cal-drag .thema-overview-lek-card-btn {
+  width: 100%;
+}
+
+.thema-overview-lek-card:not(.thema-overview-lek-card--scheduled) {
+  border-style: dashed;
+  border-color: var(--text-muted, #888);
+}
+
+.thema-overview-lek-card--warn {
+  border-color: var(--bh-red, #e02020);
+}
+
+.thema-overview-lek-card.fach-tone {
+  border-left-width: 6px;
+  border-left-color: var(--fach-base, var(--bh-border, #121212));
+}
+
+.thema-overview-lek-card-btn {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.thema-overview-lek-title {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.thema-overview-lek-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted, #3a3a3a);
+}
+
+
+.thema-overview-lek-cal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  flex-shrink: 0;
+  border-left: 2px solid var(--bh-border, #121212);
+  font-size: 0.85rem;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-overview-lek-cal--on {
+  color: var(--fach-base, var(--bh-blue, #1040c0));
+  font-weight: 900;
+}
+
+.thema-overview-termine-alert {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2);
+  background: var(--bh-muted, #f0f0f0);
+  border: 2px solid var(--bh-border, #121212);
+}
+
+.thema-overview-termine-alert-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.thema-overview-termine-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.thema-overview-termine-chip {
+  display: inline-block;
+  padding: 4px 8px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.thema-overview-termine-chip:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.thema-overview-week-card--btn {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.thema-overview-week-card--btn:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.thema-overview-termine-ok {
+  margin: 0 0 var(--space-3);
+  font-size: 0.82rem;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-overview-week-mini {
+  margin-bottom: var(--space-2);
+}
+
+.thema-overview-week-kw {
+  margin: 0 0 var(--space-2);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.thema-overview-week-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.thema-overview-week-row {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: var(--space-2);
+  align-items: start;
+}
+
+.thema-overview-week-day {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-overview-week-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.thema-overview-week-card {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 8px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.thema-overview-week-time {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--bh-blue, #1040c0);
+}
+
+.thema-overview-phase--fallback .thema-overview-phase-title {
+  color: var(--bh-red, #c03030);
+}
+
+.thema-overview-hint {
+  margin: var(--space-2) 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-sheet-section {
+  margin-bottom: var(--space-4);
+}
+
+.thema-sheet-section--card {
+  padding: var(--space-3);
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+}
+
+.thema-sheet-count {
+  min-width: 1.75rem;
+  padding: 2px 8px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-yellow, #edd100);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-align: center;
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.thema-sheet-hint--inline {
+  margin: 0 0 var(--space-2);
+}
+
+.thema-sheet-hint--top {
+  margin-top: 0;
+}
+
+.thema-sheet-lek-comp-list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.thema-sheet-lek-comp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 8px 10px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  text-decoration: none;
+  color: var(--bh-fg, #121212);
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+  font-size: 0.82rem;
+}
+
+.thema-sheet-lek-comp-row:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.thema-sheet-lek-comp-title {
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thema-sheet-lek-comp-badge {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-sheet-lek-comp-badge--on {
+  padding: 2px 8px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-gray-100, #f4f4f4);
+  color: var(--bh-fg, #121212);
+}
+
+/* Kompetenz-Picker — Thema-UI (Bauhaus, wie Übersicht / Lektionsplan) */
+.planning-surface .competency-picker--thema,
+.competency-picker--thema {
+  gap: var(--space-2);
+}
+
+.competency-picker--thema .competency-picker-selected-label {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.competency-picker--thema .competency-picker-hint,
+.competency-picker--thema .competency-picker-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted, #3a3a3a);
+  line-height: 1.4;
+}
+
+.competency-picker--thema .competency-picker-empty a {
+  color: var(--bh-blue, #1040c0);
+  font-weight: 600;
+}
+
+.competency-picker--thema .competency-picker-chips {
+  gap: 6px;
+}
+
+.competency-picker--thema .competency-picker-chip {
+  padding: 4px 6px 4px 8px;
+  border-radius: 0;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.competency-picker--thema .competency-picker-chip-code {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--bh-blue, #1040c0);
+}
+
+.competency-picker--thema .competency-picker-chip-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--bh-fg, #121212);
+  max-width: 12rem;
+}
+
+.competency-picker--thema .competency-picker-chip-remove {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-gray-100, #f4f4f4);
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--bh-fg, #121212);
+}
+
+.competency-picker--thema .competency-picker-chip-remove:hover {
+  background: var(--bh-red-pale, #ffe8e8);
+}
+
+.competency-picker--thema .competency-picker-tabs {
+  gap: 6px;
+}
+
+.competency-picker--thema .competency-picker-tab {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 0;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--bh-fg, #121212);
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.competency-picker--thema .competency-picker-tab:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.competency-picker--thema .competency-picker-tab.is-active {
+  border-color: var(--bh-border, #121212);
+  background: var(--bh-yellow, #edd100);
+  color: var(--bh-fg, #121212);
+  box-shadow: 3px 3px 0 0 var(--bh-border, #121212);
+}
+
+.competency-picker--thema .competency-picker-panel {
+  padding: var(--space-2);
+  border-radius: 0;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-gray-100, #f4f4f4);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.competency-picker--thema .competency-picker-search-bar input {
+  border: 2px solid var(--bh-border, #121212);
+  border-radius: 0;
+  background: var(--bh-white, #fff);
+  font-size: 0.85rem;
+}
+
+.competency-picker--thema .competency-picker-search-btn {
+  border: 2px solid var(--bh-border, #121212);
+  border-radius: 0;
+  background: var(--bh-white, #fff);
+  font-weight: 700;
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.competency-picker--thema .competency-picker-search-btn:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.competency-picker--thema .competency-picker-folder-toggle {
+  border-radius: 0;
+  font-weight: 700;
+  color: var(--bh-fg, #121212);
+}
+
+.competency-picker--thema .competency-picker-item {
+  border-bottom: 2px solid var(--plan-border-subtle, #ddd);
+}
+
+.competency-picker--thema .competency-picker-item-label {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--bh-fg, #121212);
+}
+
+.competency-picker--thema .competency-picker-item-meta,
+.competency-picker--thema .competency-picker-folder-count {
+  font-size: 0.72rem;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.competency-picker--thema .competency-picker-add-btn {
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 0;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-weight: 800;
+  box-shadow: 2px 2px 0 0 var(--bh-border, #121212);
+}
+
+.competency-picker--thema .competency-picker-add-btn:not(:disabled):hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.competency-picker--thema .competency-picker-add-btn:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.competency-picker--thema .competency-picker-refresh {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--bh-blue, #1040c0);
+}
+
+.thema-aside .competency-picker--thema {
+  margin-top: var(--space-2);
+}
+
+.thema-pillar-sheet .competency-picker--thema {
+  margin-top: var(--space-2);
+}
+
+.lektion-plan-section .competency-picker--thema {
+  margin-top: var(--space-1);
+}
+
+.thema-sheet-section-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.thema-sheet-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.thema-sheet-hint {
+  margin: var(--space-2) 0 0;
+  font-size: 0.78rem;
+}
+
+.thema-sheet-lek-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.thema-sheet-lek-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.thema-lek-status {
+  font-size: 0.75rem;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.thema-lek-status--ok {
+  color: var(--bh-blue, #1040c0);
+  font-weight: 800;
+}
+
+.thema-sheet-todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.thema-sheet-todo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.thema-sheet-todo-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--plan-border-subtle, #eee);
+}
+
+.thema-sheet-todo--done .thema-sheet-todo-row span {
+  text-decoration: line-through;
+  opacity: 0.65;
+}
+
+.thema-material-overview {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.thema-lektion-sheet-footer {
+  flex-wrap: wrap;
+}
+
+/* —— Lektion planen (eigene Seite) —— */
+.lektion-plan-page {
+  max-width: 100%;
+  width: 100%;
+}
+
+.lektion-plan-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.lektion-plan-back {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--bh-blue, #1040c0);
+  text-decoration: none;
+  padding-top: 4px;
+}
+
+.lektion-plan-header-main {
+  flex: 1;
+  min-width: 12rem;
+  padding: var(--space-2) var(--space-3);
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+}
+
+.lektion-plan-eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.lektion-plan-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 2vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.lektion-plan-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  width: 100%;
+  align-items: start;
+}
+
+.lektion-plan-editor-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.lektion-plan-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+.lektion-plan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lektion-plan-field--grow {
+  flex: 1 1 12rem;
+}
+
+.lektion-plan-field label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.lektion-plan-field input,
+.lektion-plan-field select,
+.lektion-plan-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.lektion-plan-schedule {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.lektion-plan-schedule--open {
+  color: var(--text-muted, #3a3a3a);
+}
+
+.lektion-plan-schedule-dot {
+  color: var(--bh-green, #1a7a3a);
+}
+
+.lektion-plan-section {
+  padding: var(--space-3);
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+}
+
+.lektion-plan-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.lektion-plan-section-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lektion-ablauf--plan {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+}
+
+.lektion-ablauf-item--plan {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 10px;
+  border: 2px solid var(--plan-border-subtle, #ddd);
+  margin-bottom: 6px;
+  background: var(--bh-gray-100, #f4f4f4);
+}
+
+.lektion-ablauf-label {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.lektion-ablauf-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted, #3a3a3a);
+  padding: var(--space-2) 0;
+}
+
+.lektion-plan-entwurf {
+  align-self: flex-start;
+  text-decoration: none;
+}
+
+.lektion-plan-footer {
+  grid-column: 1 / -1;
+  padding-top: var(--space-2);
+  border-top: 2px solid var(--plan-border-subtle, #ddd);
+}
+
+.lektion-plan-siblings {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 2px dashed var(--plan-border-subtle, #ccc);
+}
+
+.lektion-plan-siblings-label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.lektion-plan-siblings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lektion-plan-sibling-link {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--bh-fg, #121212);
+}
+
+.lektion-plan-sibling-link:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+@media (max-width: 960px) {
+  .lektion-plan-editor {
+    grid-template-columns: 1fr;
+  }
+}
+
+.planning-btn--small {
+  min-height: 2rem;
+  padding: 0 var(--space-2);
+  font-size: 0.78rem;
+}
+
+.lektion-time-sum--warn {
+  color: var(--bh-red, #e02020);
+  font-weight: 700;
 }

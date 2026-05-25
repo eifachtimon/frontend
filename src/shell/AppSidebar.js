@@ -62,15 +62,23 @@ const AppSidebar = ({
             collapsed={rail}
           />
           <SidebarNavLink
-            to={APP_ROUTES.search}
-            icon="search"
-            label="Suche"
-            collapsed={rail}
-          />
-          <SidebarNavLink
             to={APP_ROUTES.kalender}
             icon="calendar"
             label="Kalender"
+            collapsed={rail}
+          />
+        </nav>
+
+        <nav className="app-sidebar-group" aria-label="Kompetenzen">
+          {!rail ? (
+            <span className="app-sidebar-group-label">Kompetenzen</span>
+          ) : (
+            <span className="app-sidebar-rail-spacer app-sidebar-rail-spacer--thin" aria-hidden="true" />
+          )}
+          <SidebarNavLink
+            to={APP_ROUTES.search}
+            icon="search"
+            label="Suche"
             collapsed={rail}
           />
           <SidebarNavLink

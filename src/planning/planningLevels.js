@@ -1,19 +1,30 @@
+import { isLektionScheduled } from "./themaOverviewUtils";
+
 /** App-Ebenen ↔ FHNW Phasenmodell Unterrichtsplanung (IP FHNW) */
 
 export const LEVEL_META = [
   {
-    id: "grob",
+    id: "uebersicht",
     step: 1,
-    label: "Überblick",
-    hint: "Ziele & Phasen",
+    label: "Thema",
+    hint: "Übersicht",
+    fhnwPhases: ["Klären", "Entscheiden", "Gestalten"],
+    fhnwFocus: "Ziele, Kompetenzen, Lektionen und Termine auf einen Blick.",
+  },
+  {
+    id: "grob",
+    step: 0,
+    label: "Grobplanung",
+    hint: "Ziele & Phasen (Detail)",
     fhnwPhases: ["Klären", "Entscheiden"],
-    fhnwFocus: "Voraussetzungen, Lernziele, Kompetenzen — Tiefenstrukturen vor Methoden.",
+    fhnwFocus: "Voraussetzungen, Lernziele, Phasen — ausführliche Grobplanung.",
+    hiddenInStepper: true,
   },
   {
     id: "zwei-wochen",
     step: 2,
     label: "Zwischenziele",
-    hint: "Meilensteine",
+    hint: "Material",
     fhnwPhases: ["Gestalten"],
     fhnwFocus: "Material, Medien, Rituale — Oberflächenstrukturen passend zu Lernprozessen.",
   },
@@ -52,6 +63,16 @@ export const getLevelBadge = (vorhaben, levelId) => {
     return null;
   }
   switch (levelId) {
+    case "uebersicht": {
+      const lek = vorhaben.lektionen?.length ?? 0;
+      const unscheduled = (vorhaben.lektionen || []).filter(
+        (l) => !isLektionScheduled(l, vorhaben)
+      ).length;
+      if (unscheduled > 0) {
+        return String(unscheduled);
+      }
+      return lek > 0 ? String(lek) : null;
+    }
     case "grob": {
       const n = vorhaben.grob?.phasen?.length ?? 0;
       const c = vorhaben.competencies?.length ?? 0;
@@ -61,8 +82,8 @@ export const getLevelBadge = (vorhaben, levelId) => {
       return n > 0 ? String(n) : null;
     }
     case "zwei-wochen": {
-      const open = (vorhaben.zweiWochen?.meilensteine || []).filter((m) => !m.done).length;
-      return open > 0 ? String(open) : null;
+      const mat = (vorhaben.zweiWochen?.material || "").trim();
+      return mat ? "✓" : null;
     }
     case "woche": {
       const open = (vorhaben.erinnerungen || []).filter((e) => !e.done).length;

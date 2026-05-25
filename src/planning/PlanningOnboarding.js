@@ -13,7 +13,7 @@ const STEPS = [
   },
   {
     title: "2. Thema anlegen",
-    body: "Ein Unterrichtsstrang in vier Schritten: Überblick → Zwischenziele → Woche → Lektion.",
+    body: "Thema-Übersicht als Hub: Ziele, Lektionen planen, Termine im Wochenplan setzen.",
     to: APP_ROUTES.home,
     cta: "Thema anlegen",
   },

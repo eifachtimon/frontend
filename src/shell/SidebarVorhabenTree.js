@@ -5,6 +5,7 @@ import { vorhabenLevelPath } from "../config/appUrls";
 import { addCompetencyToVorhaben } from "../planning/planningCompetencies";
 import { createVorhaben } from "../planning/planningStore";
 import { getFachCssVars, getFachToneClassName } from "../planning/fachColors";
+import { groupVorhabenByFach } from "../planning/planningHomeUtils";
 import { getLevelBadge } from "../planning/planningLevels";
 import usePlanningStore from "../planning/usePlanningStore";
 import {
@@ -18,8 +19,14 @@ const SidebarVorhabenTree = ({ collapsed, onDropToast }) => {
   const params = useParams();
   const { store, saveVorhaben } = usePlanningStore();
   const [dropTargetId, setDropTargetId] = useState(null);
+  const [folderExpanded, setFolderExpanded] = useState({});
 
-  const sorted = useMemo(
+  const fachFolders = useMemo(
+    () => groupVorhabenByFach(store.vorhaben),
+    [store.vorhaben]
+  );
+
+  const sortedFlat = useMemo(
     () =>
       [...store.vorhaben].sort((a, b) => {
         if (a.id === store.lastActiveVorhabenId) {
@@ -36,7 +43,7 @@ const SidebarVorhabenTree = ({ collapsed, onDropToast }) => {
   const handleCreate = () => {
     const v = createVorhaben({ templateId: "thema" });
     const saved = saveVorhaben(v);
-    navigate(vorhabenLevelPath(saved.id, "grob"));
+    navigate(vorhabenLevelPath(saved.id, "uebersicht"));
   };
 
   const findBookmarkEntry = (uid) => {
@@ -79,16 +86,70 @@ const SidebarVorhabenTree = ({ collapsed, onDropToast }) => {
     onDropToast?.(`«${entry.code || entry.label}» → ${v.title}`);
   };
 
+  const isFolderOpen = (fach, count) => {
+    if (folderExpanded[fach] !== undefined) {
+      return folderExpanded[fach];
+    }
+    return count <= 3;
+  };
+
+  const toggleFolder = (fach, count) => {
+    setFolderExpanded((prev) => ({
+      ...prev,
+      [fach]: !isFolderOpen(fach, count),
+    }));
+  };
+
+  const renderVorhabenRow = (v) => {
+    const badge = getLevelBadge(v, v.lastVisitedLevel || "uebersicht");
+    const isDrop = dropTargetId === v.id;
+    const toneClass = getFachToneClassName(v.fach);
+    return (
+      <li
+        key={v.id}
+        className="app-sidebar-tree-vorhaben"
+        role="treeitem"
+        aria-selected={params.id === v.id || store.lastActiveVorhabenId === v.id}
+      >
+        <div
+          className={`app-sidebar-vorhaben-row${isDrop ? " app-sidebar-vorhaben-row--drop" : ""}`}
+          onDragOver={(e) => {
+            allowDrop(e, "copy");
+            setDropTargetId(v.id);
+          }}
+          onDragLeave={() => setDropTargetId(null)}
+          onDrop={(e) => handleDropOnVorhaben(e, v.id)}
+        >
+          <NavLink
+            to={vorhabenLevelPath(v.id, "uebersicht")}
+            className={({ isActive }) =>
+              `app-sidebar-vorhaben-link${toneClass ? ` ${toneClass}` : ""}${isActive ? " app-sidebar-vorhaben-link--active" : ""}`
+            }
+            style={toneClass ? getFachCssVars(v.fach, v.id) : undefined}
+            title={v.title}
+          >
+            <span className="app-sidebar-vorhaben-title">{v.title}</span>
+            {badge ? (
+              <span className="app-sidebar-badge" aria-label={`${badge} Einträge`}>
+                {badge}
+              </span>
+            ) : null}
+          </NavLink>
+        </div>
+      </li>
+    );
+  };
+
   if (collapsed) {
     return (
       <nav className="app-sidebar-vorhaben-collapsed" aria-label="Themen">
-        {sorted.slice(0, 5).map((v) => {
+        {sortedFlat.slice(0, 5).map((v) => {
           const initial = (v.title || "?").trim().slice(0, 1).toUpperCase();
           const toneClass = getFachToneClassName(v.fach);
           return (
             <NavLink
               key={v.id}
-              to={vorhabenLevelPath(v.id, v.lastVisitedLevel || "grob")}
+              to={vorhabenLevelPath(v.id, "uebersicht")}
               className={({ isActive }) =>
                 `app-sidebar-rail-btn app-sidebar-rail-btn--vorhaben${toneClass ? ` ${toneClass}` : ""}${isActive ? " app-sidebar-rail-btn--active" : ""}`
               }
@@ -126,46 +187,45 @@ const SidebarVorhabenTree = ({ collapsed, onDropToast }) => {
           +
         </button>
       </div>
-      {sorted.length === 0 ? (
+      {fachFolders.length === 0 ? (
         <p className="app-sidebar-empty">Noch kein Thema.</p>
       ) : (
         <ul className="app-sidebar-tree" role="tree">
-          {sorted.map((v) => {
-            const badge = getLevelBadge(v, v.lastVisitedLevel || "grob");
-            const isDrop = dropTargetId === v.id;
-            const toneClass = getFachToneClassName(v.fach);
+          {fachFolders.map(({ fach, items }) => {
+            const open = isFolderOpen(fach, items.length);
+            const toneClass = getFachToneClassName(fach);
+            const folderId = `sidebar-fach-${fach.replace(/\s+/g, "-")}`;
             return (
-              <li
-                key={v.id}
-                className="app-sidebar-tree-vorhaben"
-                role="treeitem"
-                aria-selected={params.id === v.id || store.lastActiveVorhabenId === v.id}
-              >
-                <div
-                  className={`app-sidebar-vorhaben-row${isDrop ? " app-sidebar-vorhaben-row--drop" : ""}`}
-                  onDragOver={(e) => {
-                    allowDrop(e, "copy");
-                    setDropTargetId(v.id);
-                  }}
-                  onDragLeave={() => setDropTargetId(null)}
-                  onDrop={(e) => handleDropOnVorhaben(e, v.id)}
-                >
-                  <NavLink
-                    to={vorhabenLevelPath(v.id, v.lastVisitedLevel || "grob")}
-                    className={({ isActive }) =>
-                      `app-sidebar-vorhaben-link${toneClass ? ` ${toneClass}` : ""}${isActive ? " app-sidebar-vorhaben-link--active" : ""}`
-                    }
-                    style={toneClass ? getFachCssVars(v.fach, v.id) : undefined}
-                    title={v.title}
+              <li key={fach} className="app-sidebar-tree-fach" role="none">
+                <div className="app-sidebar-fach-folder-head">
+                  <button
+                    type="button"
+                    className="app-sidebar-tree-toggle"
+                    onClick={() => toggleFolder(fach, items.length)}
+                    aria-expanded={open}
+                    aria-controls={folderId}
+                    title={`${fach} ${open ? "zuklappen" : "aufklappen"}`}
                   >
-                    <span className="app-sidebar-vorhaben-title">{v.title}</span>
-                    {badge ? (
-                      <span className="app-sidebar-badge" aria-label={`${badge} Einträge`}>
-                        {badge}
-                      </span>
-                    ) : null}
-                  </NavLink>
+                    <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+                  </button>
+                  <span
+                    className={`app-sidebar-fach-label${toneClass ? ` ${toneClass}` : ""}`}
+                    style={toneClass ? getFachCssVars(fach) : undefined}
+                  >
+                    {fach}
+                    <span className="app-sidebar-section-count"> ({items.length})</span>
+                  </span>
                 </div>
+                {open ? (
+                  <ul
+                    id={folderId}
+                    className="app-sidebar-tree-children"
+                    role="group"
+                    aria-label={fach}
+                  >
+                    {items.map((v) => renderVorhabenRow(v))}
+                  </ul>
+                ) : null}
               </li>
             );
           })}

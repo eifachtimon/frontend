@@ -30,12 +30,31 @@ export const monatsplanPath = (year, month) => {
   return `${APP_ROUTES.monatsplan}/${y}/${m}`;
 };
 
-export const PLANUNG_LEVELS = ["grob", "zwei-wochen", "woche", "lektion"];
+export const PLANUNG_LEVELS = [
+  "uebersicht",
+  "grob",
+  "zwei-wochen",
+  "woche",
+  "lektion",
+];
+
+/** Nur Übersicht im Haupt-Nav; Woche/Meilensteine als sekundäre Links */
+export const PLANUNG_STEPPER_LEVELS = ["uebersicht"];
 
 export const vorhabenPath = (id) => `/planung/vorhaben/${encodeURIComponent(id)}`;
 
 export const vorhabenLevelPath = (id, level) =>
   `${vorhabenPath(id)}/${encodeURIComponent(level)}`;
+
+/** Einheitliche Themen-Übersicht mit Sprungmarke (lektionen | todos | woche). */
+export const vorhabenOverviewSectionPath = (id, section) => {
+  const base = vorhabenLevelPath(id, "uebersicht");
+  const hash = section != null ? String(section).trim() : "";
+  return hash ? `${base}#${encodeURIComponent(hash)}` : base;
+};
+
+export const vorhabenLektionPath = (vorhabenId, lektionId) =>
+  `${vorhabenPath(vorhabenId)}/lektion/${encodeURIComponent(lektionId)}`;
 
 /** @param {string} slug Kompetenzcode oder fetch-UID für die Route */
 export const chainPath = (slug) => {

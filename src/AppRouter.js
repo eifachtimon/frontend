@@ -7,6 +7,7 @@ import AppShellLayout from "./shell/AppShellLayout";
 import PlanungEntwurfPage from "./pages/PlanungEntwurfPage";
 import PlanungHubPage from "./pages/PlanungHubPage";
 import VorhabenPage from "./pages/VorhabenPage";
+import LektionPlanPage from "./pages/LektionPlanPage";
 import JahresplanPage from "./pages/JahresplanPage";
 import MonatsplanPage from "./pages/MonatsplanPage";
 import KalenderPage from "./pages/KalenderPage";
@@ -37,7 +38,7 @@ const LandkarteRoute = () => {
 
 const VorhabenRedirect = () => {
   const { id } = useParams();
-  return <Navigate to={vorhabenLevelPath(id, "grob")} replace />;
+  return <Navigate to={vorhabenLevelPath(id, "uebersicht")} replace />;
 };
 
 const JahresplanRedirect = () => (
@@ -72,6 +73,10 @@ const AppRouter = () => (
         />
         <Route path={APP_ROUTES.monatsplan} element={<MonatsplanRedirect />} />
         <Route path="/planung/vorhaben/:id" element={<VorhabenRedirect />} />
+        <Route
+          path="/planung/vorhaben/:id/lektion/:lektionId"
+          element={<LektionPlanPage />}
+        />
         <Route path="/planung/vorhaben/:id/:level" element={<VorhabenPage />} />
         <Route path={APP_ROUTES.planungEntwurf} element={<PlanungEntwurfPage />} />
         <Route path="*" element={<Navigate to={APP_ROUTES.home} replace />} />

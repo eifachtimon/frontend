@@ -14,7 +14,11 @@ import {
   updateWeekInMonth,
 } from "../planning/planningKalender";
 import usePlanningStore from "../planning/usePlanningStore";
-import { APP_ROUTES, monatsplanPath, vorhabenLevelPath } from "../config/appUrls";
+import {
+  APP_ROUTES,
+  monatsplanPath,
+  vorhabenOverviewSectionPath,
+} from "../config/appUrls";
 import { getFachCssVars, getFachToneClassName } from "../planning/fachColors";
 import "../planning/planning.css";
 
@@ -116,7 +120,7 @@ const MonatsplanPage = () => {
                         return (
                           <Link
                             key={v.id}
-                            to={vorhabenLevelPath(v.id, "woche")}
+                            to={vorhabenOverviewSectionPath(v.id, "woche")}
                             className={`monatsplan-vorhaben-chip${toneClass ? ` ${toneClass}` : ""}`}
                             style={toneClass ? getFachCssVars(v.fach, v.id) : undefined}
                           >
@@ -160,7 +164,7 @@ const MonatsplanPage = () => {
                     </select>
                     {vorhabenId ? (
                       <Link
-                        to={vorhabenLevelPath(vorhabenId, "woche")}
+                        to={vorhabenOverviewSectionPath(vorhabenId, "woche")}
                         className="monatsplan-week-open"
                       >
                         Wochenplanung öffnen →

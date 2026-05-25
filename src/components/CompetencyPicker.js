@@ -36,7 +36,14 @@ const normalizePick = (entry) => {
   };
 };
 
-const CompetencyPicker = ({ selected = [], onChange, maxSelected = MAX_SELECTED }) => {
+const CompetencyPicker = ({
+  selected = [],
+  onChange,
+  maxSelected = MAX_SELECTED,
+  variant = "default",
+}) => {
+  const isThema = variant === "thema";
+  const isLektion = variant === "lektion";
   const [pickerTab, setPickerTab] = useState("merkliste");
   const [bookmarkStore, setBookmarkStore] = useState(() => loadBookmarkStore());
   const [searchQuery, setSearchQuery] = useState("");
@@ -136,14 +143,20 @@ const CompetencyPicker = ({ selected = [], onChange, maxSelected = MAX_SELECTED 
   };
 
   return (
-    <div className="competency-picker">
+    <div
+      className={`competency-picker${isThema || isLektion ? " competency-picker--thema" : ""}`}
+    >
       <div className="competency-picker-selected" aria-live="polite">
         <p className="competency-picker-selected-label">
           Ausgewählt ({selected.length}/{maxSelected})
         </p>
         {selected.length === 0 ? (
           <p className="competency-picker-hint">
-            Wähle Kompetenzen aus der Merkliste oder per Suche.
+            {isLektion
+              ? "Schwerpunkt dieser Lektion — Merkliste oder Suche."
+              : isThema
+                ? "Am ganzen Thema — Merkliste oder Suche."
+                : "Wähle Kompetenzen aus der Merkliste oder per Suche."}
           </p>
         ) : (
           <ul className="competency-picker-chips">

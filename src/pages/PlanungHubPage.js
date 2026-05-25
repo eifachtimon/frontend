@@ -1,14 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import CalendarView from "../calendar/CalendarView";
+import CalendarEventModal from "../calendar/CalendarEventModal";
 import { DEFAULT_CAL_FILTERS } from "../calendar/calendarFilters";
 import { loadCalendarStore, saveCalendarStore } from "../calendar/calendarStore";
-import { APP_ROUTES, vorhabenLevelPath } from "../config/appUrls";
+import useCalendarTerminModal from "../calendar/useCalendarTerminModal";
+import {
+  APP_ROUTES,
+  vorhabenLevelPath,
+  vorhabenOverviewSectionPath,
+} from "../config/appUrls";
 import PlanningViewHeader from "../planning/PlanningViewHeader";
 import PlanningOnboarding from "../planning/PlanningOnboarding";
 import NeuesVorhabenModal from "../planning/NeuesVorhabenModal";
 import { getContinuePlanningTarget } from "../planning/planningHubUtils";
-import { groupVorhabenByFach } from "../planning/planningHomeUtils";
+import {
+  formatGermanDateLabel,
+  getTodayIsoDate,
+  groupVorhabenByFach,
+} from "../planning/planningHomeUtils";
 import TagesTodosPanel from "../planning/TagesTodosPanel";
 import {
   addTagesTodoItem,
@@ -51,29 +61,67 @@ const PlanungHubPage = () => {
   const [calStore, setCalStore] = useState(() => loadCalendarStore());
   const [createOpen, setCreateOpen] = useState(false);
   const [folderExpanded, setFolderExpanded] = useState({});
+  const [unterrichtTag, setUnterrichtTag] = useState(() => new Date());
 
-  const today = useMemo(() => new Date(), []);
+  const isoDate = useMemo(() => getTodayIsoDate(unterrichtTag), [unterrichtTag]);
   const dateLabel = useMemo(
-    () =>
-      today.toLocaleDateString("de-CH", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }),
-    [today]
+    () => formatGermanDateLabel(unterrichtTag),
+    [unterrichtTag]
   );
-  const isoDate = useMemo(() => {
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, "0");
-    const d = String(today.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }, [today]);
+  const isEchterHeute = useMemo(() => {
+    const now = new Date();
+    return getTodayIsoDate(now) === isoDate;
+  }, [isoDate]);
+
+  const shiftUnterrichtTag = useCallback((deltaDays) => {
+    setUnterrichtTag((prev) => {
+      const next = new Date(prev);
+      next.setDate(next.getDate() + deltaDays);
+      return next;
+    });
+  }, []);
+
+  const handleGoToHeute = useCallback(() => {
+    setUnterrichtTag(new Date());
+  }, []);
 
   const fachFolders = useMemo(() => groupVorhabenByFach(store.vorhaben), [store.vorhaben]);
   const continueTarget = getContinuePlanningTarget(store);
   const draftVorhabenId =
     store.lastActiveVorhabenId || store.vorhaben[0]?.id || "";
+
+  const homeCalFilters = useMemo(
+    () => ({
+      ...DEFAULT_CAL_FILTERS,
+      vorhabenIds: draftVorhabenId ? [draftVorhabenId] : [],
+      showSubscriptions: false,
+    }),
+    [draftVorhabenId]
+  );
+
+  const draftVorhaben = store.vorhaben.find((v) => v.id === draftVorhabenId);
+
+  const persistCal = useCallback((next) => {
+    setCalStore(saveCalendarStore(next));
+  }, []);
+
+  const {
+    modalOpen,
+    eventForm,
+    eventAnchor,
+    setEventForm,
+    closeModal,
+    handleEventClick,
+    handleDateSelect,
+    handleSaveEvent,
+    handleDeleteEvent,
+  } = useCalendarTerminModal({
+    planningStore: store,
+    calStore,
+    onPlanningStoreChange: saveVorhaben,
+    onCalStoreChange: persistCal,
+    draftVorhabenId,
+  });
 
   const tagesEintrag = getTagesEintrag(store, isoDate);
   const [draftNotizen, setDraftNotizen] = useState(tagesEintrag.notizen);
@@ -90,10 +138,6 @@ const PlanungHubPage = () => {
       window.removeEventListener("lp21-calendar-updated", refreshCal);
       window.removeEventListener("storage", refreshCal);
     };
-  }, []);
-
-  const persistCal = useCallback((next) => {
-    setCalStore(saveCalendarStore(next));
   }, []);
 
   const persistTagesEintrag = useCallback(
@@ -142,7 +186,7 @@ const PlanungHubPage = () => {
     });
     const saved = saveVorhaben(v);
     setCreateOpen(false);
-    navigate(vorhabenLevelPath(saved.id, "grob"));
+    navigate(vorhabenLevelPath(saved.id, "uebersicht"));
   };
 
   const handleLoadMockData = () => {
@@ -156,7 +200,7 @@ const PlanungHubPage = () => {
     const next = applyMockPlanningStore({ replace: true });
     const first = next.vorhaben[0];
     if (first) {
-      navigate(vorhabenLevelPath(first.id, first.lastVisitedLevel || "woche"));
+      navigate(vorhabenLevelPath(first.id, first.lastVisitedLevel || "uebersicht"));
     }
   };
 
@@ -170,7 +214,7 @@ const PlanungHubPage = () => {
     setSearchParams(next, { replace: true });
     const first = loadPlanningStore().vorhaben[0];
     if (first) {
-      navigate(vorhabenLevelPath(first.id, first.lastVisitedLevel || "woche"), {
+      navigate(vorhabenLevelPath(first.id, first.lastVisitedLevel || "uebersicht"), {
         replace: true,
       });
     }
@@ -238,26 +282,58 @@ const PlanungHubPage = () => {
             aria-labelledby="home-calendar-title"
           >
             <div className="unterricht-home-col-head">
-              <h2 id="home-calendar-title" className="unterricht-section-title">
-                Heute
-              </h2>
-              <Link to={APP_ROUTES.kalender} className="unterricht-col-link">
-                Voller Kalender →
-              </Link>
+              <div className="unterricht-day-nav">
+                <button
+                  type="button"
+                  className="unterricht-day-nav-btn"
+                  onClick={() => shiftUnterrichtTag(-1)}
+                  aria-label="Vorheriger Unterrichtstag"
+                >
+                  ←
+                </button>
+                <h2 id="home-calendar-title" className="unterricht-section-title">
+                  {isEchterHeute ? "Heute" : dateLabel}
+                </h2>
+                <button
+                  type="button"
+                  className="unterricht-day-nav-btn"
+                  onClick={() => shiftUnterrichtTag(1)}
+                  aria-label="Nächster Unterrichtstag"
+                >
+                  →
+                </button>
+              </div>
+              <div className="unterricht-home-col-head-actions">
+                {!isEchterHeute ? (
+                  <button
+                    type="button"
+                    className="unterricht-col-link unterricht-col-link--btn"
+                    onClick={handleGoToHeute}
+                  >
+                    Heute
+                  </button>
+                ) : null}
+                <Link to={APP_ROUTES.kalender} className="unterricht-col-link">
+                  Voller Kalender →
+                </Link>
+              </div>
             </div>
             <div className="unterricht-home-calendar-host">
               <CalendarView
-                dayViewToday
-                initialDate={today}
+                dayView
+                muteTodayHighlight
+                initialDate={unterrichtTag}
                 planningStore={store}
                 saveVorhaben={saveVorhaben}
                 calendarStore={calStore}
                 onCalendarStoreChange={persistCal}
-                filters={DEFAULT_CAL_FILTERS}
+                filters={homeCalFilters}
                 draftVorhabenId={draftVorhabenId}
                 rituals={store.rituals}
                 showExternalEvents={false}
                 showDragStrip={false}
+                onEventClick={handleEventClick}
+                onDateSelect={handleDateSelect}
                 height="100%"
               />
             </div>
@@ -269,10 +345,10 @@ const PlanungHubPage = () => {
           >
             <div className="unterricht-tagesfeld">
               <h3 id="unterricht-tages-todos" className="unterricht-section-title">
-                Todos für heute
+                {isEchterHeute ? "Todos für heute" : `Todos · ${dateLabel}`}
               </h3>
               <p className="unterricht-tagesnotiz-hint">
-                Abhaken, wenn erledigt — bleibt für heute gespeichert.
+                Abhaken, wenn erledigt — bleibt für diesen Tag gespeichert.
               </p>
               <TagesTodosPanel
                 items={tagesEintrag.todos}
@@ -283,7 +359,7 @@ const PlanungHubPage = () => {
             </div>
             <div className="unterricht-tagesfeld unterricht-tagesfeld--notizen">
               <label htmlFor="unterricht-tages-notizen" className="unterricht-section-title">
-                Notizen für heute
+                {isEchterHeute ? "Notizen für heute" : `Notizen · ${dateLabel}`}
               </label>
               <p className="unterricht-tagesnotiz-hint">
                 Gedanken und Ideen — später kann KI sie einem Vorhaben zuordnen.
@@ -346,7 +422,7 @@ const PlanungHubPage = () => {
                     {open ? (
                       <ul className="vorhaben-card-list unterricht-fach-list">
                         {items.map((v) => {
-                          const resumeLevel = v.lastVisitedLevel || "grob";
+                          const resumeLevel = v.lastVisitedLevel || "uebersicht";
                           const cardTone = getFachToneClassName(v.fach || fach);
                           return (
                             <li key={v.id}>
@@ -377,7 +453,7 @@ const PlanungHubPage = () => {
                                 </Link>
                                 <div className="vorhaben-card-quick">
                                   <Link
-                                    to={vorhabenLevelPath(v.id, "woche")}
+                                    to={vorhabenOverviewSectionPath(v.id, "woche")}
                                     className="vorhaben-quick-link"
                                   >
                                     Woche
@@ -421,6 +497,18 @@ const PlanungHubPage = () => {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreate={handleCreateVorhaben}
+      />
+
+      <CalendarEventModal
+        open={modalOpen}
+        form={eventForm}
+        anchor={eventAnchor}
+        onChange={setEventForm}
+        onClose={closeModal}
+        onSave={handleSaveEvent}
+        onDelete={handleDeleteEvent}
+        vorhabenOptions={store.vorhaben}
+        lektionOptions={draftVorhaben?.lektionen || []}
       />
     </div>
   );

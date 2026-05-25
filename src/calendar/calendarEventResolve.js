@@ -1,4 +1,8 @@
-import { planungEntwurfPath, vorhabenLevelPath } from "../config/appUrls";
+import {
+  planungEntwurfPath,
+  vorhabenLevelPath,
+  vorhabenOverviewSectionPath,
+} from "../config/appUrls";
 import { VORHABEN_TEMPLATES, WEEKDAYS } from "../planning/planningDefaults";
 import { getVorhabenById } from "../planning/planningStore";
 import { weekdayIdFromDate } from "./planningEvents";
@@ -86,7 +90,7 @@ export const formFromFcEvent = (fcEvent, planningStore, calStore) => {
       links: vid
         ? [
             { to: vorhabenLevelPath(vid, "grob"), label: "Thema öffnen" },
-            { to: vorhabenLevelPath(vid, "woche"), label: "Wochenplan" },
+            { to: vorhabenOverviewSectionPath(vid, "woche"), label: "Woche im Thema" },
           ]
         : [],
     };
@@ -104,7 +108,7 @@ const buildPlanningLinks = (vorhaben, props, lektion) => {
   }
   const links = [
     { to: vorhabenLevelPath(vorhaben.id, "grob"), label: "Grobplanung" },
-    { to: vorhabenLevelPath(vorhaben.id, "woche"), label: "Wochenplan" },
+    { to: vorhabenOverviewSectionPath(vorhaben.id, "woche"), label: "Woche im Thema" },
     { to: vorhabenLevelPath(vorhaben.id, "lektion"), label: "Lektionen" },
   ];
   if (lektion) {

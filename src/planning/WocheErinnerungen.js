@@ -6,8 +6,8 @@ import { getTodayWeekdayId } from "./planningLevels";
 
 const weekdayLabel = (id) => WEEKDAYS.find((d) => d.id === id)?.label || id;
 
-const ErinnerungRow = ({ item, onToggle, onRemove, onEditText }) => (
-  <li className={`woche-erinnerung-row${item.done ? " is-done" : ""}`}>
+const TodoRow = ({ item, onToggle, onRemove, onEditText }) => (
+  <li className={`woche-todo-row${item.done ? " is-done" : ""}`}>
     <input
       type="checkbox"
       checked={Boolean(item.done)}
@@ -16,23 +16,23 @@ const ErinnerungRow = ({ item, onToggle, onRemove, onEditText }) => (
     />
     <input
       type="text"
-      className="woche-erinnerung-text"
+      className="woche-todo-text"
       value={item.text}
       onChange={(e) => onEditText(item.id, e.target.value)}
-      aria-label="Erinnerungstext"
+      aria-label="Todo-Text"
     />
     <button
       type="button"
       className="planning-icon-btn"
       onClick={() => onRemove(item.id)}
-      aria-label="Erinnerung löschen"
+      aria-label="Todo löschen"
     >
       ×
     </button>
   </li>
 );
 
-const WocheErinnerungen = ({ vorhaben, onChange }) => {
+const WocheErinnerungen = ({ vorhaben, onChange, embedded = false }) => {
   const [draft, setDraft] = useState("");
   const [bindKw, setBindKw] = useState(true);
   const { kw } = getIsoWeek();
@@ -96,20 +96,23 @@ const WocheErinnerungen = ({ vorhaben, onChange }) => {
         : "Ohne KW-Bindung";
 
   return (
-    <section className="woche-erinnerungen" aria-label="Erinnerungen">
+    <section
+      className={`woche-todos${embedded ? " woche-todos--embedded" : ""}`}
+      aria-label="Todos"
+    >
       {heute.length > 0 ? (
-        <div className="woche-erinnerungen-head">
-          <span className="woche-erinnerungen-badge">{heute.length} heute</span>
+        <div className="woche-todos-head">
+          <span className="woche-todos-badge">{heute.length} heute</span>
         </div>
       ) : null}
 
-      <div className="woche-erinnerung-add">
+      <div className="woche-todo-add">
         <input
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Material, Vorbereitung, Elternmail …"
-          aria-label="Neue Erinnerung"
+          placeholder="Vorbereitung, Kopien, Elternmail …"
+          aria-label="Neues Todo"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -126,22 +129,22 @@ const WocheErinnerungen = ({ vorhaben, onChange }) => {
           +
         </button>
       </div>
-      <label className="woche-erinnerung-scope">
+      <label className="woche-todo-scope">
         <input
           type="checkbox"
           checked={bindKw}
           onChange={(e) => setBindKw(e.target.checked)}
         />
         An aktuelle KW binden
-        <span className="woche-erinnerung-scope-hint">({metaHint})</span>
+        <span className="woche-todo-scope-hint">({metaHint})</span>
       </label>
 
       {heute.length > 0 ? (
         <>
-          <h4 className="woche-erinnerungen-sub">Heute</h4>
-          <ul>
+          <h4 className="woche-todos-sub">Heute</h4>
+          <ul className="woche-todos-list">
             {heute.map((e) => (
-              <ErinnerungRow
+              <TodoRow
                 key={e.id}
                 item={e}
                 onToggle={handleToggle}
@@ -155,12 +158,12 @@ const WocheErinnerungen = ({ vorhaben, onChange }) => {
 
       {weitereOffen.length > 0 ? (
         <>
-          <h4 className="woche-erinnerungen-sub">
+          <h4 className="woche-todos-sub">
             {heute.length > 0 ? "Weitere offen" : "Offen"}
           </h4>
-          <ul>
+          <ul className="woche-todos-list">
             {weitereOffen.map((e) => (
-              <ErinnerungRow
+              <TodoRow
                 key={e.id}
                 item={e}
                 onToggle={handleToggle}
@@ -173,17 +176,17 @@ const WocheErinnerungen = ({ vorhaben, onChange }) => {
       ) : null}
 
       {list.length === 0 ? (
-        <p className="woche-erinnerungen-empty">
-          Noch keine Erinnerungen — oder über «Bericht → Struktur» aus Freitext erzeugen.
+        <p className="woche-todos-empty">
+          Noch keine Todos — Aufgaben für Vorbereitung und Unterricht.
         </p>
       ) : null}
 
       {erledigt.length > 0 ? (
-        <details className="woche-erinnerungen-done">
+        <details className="woche-todos-done">
           <summary>Erledigt ({erledigt.length})</summary>
-          <ul>
+          <ul className="woche-todos-list">
             {erledigt.map((e) => (
-              <ErinnerungRow
+              <TodoRow
                 key={e.id}
                 item={e}
                 onToggle={handleToggle}

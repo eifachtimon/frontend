@@ -1,7 +1,11 @@
 import React from "react";
 import { NavLink, useParams } from "react-router-dom";
-import { vorhabenLevelPath } from "../config/appUrls";
+import { PLANUNG_STEPPER_LEVELS, vorhabenLevelPath } from "../config/appUrls";
 import { getLevelBadge, LEVEL_META } from "./planningLevels";
+
+const STEPPER_META = LEVEL_META.filter(
+  (m) => PLANUNG_STEPPER_LEVELS.includes(m.id) && !m.hiddenInStepper
+);
 
 const VorhabenLevelNav = ({ vorhaben }) => {
   const { id: vorhabenId, level: currentLevel } = useParams();
@@ -9,7 +13,7 @@ const VorhabenLevelNav = ({ vorhaben }) => {
   return (
     <nav className="vorhaben-stepper" aria-label="Planungsebenen">
       <ol className="vorhaben-stepper-list">
-        {LEVEL_META.map((meta, index) => {
+        {STEPPER_META.map((meta, index) => {
           const badge = getLevelBadge(vorhaben, meta.id);
           const isLast = index === LEVEL_META.length - 1;
           return (

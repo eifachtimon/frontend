@@ -1,7 +1,7 @@
 import { WEEKDAYS } from "./planningDefaults";
 import { getIsoWeek } from "./planningStore";
 import { getTodayWeekdayId } from "./planningLevels";
-import { vorhabenLevelPath } from "../config/appUrls";
+import { vorhabenLevelPath, vorhabenOverviewSectionPath } from "../config/appUrls";
 
 const WEEKDAY_LABELS = Object.fromEntries(WEEKDAYS.map((d) => [d.id, d.label]));
 
@@ -88,7 +88,9 @@ export const getTodayBriefing = (store, date = new Date()) => {
         id: l.id,
         title: l.title || "Lektion",
       })),
-      weekPath: vorhabenLevelPath(v.id, todayWd ? "woche" : v.lastVisitedLevel || "grob"),
+      weekPath: todayWd
+        ? vorhabenOverviewSectionPath(v.id, "woche")
+        : vorhabenLevelPath(v.id, v.lastVisitedLevel || "uebersicht"),
       hasContent:
         cards.length > 0 ||
         Boolean(dayNotiz) ||

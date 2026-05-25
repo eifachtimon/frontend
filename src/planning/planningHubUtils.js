@@ -1,7 +1,8 @@
 import { getIsoWeek, getVorhabenById } from "./planningStore";
 import { getTodayWeekdayId } from "./planningLevels";
-import { vorhabenLevelPath } from "../config/appUrls";
+import { vorhabenLevelPath, vorhabenOverviewSectionPath } from "../config/appUrls";
 import { WEEKDAYS } from "./planningDefaults";
+import { isLektionScheduled } from "./themaOverviewUtils";
 
 const WEEKDAY_LABELS = Object.fromEntries(WEEKDAYS.map((d) => [d.id, d.label]));
 
@@ -19,7 +20,7 @@ export const getContinuePlanningTarget = (store) => {
     return null;
   }
   const todayWd = getTodayWeekdayId();
-  const level = todayWd ? "woche" : vorhaben.lastVisitedLevel || "grob";
+  const level = vorhaben.lastVisitedLevel || "uebersicht";
   return {
     vorhaben,
     level,
@@ -56,49 +57,61 @@ export const suggestNextStepLabel = (vorhaben) => {
     return "Lege ein Thema an, um zu planen.";
   }
   if (!(vorhaben.competencies?.length > 0)) {
-    return "Kompetenzen aus der Suche hinzufügen.";
+    return "Kompetenzen & Ziele: Kompetenzen aus der Suche hinzufügen.";
   }
-  if (!(vorhaben.grob?.ziele || vorhaben.grob?.phasen?.length)) {
-    return "Grobplanung: Ziele und Phasen skizzieren.";
+  if (!(vorhaben.grob?.ziele || "").trim()) {
+    return "Kompetenzen & Ziele: Lernziele am Thema festhalten.";
   }
-  const openMs = (vorhaben.zweiWochen?.meilensteine || []).filter((m) => !m.done).length;
-  if (openMs > 0) {
-    return `${openMs} offene Meilensteine in den nächsten 2 Wochen.`;
+  const totalLek = vorhaben.lektionen?.length || 0;
+  const unscheduledCount = (vorhaben.lektionen || []).filter(
+    (l) => !isLektionScheduled(l, vorhaben)
+  ).length;
+  if (totalLek > 0 && unscheduledCount > 0) {
+    const open = unscheduledCount;
+    return `${open} Lektion${open === 1 ? "" : "en"} noch nicht im Wochenplan.`;
   }
-  const todayWd = getTodayWeekdayId();
-  if (todayWd) {
-    return `Heute (${WEEKDAY_LABELS[todayWd]}): Wochenplan öffnen.`;
+  if (totalLek === 0) {
+    return "Erste Lektion anlegen und planen.";
   }
-  return "Weiter in der zuletzt besuchten Ebene.";
+  return "Alle Lektionen terminiert — weiter verfeinern.";
 };
 
-/** Ziel-Ebene für den Nächster-Schritt-Hinweis (Link nur wenn ≠ aktuelle Ebene). */
+/** Ziel für den Nächster-Schritt-Hinweis (Sprungmarke auf der Übersicht). */
 export const getSuggestNextStepTarget = (vorhaben, currentLevel) => {
   const label = suggestNextStepLabel(vorhaben);
   if (!vorhaben) {
-    return { label, level: "grob", path: null, isOnTarget: true };
+    return { label, level: "uebersicht", path: null, linkLabel: null, isOnTarget: true };
   }
 
-  let level = currentLevel || vorhaben.lastVisitedLevel || "grob";
-  if (!(vorhaben.competencies?.length > 0)) {
-    level = "grob";
-  } else if (!(vorhaben.grob?.ziele || vorhaben.grob?.phasen?.length)) {
-    level = "grob";
-  } else {
-    const openMs = (vorhaben.zweiWochen?.meilensteine || []).filter((m) => !m.done).length;
-    if (openMs > 0) {
-      level = "zwei-wochen";
-    } else if (getTodayWeekdayId()) {
-      level = "woche";
-    } else {
-      level = vorhaben.lastVisitedLevel || currentLevel || "grob";
-    }
+  const unscheduledCount = (vorhaben.lektionen || []).filter(
+    (l) => !isLektionScheduled(l, vorhaben)
+  ).length;
+
+  if (!(vorhaben.competencies?.length > 0) || !(vorhaben.grob?.ziele || "").trim()) {
+    return {
+      label,
+      level: "uebersicht",
+      path: vorhabenOverviewSectionPath(vorhaben.id, "kompetenzen-ziele"),
+      linkLabel: "Kompetenzen & Ziele",
+      isOnTarget: currentLevel === "uebersicht",
+    };
+  }
+
+  if (unscheduledCount > 0) {
+    return {
+      label,
+      level: "woche",
+      path: vorhabenOverviewSectionPath(vorhaben.id, "woche"),
+      linkLabel: "Zur Woche",
+      isOnTarget: false,
+    };
   }
 
   return {
     label,
-    level,
-    path: vorhabenLevelPath(vorhaben.id, level),
-    isOnTarget: level === currentLevel,
+    level: "uebersicht",
+    path: vorhabenLevelPath(vorhaben.id, "uebersicht"),
+    linkLabel: null,
+    isOnTarget: currentLevel === "uebersicht",
   };
 };

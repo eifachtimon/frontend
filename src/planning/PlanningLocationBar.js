@@ -32,7 +32,7 @@ const PlanningLocationBar = ({ context, vorhabenId, levelId, variant = "default"
     return null;
   }
 
-  if (levelId !== "woche") {
+  if (levelId !== "woche" && levelId !== "uebersicht") {
     return null;
   }
 

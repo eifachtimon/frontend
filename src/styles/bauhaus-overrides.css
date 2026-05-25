@@ -316,7 +316,8 @@ mark.text-highlight {
   color: var(--bh-fg) !important;
 }
 
-.planning-surface input:not([type="checkbox"]):not([type="radio"]),
+.planning-surface
+  input:not([type="checkbox"]):not([type="radio"]):not(.thema-overview-hero__line-input),
 .planning-surface textarea,
 .planning-surface select {
   border: var(--bh-border-w) solid var(--bh-border) !important;

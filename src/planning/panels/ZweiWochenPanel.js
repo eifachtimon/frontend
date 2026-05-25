@@ -10,23 +10,6 @@ const ZweiWochenPanel = ({ vorhaben, rituals, onChange }) => {
     onChange({ ...vorhaben, zweiWochen: { ...z, ...patch } });
   };
 
-  const handleMilestone = (id, field, value) => {
-    update({
-      meilensteine: z.meilensteine.map((m) =>
-        m.id === id ? { ...m, [field]: value } : m
-      ),
-    });
-  };
-
-  const handleAddMilestone = () => {
-    update({
-      meilensteine: [
-        ...z.meilensteine,
-        { id: `m-${Date.now()}`, text: "", done: false },
-      ],
-    });
-  };
-
   const appendRitualNote = (rit) => {
     const line = `• ${rit.name} (${rit.durationMin} Min)`;
     const notizen = z.notizen ? `${z.notizen}\n${line}` : line;
@@ -47,41 +30,6 @@ const ZweiWochenPanel = ({ vorhaben, rituals, onChange }) => {
                 onChange={(e) => update({ label: e.target.value })}
               />
             </div>
-          </PlanningSection>
-
-          <PlanningSection title="Meilensteine">
-            <fieldset className="planning-milestones">
-              <legend className="planning-sr-only">Meilensteine</legend>
-              <ul>
-                {z.meilensteine.map((m) => (
-                  <li key={m.id} className="planning-milestone-row">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(m.done)}
-                      onChange={(e) =>
-                        handleMilestone(m.id, "done", e.target.checked)
-                      }
-                      aria-label="Erledigt"
-                    />
-                    <input
-                      type="text"
-                      value={m.text}
-                      onChange={(e) =>
-                        handleMilestone(m.id, "text", e.target.value)
-                      }
-                      placeholder="Meilenstein …"
-                    />
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                className="planning-btn planning-btn--ghost"
-                onClick={handleAddMilestone}
-              >
-                + Meilenstein
-              </button>
-            </fieldset>
           </PlanningSection>
 
           <PlanningSection title="Material & Beobachtung">

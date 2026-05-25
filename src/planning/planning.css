@@ -46,6 +46,29 @@
   opacity: 1;
 }
 
+/* Themen-Übersicht Hero: Schreibzeile statt Kasten (ohne Kasten aus bauhaus-overrides) */
+.planning-surface .thema-overview-hero input.thema-overview-hero__line-input {
+  padding: 0.45rem 0.2rem 0.6rem;
+  border: none !important;
+  border-bottom: 2px solid rgba(18, 18, 18, 0.32) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: text;
+}
+
+.planning-surface .thema-overview-hero input.thema-overview-hero__line-input:hover {
+  border-bottom-color: rgba(18, 18, 18, 0.5) !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+}
+
+.planning-surface .thema-overview-hero input.thema-overview-hero__line-input:focus {
+  outline: none;
+  border-bottom-width: 3px !important;
+  border-bottom-color: var(--fach-base, var(--bh-fg, #121212)) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+}
+
 .planning-sr-only {
   position: absolute;
   width: 1px;
@@ -71,6 +94,10 @@
   margin: 0;
   padding: var(--layout-page-y) var(--layout-page-x) var(--space-6);
   box-sizing: border-box;
+}
+
+.vorhaben-main.vorhaben-main--overview {
+  max-width: none;
 }
 
 .planning-hub-main--time,
@@ -1030,6 +1057,135 @@
   color: var(--plan-text-muted, #555);
 }
 
+/* Todos (ehem. Erinnerungen) — gleiche Struktur, neue Klassen */
+.woche-todos,
+.thema-unified-section .woche-todos--embedded {
+  margin-bottom: 0;
+}
+
+.woche-todos:not(.woche-todos--embedded) {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  border-radius: var(--plan-radius-sm);
+  background: var(--plan-accent-bg);
+  border: 1px solid rgba(237, 209, 0, 0.25);
+}
+
+.woche-todos-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.woche-todos-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bh-red, #e02020);
+  color: #fff;
+}
+
+.woche-todos-sub {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--plan-text-muted, #555);
+}
+
+.woche-todos-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.woche-todo-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: var(--space-2);
+}
+
+.woche-todo-add input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 2px solid var(--plan-border);
+  border-radius: var(--plan-radius-sm);
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.woche-todo-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: var(--space-3);
+  font-size: 0.78rem;
+  color: var(--plan-text-muted, #555);
+  cursor: pointer;
+}
+
+.woche-todo-scope-hint {
+  color: #888;
+}
+
+.woche-todo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.woche-todo-row:first-child {
+  border-top: none;
+}
+
+.woche-todo-row.is-done {
+  opacity: 0.55;
+}
+
+.woche-todo-row.is-done .woche-todo-text {
+  text-decoration: line-through;
+}
+
+.woche-todo-text {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.88rem;
+  padding: 4px 0;
+}
+
+.woche-todo-text:focus {
+  outline: 2px solid var(--bh-blue, #1040c0);
+  outline-offset: 2px;
+}
+
+.woche-todos-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--plan-text-muted, #555);
+}
+
+.woche-todos-done {
+  margin-top: var(--space-3);
+}
+
+.woche-todos-done summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--plan-text-muted, #555);
+}
+
 .planning-hint {
   font-size: 0.78rem;
   color: #888;
@@ -1905,6 +2061,10 @@
 @media (min-width: 960px) {
   .thema-body {
     grid-template-columns: minmax(0, 1fr) minmax(240px, 28%);
+  }
+
+  .thema-body--overview {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .vorhaben-main--woche .thema-body {
@@ -2981,6 +3141,57 @@
   padding: var(--space-2) var(--space-3);
   border-bottom: var(--bh-border-w, 2px) solid var(--plan-border);
   background: var(--bh-gray-100, #eee);
+}
+
+.unterricht-day-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.unterricht-day-nav .unterricht-section-title {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.95rem;
+}
+
+.unterricht-day-nav-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: var(--bh-border-w, 2px) solid var(--plan-border);
+  background: var(--bh-white, #fff);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.unterricht-day-nav-btn:hover,
+.unterricht-day-nav-btn:focus-visible {
+  background: var(--bh-muted, #e0e0e0);
+}
+
+.unterricht-home-col-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.unterricht-col-link--btn {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
 }
 
 .unterricht-col-link {

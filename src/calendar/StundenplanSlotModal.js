@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef } from "react";
 import { Link } from "react-router-dom";
+import useOverlayPresentation from "../ui/useOverlayPresentation";
 import { vorhabenLevelPath } from "../config/appUrls";
 import { WEEKDAYS } from "../planning/planningDefaults";
 import { addLektion } from "../planning/planningStore";
@@ -24,13 +25,13 @@ const StundenplanSlotModal = ({
 }) => {
   const titleId = useId();
   const listRef = useRef(null);
+  const overlayClass = useOverlayPresentation(open);
   const allLektionen = allLektionenFromPlanning(planningStore);
 
   useEffect(() => {
     if (!open) {
       return undefined;
     }
-    document.body.classList.add("cal-modal-open");
     const onKey = (e) => {
       if (e.key === "Escape") {
         onClose();
@@ -41,10 +42,7 @@ const StundenplanSlotModal = ({
       }
     };
     window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.classList.remove("cal-modal-open");
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose, onSave]);
 
   if (!open || !slot) {
@@ -77,7 +75,11 @@ const StundenplanSlotModal = ({
   };
 
   return (
-    <div className="cal-modal-overlay" role="presentation" onClick={onClose}>
+    <div
+      className={`cal-modal-overlay ${overlayClass}`}
+      role="presentation"
+      onClick={onClose}
+    >
       <div
         className="cal-modal cal-modal--stundenplan"
         role="dialog"

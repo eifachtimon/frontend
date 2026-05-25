@@ -1,0 +1,716 @@
+/* Einheitliche Overlays (Thema, Kalender, Planung) */
+
+body.cal-modal-open {
+  overflow: hidden;
+}
+
+/* Schwebendes Panel: Kalender/Seite bleibt sichtbar & scrollbar */
+body.app-overlay-open:not(.cal-modal-open) {
+  overflow: auto;
+}
+
+.app-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  pointer-events: auto;
+}
+
+/* —— Apple-Kalender-Stil: Panel rechts, leichter Schleier —— */
+.app-overlay.app-overlay--float-panel,
+.cal-modal-overlay.app-overlay--float-panel {
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: calc(var(--app-top-nav-h, 3.125rem) + 10px) 12px 12px 12px;
+  background: rgba(18, 18, 18, 0.06);
+  backdrop-filter: none;
+}
+
+.app-overlay.app-overlay--float-panel .app-overlay-panel,
+.cal-modal-overlay.app-overlay--float-panel .cal-modal {
+  position: relative;
+  width: min(21rem, calc(100vw - 24px));
+  max-height: calc(100dvh - var(--app-top-nav-h, 3.125rem) - 24px);
+  margin: 0;
+  border: 2px solid var(--bh-border, #121212);
+  border-radius: 14px;
+  background: var(--bh-white, #fff);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.app-overlay.app-overlay--float-panel .app-overlay-panel--lg {
+  width: min(24rem, calc(100vw - 24px));
+}
+
+.app-overlay-panel--beak::before,
+.cal-modal-overlay.app-overlay--float-panel .cal-modal.cal-event-modal::before,
+.cal-modal-overlay.app-overlay--float-panel .cal-modal::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 2.25rem;
+  width: 14px;
+  height: 14px;
+  background: var(--bh-white, #fff);
+  border-left: 2px solid var(--bh-border, #121212);
+  border-bottom: 2px solid var(--bh-border, #121212);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.app-overlay-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 26rem);
+  max-height: min(85vh, 720px);
+  border: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
+  border-radius: 12px;
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-md, 8px 8px 0 0 #121212);
+  overflow: hidden;
+}
+
+.app-overlay-panel--sm {
+  width: min(100%, 22rem);
+}
+
+.app-overlay-panel--md {
+  width: min(100%, 28rem);
+}
+
+.app-overlay-panel--lg {
+  width: min(100%, 36rem);
+  max-height: min(90vh, 800px);
+}
+
+.app-overlay-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 14px 16px 10px;
+  border-bottom: 2px solid var(--bh-border, #121212);
+  background: linear-gradient(180deg, #fff 0%, #f8f8f8 100%);
+}
+
+.app-overlay-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.app-overlay-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.app-overlay-close:hover {
+  background: var(--bh-muted, #e8e8e8);
+}
+
+.app-overlay-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px 16px;
+}
+
+.app-overlay-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px 14px;
+  border-top: 2px solid var(--bh-border, #121212);
+  background: var(--bh-gray-100, #f4f4f4);
+}
+
+.app-overlay-grabber {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: var(--bh-border, #121212);
+  opacity: 0.35;
+}
+
+.app-overlay-field {
+  margin-bottom: var(--space-3);
+}
+
+.app-overlay-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.app-overlay-field input,
+.app-overlay-field select,
+.app-overlay-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 2px solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.app-overlay-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.app-overlay-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+@media (max-width: 520px) {
+  .app-overlay-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile: Bottom-Sheet */
+.app-overlay.app-overlay--sheet {
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(18, 18, 18, 0.42);
+}
+
+.app-overlay.app-overlay--sheet .app-overlay-panel {
+  width: 100%;
+  max-height: min(92vh, 100%);
+  border-radius: 14px 14px 0 0;
+  border-bottom: none;
+  box-shadow: 0 -6px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* Legacy Kalender-Modal (gleiche Float-/Sheet-Varianten) */
+.cal-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+}
+
+/* Verankertes Popover neben der Kalender-Auswahl */
+.cal-modal-overlay.cal-modal-overlay--anchored {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0;
+  background: transparent;
+  pointer-events: auto;
+}
+
+/* Verankert: HEUTE-Stil (2px, scharf, nur Schatten unten-rechts) — Schritt A ohne Pfeil */
+.cal-modal-overlay.cal-modal-overlay--anchored .cal-modal {
+  margin: 0;
+  width: auto;
+  min-width: 17.5rem;
+  max-width: min(27.5rem, calc(100vw - 24px));
+  max-height: min(300px, calc(100dvh - 24px));
+  border: 2px solid var(--bh-border, #121212);
+  border-radius: 0;
+  background: var(--bh-white, #fff);
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
+}
+
+.cal-modal-overlay.cal-modal-overlay--compact-standalone .cal-modal {
+  margin: 0;
+  width: auto;
+  min-width: 17.5rem;
+  max-width: min(27.5rem, calc(100vw - 24px));
+  max-height: min(300px, calc(100dvh - 24px));
+  border: 2px solid var(--bh-border, #121212);
+  border-radius: 12px;
+  background: var(--bh-white, #fff);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.cal-modal-overlay.cal-modal-overlay--anchored .cal-modal {
+  position: fixed;
+  overflow: hidden;
+}
+
+/* Verankert mit Pfeil: SVG-Ring (2px), Bauhaus-Schatten am Host */
+.cal-modal-overlay.cal-modal-overlay--anchored .cal-modal.cal-event-modal--beaked {
+  overflow: visible;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+}
+
+.cal-event-popover-ring-host {
+  position: relative;
+  filter: drop-shadow(4px 4px 0 var(--bh-border, #121212));
+}
+
+.cal-event-popover-ring__svg {
+  display: block;
+  pointer-events: none;
+}
+
+.cal-event-popover-ring__outer {
+  fill: var(--bh-border, #121212);
+}
+
+.cal-event-popover-ring__inner {
+  fill: var(--bh-white, #fff);
+}
+
+.cal-event-popover-ring__content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.cal-event-popover-ring__content .cal-event-modal-form--quick {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cal-modal-overlay.cal-modal-overlay--compact-standalone .cal-modal {
+  position: relative;
+  overflow: hidden;
+}
+
+.cal-event-modal--compact {
+  overflow-x: visible;
+  min-width: 0;
+}
+
+.cal-event-modal-form--quick {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+}
+
+/* Kompakt ohne Kalender-Anker (z. B. + Termin) */
+.cal-modal-overlay.cal-modal-overlay--compact-standalone {
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: calc(var(--app-top-nav-h, 3.125rem) + 10px) 12px 12px 12px;
+  background: rgba(18, 18, 18, 0.06);
+}
+
+.cal-event-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cal-event-quick-expand {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid var(--plan-border-subtle, #d0d0d0);
+  border-radius: 8px;
+  background: var(--plan-elevated, #fafafa);
+  color: var(--plan-text-muted, #666);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cal-event-quick-expand:hover {
+  background: var(--plan-accent-bg, #fff9c4);
+  color: var(--plan-text, #121212);
+}
+
+.cal-event-modal-header--quick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--plan-border-subtle, #e8e8e8);
+  flex-wrap: nowrap;
+}
+
+.cal-event-quick-title {
+  flex: 1 1 auto;
+  min-width: 6rem;
+  width: auto;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--plan-border, #121212);
+  border-radius: 8px;
+  background: var(--plan-elevated, #fafafa);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--plan-text, #121212);
+  field-sizing: content;
+}
+
+.cal-event-quick-title:focus {
+  outline: none;
+  border-color: #4a4a4a;
+}
+
+.cal-event-quick-close {
+  flex-shrink: 0;
+  padding: 2px 4px;
+}
+
+.cal-event-modal-body--quick {
+  flex: 1;
+  min-height: 0;
+  overflow-x: visible;
+  overflow-y: auto;
+  padding: 8px 10px;
+}
+
+.cal-event-quick-meta {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--plan-text-muted, #666);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-event-quick-when {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1.15fr) minmax(7.25rem, 0.85fr);
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cal-event-quick-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  margin-bottom: 6px;
+}
+
+.cal-event-quick-field > span {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--plan-text-muted, #666);
+}
+
+.cal-event-quick-field input,
+.cal-event-quick-field select,
+.cal-event-quick-field textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 5px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--plan-border, #121212);
+  background: var(--plan-elevated, #fafafa);
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--plan-text, #121212);
+}
+
+.cal-event-quick-field input[type="time"] {
+  min-width: 6.75rem;
+  padding-right: 2px;
+}
+
+.cal-event-dur-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.cal-event-dur-chip {
+  padding: 3px 8px;
+  border: 1px solid var(--plan-border, #121212);
+  border-radius: 999px;
+  background: var(--plan-elevated, #fafafa);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.cal-event-dur-chip--active {
+  background: var(--plan-accent-bg, #fff9c4);
+  border-color: var(--plan-accent, #121212);
+}
+
+.cal-event-quick-end {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  color: var(--plan-text-muted, #666);
+}
+
+.cal-event-allday-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 6px;
+  font-size: 0.78rem;
+  color: var(--plan-text, #121212);
+  cursor: pointer;
+}
+
+.cal-event-modal-footer--quick {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 0;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--plan-border-subtle, #e8e8e8);
+}
+
+.cal-event-quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cal-event-text-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--plan-text-muted, #666);
+  cursor: pointer;
+}
+
+.cal-event-text-btn--danger {
+  color: var(--bh-red, #d02020);
+}
+
+.cal-event-quick-save {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+}
+
+.cal-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.cal-event-modal--compact .cal-event-modal-more {
+  margin-top: 2px;
+  font-size: 0.75rem;
+}
+
+.cal-event-modal--compact .cal-event-modal-more summary {
+  padding: 2px 0;
+}
+
+.cal-event-modal--compact .cal-modal-links {
+  margin: 6px 0 0;
+  padding: 8px;
+}
+
+/* Notch: clip-path am Modal, kein innerer Pfeil-Rand mehr */
+
+/* Legacy compact rules — Quick-Form nutzt cal-event-modal--*--quick */
+
+.cal-event-modal-more {
+  margin-top: 4px;
+  font-size: 0.78rem;
+}
+
+.cal-event-modal-more summary {
+  cursor: pointer;
+  color: var(--plan-text-muted);
+  font-weight: 600;
+  padding: 4px 0;
+  list-style: none;
+}
+
+.cal-event-modal-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.cal-event-modal-more[open] summary {
+  margin-bottom: 6px;
+}
+
+.cal-modal-overlay:not(.app-overlay--float-panel):not(.app-overlay--sheet) {
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(18, 18, 18, 0.32);
+}
+
+.cal-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(21rem, 100%);
+  max-height: min(85vh, 100%);
+  overflow: hidden;
+  border: 2px solid var(--plan-border, #121212);
+  border-radius: 14px;
+  background: var(--plan-card, #fff);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.14);
+}
+
+.cal-event-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.cal-event-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+.cal-event-modal-footer {
+  flex-shrink: 0;
+}
+
+/* Mobile: Bottom-Sheet */
+.app-overlay.app-overlay--sheet,
+.cal-modal-overlay.app-overlay--sheet {
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(18, 18, 18, 0.38);
+  backdrop-filter: blur(2px);
+}
+
+.app-overlay.app-overlay--sheet .app-overlay-panel,
+.cal-modal-overlay.app-overlay--sheet .cal-modal {
+  width: 100%;
+  max-width: 100%;
+  max-height: min(92vh, 100%);
+  border-radius: 14px 14px 0 0;
+  border-bottom: none;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.app-overlay.app-overlay--sheet .app-overlay-panel--beak::before,
+.cal-modal-overlay.app-overlay--sheet .cal-modal::before {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .cal-modal-overlay.cal-modal-overlay--anchored,
+  .cal-modal-overlay.cal-modal-overlay--compact-standalone {
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    background: rgba(18, 18, 18, 0.28);
+  }
+
+  .cal-modal-overlay.cal-modal-overlay--anchored .cal-modal,
+  .cal-modal-overlay.cal-modal-overlay--compact-standalone .cal-modal {
+    width: auto;
+    min-width: min(100%, 15.5rem);
+    max-width: min(100%, 26rem);
+    max-height: min(52vh, 320px);
+    border-radius: 14px 14px 0 0;
+  }
+
+  .cal-modal-overlay.cal-modal-overlay--anchored .cal-modal {
+    position: fixed;
+  }
+
+  .cal-modal-overlay.cal-modal-overlay--anchored .cal-modal.cal-event-modal--beaked {
+    overflow: hidden;
+  }
+
+  .cal-event-popover-ring-host {
+    filter: none;
+  }
+
+  .cal-modal-overlay.cal-modal-overlay--anchored .cal-modal.cal-event-modal--compact {
+    border: 2px solid var(--bh-border, #121212);
+    box-shadow:
+      0 12px 36px rgba(0, 0, 0, 0.14),
+      0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .cal-event-popover-ring__svg {
+    display: none;
+  }
+
+  .cal-event-popover-ring__content .cal-event-modal-form--quick {
+    border: none;
+  }
+
+  .app-overlay.app-overlay--float-panel,
+  .cal-modal-overlay.app-overlay--float-panel {
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    background: rgba(18, 18, 18, 0.38);
+  }
+
+  .app-overlay.app-overlay--float-panel .app-overlay-panel,
+  .cal-modal-overlay.app-overlay--float-panel .cal-modal {
+    width: 100%;
+    max-height: min(92vh, 100%);
+    border-radius: 14px 14px 0 0;
+  }
+
+  .app-overlay.app-overlay--float-panel .app-overlay-panel--beak::before,
+  .cal-modal-overlay.app-overlay--float-panel .cal-modal::before {
+    display: none;
+  }
+}

@@ -1,10 +1,12 @@
 import React, { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_ROUTES } from "../config/appUrls";
+import useOverlayPresentation from "../ui/useOverlayPresentation";
 import { VORHABEN_TEMPLATES } from "./planningDefaults";
 
 const NeuesVorhabenModal = ({ open, onClose, onCreate }) => {
   const titleId = useId();
+  const overlayClass = useOverlayPresentation(open);
   const [templateId, setTemplateId] = useState("thema");
   const [newTitle, setNewTitle] = useState("");
 
@@ -12,17 +14,13 @@ const NeuesVorhabenModal = ({ open, onClose, onCreate }) => {
     if (!open) {
       return undefined;
     }
-    document.body.classList.add("cal-modal-open");
     const onKey = (e) => {
       if (e.key === "Escape") {
         onClose();
       }
     };
     window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.classList.remove("cal-modal-open");
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   useEffect(() => {
@@ -41,7 +39,11 @@ const NeuesVorhabenModal = ({ open, onClose, onCreate }) => {
   };
 
   return (
-    <div className="cal-modal-overlay" role="presentation" onClick={onClose}>
+    <div
+      className={`cal-modal-overlay ${overlayClass}`}
+      role="presentation"
+      onClick={onClose}
+    >
       <div
         className="cal-modal unterricht-vorhaben-modal"
         role="dialog"

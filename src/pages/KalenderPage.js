@@ -20,6 +20,10 @@ import {
   formFromFcEvent,
   formFromSelection,
 } from "../calendar/calendarEventResolve";
+import {
+  anchorFromEventClick,
+  anchorFromSelectInfo,
+} from "../calendar/calendarEventAnchor";
 import { loadCalFilters, saveCalFilters } from "../calendar/calendarFilters";
 import {
   loadCalendarStore,
@@ -32,7 +36,6 @@ import {
   useRegisterEditShortcuts,
 } from "../hooks/EditShortcutsProvider";
 import usePlanningStore from "../planning/usePlanningStore";
-import PlanningViewHeader from "../planning/PlanningViewHeader";
 import {
   loadCalendarChromeExpanded,
   saveCalendarChromeExpanded,
@@ -49,16 +52,16 @@ const KalenderPage = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [eventForm, setEventForm] = useState(null);
+  const [eventAnchor, setEventAnchor] = useState(null);
   const [stpModalOpen, setStpModalOpen] = useState(false);
   const [stpSlot, setStpSlot] = useState(null);
   const calendarRef = useRef(null);
   const searchRef = useRef(null);
   const lastSelectionRef = useRef(null);
   const [selectionTick, setSelectionTick] = useState(0);
-  const [chromeExpanded, setChromeExpanded] = useState(loadCalendarChromeExpanded);
+  const [showDragStrip, setShowDragStrip] = useState(loadCalendarChromeExpanded);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const undoTick = useEditShortcutsTick();
-  const maxSpace = !chromeExpanded;
 
   const draftVorhabenId =
     planningStore.lastActiveVorhabenId || planningStore.vorhaben[0]?.id || "";
@@ -88,6 +91,30 @@ const KalenderPage = () => {
     setRefreshing(false);
   }, [calStore]);
 
+  /** Dev: /kalender?calPopoverShot=1 öffnet verankertes Kompakt-Popup für visuelle Tests. */
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("calPopoverShot") !== "1") {
+      return;
+    }
+    const start = new Date();
+    start.setMinutes(Math.floor(start.getMinutes() / 15) * 15, 0, 0);
+    const end = new Date(start.getTime() + 45 * 60 * 1000);
+    setEventForm(
+      buildEmptyForm({
+        mode: "create",
+        source: "local",
+        start: start.toISOString(),
+        end: end.toISOString(),
+      })
+    );
+    setEventAnchor({ top: 380, left: 168, width: 52, height: 64 });
+    setModalOpen(true);
+  }, []);
+
   useEffect(() => {
     const enabled = calStore.subscriptions.filter(
       (s) => s.enabled && s.url && !calStore.subscriptionCache?.[s.id]
@@ -111,6 +138,7 @@ const KalenderPage = () => {
   const closeModal = useCallback(() => {
     setModalOpen(false);
     setEventForm(null);
+    setEventAnchor(null);
   }, []);
 
   const closeStpModal = useCallback(() => {
@@ -172,6 +200,7 @@ const KalenderPage = () => {
 
   const openCreate = useCallback(
     (start = new Date(), end = new Date(Date.now() + 45 * 60000)) => {
+      setEventAnchor(null);
       setEventForm(
         buildEmptyForm({
           mode: "create",
@@ -193,12 +222,12 @@ const KalenderPage = () => {
           buildSlotFromSelection(selectInfo, { vorhabenId: draftVorhabenId })
         );
         setStpModalOpen(true);
-        selectInfo.view.calendar.unselect();
         return;
       }
+      const anchor = anchorFromSelectInfo(selectInfo);
       setEventForm(formFromSelection(selectInfo, draftVorhabenId));
+      setEventAnchor(anchor);
       setModalOpen(true);
-      selectInfo.view.calendar.unselect();
     },
     [draftVorhabenId, filters.stundenplanEditMode]
   );
@@ -211,6 +240,7 @@ const KalenderPage = () => {
       lastSelectionRef.current = { kind: "event", event: info.event };
       setSelectionTick((t) => t + 1);
       info.jsEvent.preventDefault();
+      setEventAnchor(anchorFromEventClick(info));
       setEventForm(formFromFcEvent(info.event, planningStore, calStore));
       setModalOpen(true);
     },
@@ -362,12 +392,8 @@ const KalenderPage = () => {
 
   const lektionOptions = draftVorhaben?.lektionen || [];
 
-  const headerLead = draftVorhaben
-    ? `«${draftVorhaben.title}» — Termine & Stundenplan`
-    : "Termine und Stundenplan";
-
-  const handleToggleChrome = useCallback(() => {
-    setChromeExpanded((open) => {
+  const handleToggleDragStrip = useCallback(() => {
+    setShowDragStrip((open) => {
       const next = !open;
       saveCalendarChromeExpanded(next);
       if (!next) {
@@ -379,90 +405,83 @@ const KalenderPage = () => {
   }, []);
 
   useEffect(() => {
-    if (maxSpace && drawerOpen) {
+    if (!showDragStrip && drawerOpen) {
       setDrawerOpen(false);
     }
-  }, [maxSpace, drawerOpen]);
+  }, [showDragStrip, drawerOpen]);
 
   return (
-    <div className="app-shell planning-hub planning-surface planning-view--time">
-      <main
-        className={`planning-hub-main planning-hub-main--time layout ${
-          maxSpace ? "planning-hub-main--calendar-max" : ""
-        }`}
-      >
-        <PlanningViewHeader
-          title="Kalender"
-          lead={maxSpace ? null : headerLead}
-          compact={maxSpace}
-          actions={
-            <>
-              <button
-                type="button"
-                className={`planning-btn planning-btn--ghost ${maxSpace ? "planning-btn--primary" : ""}`}
-                onClick={handleToggleChrome}
-                aria-pressed={maxSpace}
-                title={maxSpace ? "Filter und Ziehen-Leiste einblenden" : "Mehr Platz für das Raster"}
-              >
-                {maxSpace ? "Leisten ein" : "Mehr Platz"}
-              </button>
-              <button
-                type="button"
-                className="planning-btn planning-btn--ghost"
-                onClick={() => setHelpOpen((h) => !h)}
-                aria-expanded={helpOpen}
-                aria-controls="cal-shortcuts-panel"
-              >
-                Tasten ?
-              </button>
-              <button
-                type="button"
-                className={`planning-btn planning-btn--ghost cal-toolbar-btn ${drawerOpen ? "cal-toolbar-btn--active" : ""}`}
-                onClick={() => setDrawerOpen((o) => !o)}
-                aria-expanded={drawerOpen}
-              >
-                Abos
-              </button>
-            </>
-          }
-        />
+    <div className="app-shell planning-hub planning-surface cal-page">
+      <main className="cal-page-main">
+        <header className="cal-page-toolbar">
+          <h1 className="cal-page-toolbar-title">Kalender</h1>
 
-        <CalendarFilterBar
-          filters={filters}
-          onChange={persistFilters}
-          vorhabenList={planningStore.vorhaben}
-          onNewEvent={() => openCreate()}
-          onInitStundenplan={handleInitStundenplan}
-          searchInputRef={searchRef}
-          compact={maxSpace}
-          filtersExpanded={filtersExpanded}
-          onToggleFiltersExpanded={() => setFiltersExpanded((e) => !e)}
-        />
+          <CalendarFilterBar
+            filters={filters}
+            onChange={persistFilters}
+            vorhabenList={planningStore.vorhaben}
+            onNewEvent={() => openCreate()}
+            onInitStundenplan={handleInitStundenplan}
+            searchInputRef={searchRef}
+            filtersExpanded={filtersExpanded}
+            onToggleFiltersExpanded={() => setFiltersExpanded((e) => !e)}
+          />
 
-        {helpOpen ? (
-          <div
-            id="cal-shortcuts-panel"
-            className="cal-shortcuts-panel"
-            role="region"
-            aria-label="Tastenkürzel"
-          >
-            <div className="cal-shortcuts-grid">
-              <span><kbd>/</kbd> Suche</span>
-              <span><kbd>N</kbd> Neuer Termin</span>
-              <span><kbd>T</kbd> Heute</span>
-              <span><kbd>M</kbd> Monat</span>
-              <span><kbd>W</kbd> Woche</span>
-              <span><kbd>D</kbd> Tag</span>
-              <span><kbd>L</kbd> Liste</span>
-              <span><kbd>⌥←</kbd> <kbd>⌥→</kbd> Blättern</span>
-              <span><kbd>Esc</kbd> Schliessen</span>
-              <span><kbd>⌘↵</kbd> Speichern (Modal)</span>
-              <span><kbd>Entf</kbd> Löschen</span>
-              <span><kbd>⌘Z</kbd> Rückgängig</span>
-              <span><kbd>⌘⇧Z</kbd> Wiederholen</span>
-            </div>
+          <div className="cal-page-toolbar-actions">
+            <button
+              type="button"
+              className={`cal-toolbar-icon-btn ${showDragStrip ? "cal-toolbar-icon-btn--active" : ""}`}
+              onClick={handleToggleDragStrip}
+              aria-pressed={showDragStrip}
+              title={showDragStrip ? "Ziehen-Leiste ausblenden" : "Ziehen-Leiste einblenden"}
+              aria-label={showDragStrip ? "Ziehen-Leiste ausblenden" : "Ziehen-Leiste einblenden"}
+            >
+              Ziehen
+            </button>
+            <button
+              type="button"
+              className={`cal-toolbar-icon-btn ${helpOpen ? "cal-toolbar-icon-btn--active" : ""}`}
+              onClick={() => setHelpOpen((h) => !h)}
+              aria-expanded={helpOpen}
+              aria-controls="cal-shortcuts-panel"
+              title="Tastenkürzel"
+              aria-label="Tastenkürzel anzeigen"
+            >
+              ?
+            </button>
+            <button
+              type="button"
+              className={`cal-toolbar-icon-btn ${drawerOpen ? "cal-toolbar-icon-btn--active" : ""}`}
+              onClick={() => setDrawerOpen((o) => !o)}
+              aria-expanded={drawerOpen}
+              title="Kalender-Abos"
+              aria-label="Kalender-Abos"
+            >
+              Abos
+            </button>
           </div>
-        ) : null}
+
+          {helpOpen ? (
+            <div
+              id="cal-shortcuts-panel"
+              className="cal-shortcuts-popover"
+              role="dialog"
+              aria-label="Tastenkürzel"
+            >
+              <div className="cal-shortcuts-grid">
+                <span><kbd>/</kbd> Suche</span>
+                <span><kbd>N</kbd> Neuer Termin</span>
+                <span><kbd>T</kbd> Heute</span>
+                <span><kbd>M</kbd> Monat</span>
+                <span><kbd>W</kbd> Woche</span>
+                <span><kbd>D</kbd> Tag</span>
+                <span><kbd>L</kbd> Liste</span>
+                <span><kbd>Esc</kbd> Schliessen</span>
+                <span><kbd>Entf</kbd> Löschen</span>
+              </div>
+            </div>
+          ) : null}
+        </header>
 
         <div className="planning-view-panel planning-view-panel--calendar">
           <div className="cal-page-body">
@@ -470,7 +489,8 @@ const KalenderPage = () => {
               <CalendarView
               ref={calendarRef}
               spacious
-              showDragStrip={chromeExpanded}
+              muteTodayHighlight
+              showDragStrip={showDragStrip}
               planningStore={planningStore}
               saveVorhaben={saveVorhaben}
               calendarStore={calStore}
@@ -478,12 +498,12 @@ const KalenderPage = () => {
               filters={filters}
               draftVorhabenId={draftVorhabenId}
               rituals={planningStore.rituals}
-              showExternalEvents={Boolean(draftVorhaben)}
+              showExternalEvents={showDragStrip && Boolean(draftVorhaben)}
               onEventClick={handleEventClick}
               onDateSelect={handleDateSelect}
-              onStundenplanSlotClick={handleStundenplanSlotClick}
-              height="100%"
-              compactExternal
+                onStundenplanSlotClick={handleStundenplanSlotClick}
+                height="100%"
+                compactExternal
               />
             </div>
 
@@ -526,6 +546,7 @@ const KalenderPage = () => {
       <CalendarEventModal
         open={modalOpen}
         form={eventForm}
+        anchor={eventAnchor}
         onChange={setEventForm}
         onClose={closeModal}
         onSave={handleSaveEvent}
