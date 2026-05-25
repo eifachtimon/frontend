@@ -63,7 +63,7 @@ export const anchorFromEventClick = (info) => {
 const PANEL_MIN_W = 280;
 const PANEL_MAX_W = 440;
 const PANEL_MAX_H = 300;
-const WHEN_ROW_MIN_W = 272;
+const WHEN_ROW_MIN_W = 300;
 /** Abstand Popover-Kante → Auswahl; Pfeil ragt ~11px nach links */
 const GAP = 5;
 const MARGIN = 12;
@@ -105,15 +105,17 @@ export const measureCompactPopoverWidth = (modalEl, title = "") => {
   const padding = 28;
   const headerW = textW + headerChrome + padding;
 
-  const whenRow = modalEl.querySelector(".cal-event-quick-when");
-  const whenW = whenRow
-    ? Math.max(WHEN_ROW_MIN_W, whenRow.scrollWidth + 24)
-    : WHEN_ROW_MIN_W;
+  const themeRow = modalEl.querySelector(".cal-event-theme-fach-row");
+  const themeW = themeRow
+    ? themeRow.scrollWidth + 40
+    : 0;
 
-  const body = modalEl.querySelector(".cal-event-modal-body--quick");
-  const bodyW = body ? body.scrollWidth + 20 : 0;
+  const body = modalEl.querySelector(".cal-event-modal-form--quick");
+  const contentW = body ? body.offsetWidth : 0;
 
-  return Math.round(Math.min(maxW, Math.max(minW, headerW, whenW, bodyW)));
+  return Math.round(
+    Math.min(maxW, Math.max(minW, headerW, themeW, contentW, WHEN_ROW_MIN_W))
+  );
 };
 
 /**

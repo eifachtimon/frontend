@@ -8,8 +8,10 @@ import {
 const ThemePickerCompact = ({
   vorhabenOptions = [],
   selectedId = "",
+  draftFach = "",
   onSelect,
   onClear,
+  onFachChange,
   onCreateVorhaben,
   themeInputId,
   listId,
@@ -19,15 +21,33 @@ const ThemePickerCompact = ({
     [vorhabenOptions]
   );
 
-  const [selectedFachKey, setSelectedFachKey] = useState("");
   const [themeQuery, setThemeQuery] = useState("");
   const themeInputRef = useRef(null);
 
+  const activeFachKey = useMemo(() => {
+    if (selectedId) {
+      const current = vorhabenOptions.find((v) => v.id === selectedId);
+      if (current?.fach) {
+        const key = normalizeFachKey(current.fach);
+        if (key !== "default") {
+          return key;
+        }
+      }
+    }
+    if (draftFach) {
+      const key = normalizeFachKey(draftFach);
+      if (key !== "default") {
+        return key;
+      }
+    }
+    return "";
+  }, [selectedId, draftFach, vorhabenOptions]);
+
   useEffect(() => {
-    if (selectedFachKey) {
+    if (activeFachKey) {
       themeInputRef.current?.focus();
     }
-  }, [selectedFachKey]);
+  }, [activeFachKey]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -37,21 +57,17 @@ const ThemePickerCompact = ({
     if (!current) {
       return;
     }
-    const key = normalizeFachKey(current.fach);
-    if (key !== "default") {
-      setSelectedFachKey(key);
-    }
     setThemeQuery(current.title || "");
   }, [selectedId, vorhabenOptions]);
 
   const themesForFach = useMemo(() => {
-    if (!selectedFachKey) {
+    if (!activeFachKey) {
       return [];
     }
     return vorhabenOptions.filter(
-      (v) => normalizeFachKey(v.fach) === selectedFachKey
+      (v) => normalizeFachKey(v.fach) === activeFachKey
     );
-  }, [vorhabenOptions, selectedFachKey]);
+  }, [vorhabenOptions, activeFachKey]);
 
   const filteredThemes = useMemo(() => {
     const q = themeQuery.trim().toLowerCase();
@@ -66,27 +82,26 @@ const ThemePickerCompact = ({
     (v) => v.title.trim().toLowerCase() === trimmedQuery.toLowerCase()
   );
   const canCreate =
-    Boolean(selectedFachKey && trimmedQuery && !exactMatch && onCreateVorhaben);
+    Boolean(activeFachKey && trimmedQuery && !exactMatch && onCreateVorhaben);
 
   const handleSelectFach = (key) => {
-    setSelectedFachKey(key);
+    if (activeFachKey === key) {
+      setThemeQuery("");
+      onFachChange?.("");
+      return;
+    }
     setThemeQuery("");
+    onFachChange?.(fachNameForKey(key, fachOptions));
     if (selectedId) {
       onClear?.();
     }
-  };
-
-  const handleClearAll = () => {
-    setSelectedFachKey("");
-    setThemeQuery("");
-    onClear?.();
   };
 
   const handleCreateTheme = () => {
     if (!canCreate) {
       return;
     }
-    const fach = fachNameForKey(selectedFachKey, fachOptions);
+    const fach = fachNameForKey(activeFachKey, fachOptions);
     const created = onCreateVorhaben({
       title: trimmedQuery,
       fach,
@@ -108,20 +123,11 @@ const ThemePickerCompact = ({
   return (
     <div className="cal-event-theme-picker">
       <div className="cal-event-theme-step">
-        <div className="cal-event-theme-step-head">
-          <span className="cal-event-theme-step-label">Fach</span>
-          <button
-            type="button"
-            className="cal-event-theme-skip"
-            onClick={handleClearAll}
-          >
-            Nur Kalender
-          </button>
-        </div>
+        <span className="cal-event-theme-step-label">Fach</span>
         <div className="cal-event-theme-fach-row" role="group" aria-label="Fach wählen">
           {fachOptions.map((opt) => {
             const toneClass = getFachToneClassName(opt.fach);
-            const isActive = selectedFachKey === opt.key;
+            const isActive = activeFachKey === opt.key;
             return (
               <button
                 key={opt.key}
@@ -140,7 +146,7 @@ const ThemePickerCompact = ({
         </div>
       </div>
 
-      {selectedFachKey ? (
+      {activeFachKey ? (
         <div className="cal-event-theme-step">
           <label className="cal-event-theme-step-label" htmlFor={themeInputId}>
             Thema

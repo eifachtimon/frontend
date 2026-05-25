@@ -44,6 +44,7 @@ export const buildEmptyForm = (partial = {}) => ({
   localEventId: partial.localEventId || null,
   subscriptionId: partial.subscriptionId || null,
   readonly: Boolean(partial.readonly),
+  draftFach: partial.draftFach || "",
 });
 
 export const withVorhabenAssignment = (form, vorhabenId, planningStore, vorhabenOptions = []) => {
@@ -167,6 +168,8 @@ export const formToDraftPreviewEvent = (form, planningStore) => {
   }
   const vorhabenId = form.vorhabenId || "";
   const vorhaben = vorhabenId ? getVorhabenById(planningStore, vorhabenId) : null;
+  const fach = vorhaben?.fach || form.draftFach || "";
+  const hasFachColor = Boolean(fach);
   const source = vorhabenId ? "planning" : "local";
   const cardType = form.cardType || "notiz";
   const title = form.title?.length ? form.title : DRAFT_PREVIEW_DEFAULT_TITLE;
@@ -192,9 +195,9 @@ export const formToDraftPreviewEvent = (form, planningStore) => {
       source,
       cardType,
       vorhabenId,
-      fach: vorhaben?.fach || "",
+      fach,
       isDraftPreview: true,
-      plain: !vorhabenId,
+      plain: !hasFachColor,
     },
   };
 

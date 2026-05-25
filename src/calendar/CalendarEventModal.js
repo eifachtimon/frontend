@@ -9,7 +9,7 @@ import { withVorhabenAssignment } from "./calendarEventResolve";
 import ThemePickerCompact from "./ThemePickerCompact";
 import useOverlayPresentation from "../ui/useOverlayPresentation";
 
-const DURATION_OPTIONS = [15, 30, 45, 60, 90];
+const DURATION_OPTIONS = [5, 10, 15, 30, 45, 60, 90];
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -45,14 +45,6 @@ const fromDateTimeParts = (dateStr, timeStr) => {
   return new Date(`${dateStr}T${timeStr || "08:00"}`).toISOString();
 };
 
-const formatTimeLabel = (iso) => {
-  if (!iso) {
-    return "";
-  }
-  const d = new Date(iso);
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-};
-
 const getDurationMin = (form) => {
   const n = Number(form.durationMin);
   return Number.isFinite(n) && n > 0 ? n : 45;
@@ -86,23 +78,59 @@ const CompactEventForm = ({
   form,
   canEdit,
   canDelete,
-  isPlanning,
   vorhabenOptions,
-  lektionOptions,
   onChange,
   onClose,
   onDelete,
   onExpand,
-  moreOpen,
-  onMoreOpenChange,
   themeInputId,
   themeListId,
   onCreateVorhaben,
+  onFachChange,
+  onThemeSelect,
   titleId,
   firstFieldRef,
 }) => {
   const durationMin = getDurationMin(form);
-  const endLabel = formatTimeLabel(form.end);
+
+  const handleEndTimeChange = (e) => {
+    const newEnd = fromDateTimeParts(
+      toDateInput(form.end || form.start),
+      e.target.value
+    );
+    const startMs = new Date(form.start).getTime();
+    const endMs = new Date(newEnd).getTime();
+    const diffMin = Math.max(5, Math.round((endMs - startMs) / 60000));
+    onChange({
+      ...form,
+      end: newEnd,
+      durationMin: diffMin,
+    });
+  };
+
+  const handleToggleAllDay = () => {
+    if (form.allDay) {
+      onChange(withSyncedEnd({ ...form, allDay: false }));
+      return;
+    }
+    onChange({ ...form, allDay: true });
+  };
+
+  const renderDurationChip = (min) => (
+    <button
+      key={min}
+      type="button"
+      className={`cal-event-dur-chip${
+        !form.allDay && durationMin === min ? " cal-event-dur-chip--active" : ""
+      }`}
+      aria-pressed={!form.allDay && durationMin === min}
+      onClick={() =>
+        onChange(withSyncedEnd({ ...form, allDay: false }, { durationMin: min }))
+      }
+    >
+      {min}′
+    </button>
+  );
 
   return (
     <>
@@ -141,12 +169,12 @@ const CompactEventForm = ({
           <ThemePickerCompact
             vorhabenOptions={vorhabenOptions}
             selectedId={form.vorhabenId || ""}
+            draftFach={form.draftFach || ""}
             themeInputId={themeInputId}
             listId={themeListId}
             onCreateVorhaben={onCreateVorhaben}
-            onSelect={(vorhabenId) =>
-              onChange(withVorhabenAssignment(form, vorhabenId, null, vorhabenOptions))
-            }
+            onFachChange={onFachChange}
+            onSelect={onThemeSelect}
             onClear={() =>
               onChange(withVorhabenAssignment(form, "", null, vorhabenOptions))
             }
@@ -159,234 +187,97 @@ const CompactEventForm = ({
           <p className="cal-event-quick-meta">{form.vorhabenTitle}</p>
         ) : null}
 
-        {form.allDay ? (
-          <>
-            <div className="cal-event-quick-when">
-              <label className="cal-event-quick-field">
-                <span>Datum</span>
-                <input
-                  id="cal-ev-start-date"
-                  type="date"
-                  value={toDateInput(form.start)}
-                  onChange={(e) =>
-                    onChange({
-                      ...form,
-                      start: new Date(`${e.target.value}T08:00`).toISOString(),
-                    })
-                  }
-                  readOnly={!canEdit}
-                />
-              </label>
-            </div>
-            {canEdit ? (
-              <div className="cal-event-quick-duration">
-                <button
-                  type="button"
-                  className="cal-event-dur-chip cal-event-dur-chip--allday cal-event-dur-chip--active"
-                  aria-pressed
-                  onClick={() => onChange({ ...form, allDay: false })}
-                >
-                  Ganztägig
-                </button>
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <div className="cal-event-quick-when">
-              <label className="cal-event-quick-field">
-                <span>Datum</span>
-                <input
-                  id="cal-ev-start-date"
-                  type="date"
-                  value={toDateInput(form.start)}
-                  onChange={(e) =>
-                    onChange(
-                      withSyncedEnd(form, {
-                        start: fromDateTimeParts(e.target.value, toTimeInput(form.start)),
+        <div
+          className={`cal-event-quick-when${
+            form.allDay ? " cal-event-quick-when--allday" : ""
+          }`}
+        >
+          <label className="cal-event-quick-field cal-event-quick-field--inline">
+            <span>Datum</span>
+            <input
+              id="cal-ev-start-date"
+              type="date"
+              value={toDateInput(form.start)}
+              onChange={(e) =>
+                onChange(
+                  form.allDay
+                    ? {
+                        ...form,
+                        start: new Date(`${e.target.value}T08:00`).toISOString(),
+                      }
+                    : withSyncedEnd(form, {
+                        start: fromDateTimeParts(
+                          e.target.value,
+                          toTimeInput(form.start)
+                        ),
                       })
-                    )
-                  }
-                  readOnly={!canEdit}
-                />
-              </label>
-              <label className="cal-event-quick-field">
-                <span>Beginn</span>
+                )
+              }
+              readOnly={!canEdit}
+            />
+          </label>
+          {!form.allDay ? (
+            <div className="cal-event-quick-field cal-event-quick-field--inline cal-event-quick-field--time-col">
+              <span id="cal-ev-time-range-label">Zeit</span>
+              <div
+                className="cal-event-time-range"
+                role="group"
+                aria-labelledby="cal-ev-time-range-label"
+              >
                 <input
                   id="cal-ev-start-time"
                   type="time"
-                  step={900}
+                  step={300}
+                  className="cal-event-time-range-input"
                   value={toTimeInput(form.start)}
                   onChange={(e) =>
                     onChange(
                       withSyncedEnd(form, {
-                        start: fromDateTimeParts(toDateInput(form.start), e.target.value),
+                        start: fromDateTimeParts(
+                          toDateInput(form.start),
+                          e.target.value
+                        ),
                       })
                     )
                   }
                   readOnly={!canEdit}
+                  aria-label="Beginn"
                 />
-              </label>
-            </div>
-            {canEdit ? (
-              <div className="cal-event-quick-duration">
-                <div className="cal-event-dur-chips" role="group" aria-label="Dauer">
-                  {DURATION_OPTIONS.map((min) => (
-                    <button
-                      key={min}
-                      type="button"
-                      className={`cal-event-dur-chip${
-                        durationMin === min ? " cal-event-dur-chip--active" : ""
-                      }`}
-                      aria-pressed={durationMin === min}
-                      onClick={() => onChange(withSyncedEnd(form, { durationMin: min }))}
-                    >
-                      {min}′
-                    </button>
-                  ))}
-                </div>
-                {endLabel ? (
-                  <span className="cal-event-quick-end">
-                    Ende <strong>{endLabel}</strong>
-                  </span>
-                ) : null}
-                <button
-                  type="button"
-                  className={`cal-event-dur-chip cal-event-dur-chip--allday${
-                    form.allDay ? " cal-event-dur-chip--active" : ""
-                  }`}
-                  aria-pressed={form.allDay}
-                  onClick={() => onChange({ ...form, allDay: !form.allDay })}
-                >
-                  Ganztägig
-                </button>
+                <span className="cal-event-time-range-sep" aria-hidden="true">
+                  –
+                </span>
+                <input
+                  id="cal-ev-end-time"
+                  type="time"
+                  step={300}
+                  className="cal-event-time-range-input"
+                  value={toTimeInput(form.end)}
+                  onChange={handleEndTimeChange}
+                  readOnly={!canEdit}
+                  aria-label="Ende"
+                />
               </div>
-            ) : null}
-          </>
-        )}
-
-        <button
-          type="button"
-          className="cal-event-more-toggle"
-          aria-expanded={moreOpen}
-          onClick={(e) => {
-            e.stopPropagation();
-            onMoreOpenChange(!moreOpen);
-          }}
-        >
-          Mehr Optionen
-        </button>
-        {moreOpen ? (
-          <div
-            className="cal-event-modal-more-panel"
-            onClick={(e) => e.stopPropagation()}
-          >
-          {canEdit && form.mode !== "create" ? (
-            <ThemePickerCompact
-              vorhabenOptions={vorhabenOptions}
-              selectedId={form.vorhabenId || ""}
-              themeInputId="cal-ev-vorhaben-input-more"
-              listId="cal-ev-vorhaben-list-more"
-              onCreateVorhaben={onCreateVorhaben}
-              onSelect={(vorhabenId) =>
-                onChange(withVorhabenAssignment(form, vorhabenId, null, vorhabenOptions))
-              }
-              onClear={() =>
-                onChange(withVorhabenAssignment(form, "", null, vorhabenOptions))
-              }
-            />
+            </div>
           ) : null}
+        </div>
 
-          {canEdit && isPlanning ? (
-            <>
-              <label className="cal-event-quick-field">
-                <span>Art</span>
-                <select
-                  id="cal-ev-type"
-                  value={form.cardType || "notiz"}
-                  onChange={(e) => onChange({ ...form, cardType: e.target.value })}
-                >
-                  <option value="notiz">Termin / Notiz</option>
-                  <option value="ritual">Ritual</option>
-                  <option value="lektion">Lektion</option>
-                </select>
-              </label>
-              {form.cardType === "lektion" && lektionOptions.length > 0 ? (
-                <label className="cal-event-quick-field">
-                  <span>Lektion</span>
-                  <select
-                    id="cal-ev-lek"
-                    value={form.lektionId || ""}
-                    onChange={(e) => {
-                      const lek = lektionOptions.find((l) => l.id === e.target.value);
-                      onChange(
-                        withSyncedEnd({
-                          ...form,
-                          lektionId: e.target.value,
-                          title: lek ? lek.title : form.title,
-                          durationMin: lek?.durationMin ?? form.durationMin,
-                        })
-                      );
-                    }}
-                  >
-                    <option value="">— wählen —</option>
-                    {lektionOptions.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-            </>
-          ) : null}
-
-          {!form.allDay ? (
-            <label className="cal-event-quick-field">
-              <span>Ende</span>
-              <input
-                id="cal-ev-end-time"
-                type="time"
-                step={900}
-                value={toTimeInput(form.end)}
-                onChange={(e) =>
-                  onChange({
-                    ...form,
-                    end: fromDateTimeParts(toDateInput(form.end || form.start), e.target.value),
-                  })
-                }
-                readOnly={!canEdit}
-              />
-            </label>
-          ) : (
-            <label className="cal-event-quick-field">
-              <span>Ende (Datum)</span>
-              <input
-                id="cal-ev-end-date"
-                type="date"
-                value={toDateInput(form.end)}
-                onChange={(e) =>
-                  onChange({
-                    ...form,
-                    end: new Date(`${e.target.value}T17:00`).toISOString(),
-                  })
-                }
-                readOnly={!canEdit}
-              />
-            </label>
-          )}
-
-          <label className="cal-event-quick-field">
-            <span>Notizen</span>
-            <textarea
-              id="cal-ev-notes"
-              rows={2}
-              value={form.notes || ""}
-              onChange={(e) => onChange({ ...form, notes: e.target.value })}
-              readOnly={!canEdit}
-              placeholder="Optional …"
-            />
-          </label>
+        {canEdit ? (
+          <div className="cal-event-quick-duration">
+            <div className="cal-event-dur-chips cal-event-dur-chips--row" role="group" aria-label="Dauer in Minuten">
+              {DURATION_OPTIONS.map(renderDurationChip)}
+            </div>
+            <div className="cal-event-dur-chips cal-event-dur-chips--allday">
+              <button
+                type="button"
+                className={`cal-event-dur-chip cal-event-dur-chip--allday${
+                  form.allDay ? " cal-event-dur-chip--active" : ""
+                }`}
+                aria-pressed={form.allDay}
+                onClick={handleToggleAllDay}
+              >
+                Ganztägig
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -418,7 +309,11 @@ const CompactEventForm = ({
               Löschen
             </button>
           ) : null}
-          <button type="button" className="cal-event-text-btn" onClick={onClose}>
+          <button
+            type="button"
+            className="cal-event-text-btn cal-event-text-btn--cancel"
+            onClick={onClose}
+          >
             Abbrechen
           </button>
         </div>
@@ -456,7 +351,6 @@ const CalendarEventModal = ({
   const [popoverStyle, setPopoverStyle] = useState(null);
   const [compactStyle, setCompactStyle] = useState(null);
   const [borderFrame, setBorderFrame] = useState(null);
-  const [moreOpen, setMoreOpen] = useState(false);
   const overlayClass = useOverlayPresentation(open && expanded);
 
   const showCompact = !expanded;
@@ -470,7 +364,6 @@ const CalendarEventModal = ({
   useEffect(() => {
     if (!open) {
       setExpanded(false);
-      setMoreOpen(false);
       layoutWidthLockRef.current = null;
       layoutAnchorKeyRef.current = "";
       return;
@@ -535,7 +428,7 @@ const CalendarEventModal = ({
         const layout = computeAnchoredPopoverStyle(anchor, {
           width,
           height,
-          expandFull: moreOpen,
+          expandFull: false,
         });
         const { beakSide: side, beakTop, top, left, width: panelWidth } = layout;
         if (anchoredLeftRef.current.left === null) {
@@ -626,7 +519,7 @@ const CalendarEventModal = ({
         modalRef.current.style.maxWidth = "";
       }
     };
-  }, [open, showCompact, isAnchored, anchor, anchorLayoutKey, moreOpen, form?.allDay, form?.title]);
+  }, [open, showCompact, isAnchored, anchor, anchorLayoutKey, form?.allDay, form?.title]);
 
   useEffect(() => {
     if (open && form?.mode === "create") {
@@ -668,6 +561,26 @@ const CalendarEventModal = ({
       : {}),
   };
 
+  const handleFachChange = (fachName) => {
+    if (!fachName) {
+      onChange(withVorhabenAssignment({ ...form, draftFach: "" }, "", null, vorhabenOptions));
+      return;
+    }
+    onChange({
+      ...withVorhabenAssignment(form, "", null, vorhabenOptions),
+      draftFach: fachName,
+    });
+  };
+
+  const handleThemeSelect = (vorhabenId) => {
+    const updated = withVorhabenAssignment(form, vorhabenId, null, vorhabenOptions);
+    const vorhaben = vorhabenOptions.find((v) => v.id === vorhabenId);
+    onChange({
+      ...updated,
+      draftFach: vorhaben?.fach || form.draftFach || "",
+    });
+  };
+
   const compactQuickForm = (
     <form
       className="cal-modal-form cal-event-modal-form cal-event-modal-form--quick"
@@ -682,18 +595,16 @@ const CalendarEventModal = ({
         form={form}
         canEdit={canEdit}
         canDelete={canDelete}
-        isPlanning={isPlanning}
         vorhabenOptions={vorhabenOptions}
-        lektionOptions={lektionOptions}
         onChange={onChange}
         onClose={onClose}
         onDelete={onDelete}
         onExpand={() => setExpanded(true)}
-        moreOpen={moreOpen}
-        onMoreOpenChange={setMoreOpen}
         themeInputId={themeInputId}
         themeListId={themeListId}
         onCreateVorhaben={onCreateVorhaben}
+        onFachChange={handleFachChange}
+        onThemeSelect={handleThemeSelect}
         titleId={titleId}
         firstFieldRef={firstFieldRef}
       />
@@ -708,8 +619,6 @@ const CalendarEventModal = ({
       <div
         ref={modalRef}
         className={`cal-modal cal-event-modal${showCompact ? " cal-event-modal--compact" : ""}${
-          moreOpen ? " cal-event-modal--more-open" : ""
-        }${
           borderFrame
             ? ` cal-event-modal--beaked${
                 borderFrame.side === "left"
@@ -802,14 +711,12 @@ const CalendarEventModal = ({
                     <ThemePickerCompact
                       vorhabenOptions={vorhabenOptions}
                       selectedId={form.vorhabenId || ""}
+                      draftFach={form.draftFach || ""}
                       themeInputId={`${themeInputId}-expanded`}
                       listId={`${themeListId}-expanded`}
                       onCreateVorhaben={onCreateVorhaben}
-                      onSelect={(vorhabenId) =>
-                        onChange(
-                          withVorhabenAssignment(form, vorhabenId, null, vorhabenOptions)
-                        )
-                      }
+                      onFachChange={handleFachChange}
+                      onSelect={handleThemeSelect}
                       onClear={() =>
                         onChange(withVorhabenAssignment(form, "", null, vorhabenOptions))
                       }

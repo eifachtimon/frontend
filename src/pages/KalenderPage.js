@@ -3,7 +3,8 @@ import CalendarView from "../calendar/CalendarView";
 import CalendarSubscriptionsPanel from "../calendar/CalendarSubscriptionsPanel";
 import CalendarAppleSync from "../calendar/CalendarAppleSync";
 import CalendarEventModal from "../calendar/CalendarEventModal";
-import CalendarFilterBar from "../calendar/CalendarFilterBar";
+import CalendarToolbar from "../calendar/CalendarToolbar";
+import PlanningViewHeader from "../planning/PlanningViewHeader";
 import StundenplanSlotModal from "../calendar/StundenplanSlotModal";
 import {
   buildSlotFromSelection,
@@ -59,7 +60,7 @@ const KalenderPage = () => {
   const [stpModalOpen, setStpModalOpen] = useState(false);
   const [stpSlot, setStpSlot] = useState(null);
   const calendarRef = useRef(null);
-  const searchRef = useRef(null);
+  const toolbarRef = useRef(null);
   const lastSelectionRef = useRef(null);
   const [selectionTick, setSelectionTick] = useState(0);
   const [showDragStrip, setShowDragStrip] = useState(loadCalendarChromeExpanded);
@@ -389,15 +390,34 @@ const KalenderPage = () => {
         lastSelectionRef.current?.kind === "stundenplan"),
   });
 
+  const handleNavigateToEvent = useCallback((event) => {
+    const api = calendarRef.current?.getApi?.();
+    if (api && event?.start) {
+      const start =
+        event.start instanceof Date ? event.start : new Date(event.start);
+      if (!Number.isNaN(start.getTime())) {
+        api.gotoDate(start);
+        const viewType = api.view?.type;
+        if (viewType === "dayGridMonth" || viewType === "listWeek") {
+          api.changeView("timeGridWeek");
+        }
+      }
+    }
+    if (event?.id) {
+      setFocusedFcEventId(String(event.id));
+    }
+  }, []);
+
   useCalendarKeyboard({
     calendarApiRef: { current: () => calendarRef.current?.getApi?.() },
-    onSearchFocus: () => searchRef.current?.focus(),
+    onSearchFocus: () => toolbarRef.current?.openSearch?.(),
     onNewEvent: () => openCreate(),
     onCloseOverlays: () => {
       closeModal();
       closeStpModal();
       setDrawerOpen(false);
       setHelpOpen(false);
+      toolbarRef.current?.closePanels?.();
     },
     onToggleHelp: () => setHelpOpen((h) => !h),
   });
@@ -427,73 +447,98 @@ const KalenderPage = () => {
   return (
     <div className="app-shell planning-hub planning-surface cal-page">
       <main className="cal-page-main">
-        <header className="cal-page-toolbar">
-          <h1 className="cal-page-toolbar-title">Kalender</h1>
-
-          <CalendarFilterBar
+        <div className="cal-page-header-wrap">
+          <PlanningViewHeader
+            band="yellow"
+            title="Kalender"
+            compact
+            actions={
+              <>
+                <button
+                  type="button"
+                  className={`cal-toolbar-btn${showDragStrip ? " cal-toolbar-btn--active" : ""}`}
+                  onClick={handleToggleDragStrip}
+                  aria-pressed={showDragStrip}
+                  title={
+                    showDragStrip
+                      ? "Ziehen-Leiste ausblenden"
+                      : "Ziehen-Leiste einblenden"
+                  }
+                >
+                  Ziehen
+                </button>
+                <button
+                  type="button"
+                  className={`cal-toolbar-btn${helpOpen ? " cal-toolbar-btn--active" : ""}`}
+                  onClick={() => setHelpOpen((h) => !h)}
+                  aria-expanded={helpOpen}
+                  aria-controls="cal-shortcuts-panel"
+                  title="Tastenkürzel"
+                >
+                  ?
+                </button>
+                <button
+                  type="button"
+                  className={`cal-toolbar-btn${drawerOpen ? " cal-toolbar-btn--active" : ""}`}
+                  onClick={() => setDrawerOpen((o) => !o)}
+                  aria-expanded={drawerOpen}
+                  title="Kalender-Abos"
+                >
+                  Abos
+                </button>
+              </>
+            }
+          />
+          <CalendarToolbar
+            ref={toolbarRef}
             filters={filters}
             onChange={persistFilters}
             vorhabenList={planningStore.vorhaben}
+            planningStore={planningStore}
+            calendarStore={calStore}
             onNewEvent={() => openCreate()}
             onInitStundenplan={handleInitStundenplan}
-            searchInputRef={searchRef}
+            onNavigateToEvent={handleNavigateToEvent}
           />
-
-          <div className="cal-page-toolbar-actions">
-            <button
-              type="button"
-              className={`cal-toolbar-icon-btn ${showDragStrip ? "cal-toolbar-icon-btn--active" : ""}`}
-              onClick={handleToggleDragStrip}
-              aria-pressed={showDragStrip}
-              title={showDragStrip ? "Ziehen-Leiste ausblenden" : "Ziehen-Leiste einblenden"}
-              aria-label={showDragStrip ? "Ziehen-Leiste ausblenden" : "Ziehen-Leiste einblenden"}
-            >
-              Ziehen
-            </button>
-            <button
-              type="button"
-              className={`cal-toolbar-icon-btn ${helpOpen ? "cal-toolbar-icon-btn--active" : ""}`}
-              onClick={() => setHelpOpen((h) => !h)}
-              aria-expanded={helpOpen}
-              aria-controls="cal-shortcuts-panel"
-              title="Tastenkürzel"
-              aria-label="Tastenkürzel anzeigen"
-            >
-              ?
-            </button>
-            <button
-              type="button"
-              className={`cal-toolbar-icon-btn ${drawerOpen ? "cal-toolbar-icon-btn--active" : ""}`}
-              onClick={() => setDrawerOpen((o) => !o)}
-              aria-expanded={drawerOpen}
-              title="Kalender-Abos"
-              aria-label="Kalender-Abos"
-            >
-              Abos
-            </button>
-          </div>
-
           {helpOpen ? (
             <div
               id="cal-shortcuts-panel"
-              className="cal-shortcuts-popover"
-              role="dialog"
+              className="cal-shortcuts-strip"
+              role="region"
               aria-label="Tastenkürzel"
             >
               <div className="cal-shortcuts-grid">
-                <span><kbd>/</kbd> Suche</span>
-                <span><kbd>N</kbd> Neuer Termin</span>
-                <span><kbd>T</kbd> Heute</span>
-                <span><kbd>M</kbd> Monat</span>
-                <span><kbd>W</kbd> Woche</span>
-                <span><kbd>D</kbd> Tag</span>
-                <span><kbd>L</kbd> Liste</span>
-                <span><kbd>Esc</kbd> Schliessen</span>
-                <span><kbd>Entf</kbd> Löschen</span>
+                <span>
+                  <kbd>/</kbd> Suche
+                </span>
+                <span>
+                  <kbd>N</kbd> Neuer Termin
+                </span>
+                <span>
+                  <kbd>T</kbd> Heute
+                </span>
+                <span>
+                  <kbd>M</kbd> Monat
+                </span>
+                <span>
+                  <kbd>W</kbd> Woche
+                </span>
+                <span>
+                  <kbd>D</kbd> Tag
+                </span>
+                <span>
+                  <kbd>L</kbd> Liste
+                </span>
+                <span>
+                  <kbd>Esc</kbd> Schliessen
+                </span>
+                <span>
+                  <kbd>Entf</kbd> Löschen
+                </span>
               </div>
             </div>
           ) : null}
-        </header>
+        </div>
 
         <div className="planning-view-panel planning-view-panel--calendar">
           <div className="cal-page-body">
