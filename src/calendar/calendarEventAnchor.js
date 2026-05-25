@@ -5,11 +5,17 @@ const MIN_SIZE = 8;
 /** @returns {AnchorRect | null} */
 export const anchorFromSelectInfo = (selectInfo) => {
   const calEl = selectInfo?.view?.calendar?.el;
-  const highlight = calEl?.querySelector(".fc-highlight");
-  if (highlight) {
-    const r = highlight.getBoundingClientRect();
-    if (r.width > 0 || r.height > 0) {
-      return { top: r.top, left: r.left, width: r.width, height: r.height };
+  if (calEl) {
+    const candidates = [
+      calEl.querySelector(".fc-highlight"),
+      calEl.querySelector(".fc-timegrid-selection"),
+      calEl.querySelector(".fc-event-mirror"),
+    ].filter(Boolean);
+    for (const el of candidates) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 || r.height > 0) {
+        return { top: r.top, left: r.left, width: r.width, height: r.height };
+      }
     }
   }
   const je = selectInfo?.jsEvent;
@@ -48,7 +54,7 @@ const PANEL_MAX_H = 300;
 const WHEN_ROW_MIN_W = 272;
 const GAP = 8;
 const MARGIN = 12;
-const BEAK_HALF = 7;
+export const BEAK_HALF = 7;
 /**
  * Breite an Titel + Header-Buttons anpassen.
  * @param {HTMLElement | null} modalEl
@@ -118,8 +124,7 @@ export const computeAnchoredPopoverStyle = (anchor, measured = {}) => {
     beakSide = "right";
   }
   if (left < MARGIN) {
-    left = Math.max(MARGIN, vw - panelW - MARGIN);
-    beakSide = "none";
+    left = MARGIN;
   }
 
   let top = anchor.top;

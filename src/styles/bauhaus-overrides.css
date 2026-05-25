@@ -391,8 +391,8 @@ mark.text-highlight {
 
 .cal-modal {
   background: var(--bh-white) !important;
-  border: var(--bh-border-w-lg) solid var(--bh-border) !important;
-  box-shadow: var(--bh-shadow-lg) !important;
+  border: 4px solid var(--bh-border) !important;
+  box-shadow: 4px 4px 0 0 var(--bh-border) !important;
   border-radius: var(--bh-radius-none) !important;
 }
 

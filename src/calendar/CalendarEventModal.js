@@ -1,13 +1,11 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  BEAK_HALF,
   computeAnchoredPopoverStyle,
   measureCompactPopoverWidth,
 } from "./calendarEventAnchor";
 import useOverlayPresentation from "../ui/useOverlayPresentation";
-
-/** Schritt A: false. Schritt B (Pfeil): true — nach deinem OK zu Schritt A. */
-const POPOVER_BEAK_ENABLED = false;
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90];
 
@@ -453,9 +451,7 @@ const CalendarEventModal = ({
           maxHeight,
         });
         setBorderFrame(
-          POPOVER_BEAK_ENABLED && side && side !== "none"
-            ? { width, height, beakTop, side }
-            : null
+          side && side !== "none" ? { beakTop, side } : null
         );
         setCompactStyle(null);
       } else {
@@ -518,7 +514,38 @@ const CalendarEventModal = ({
   const modalStyle = {
     ...(showCompact && compactStyle ? compactStyle : {}),
     ...(isAnchored && popoverStyle ? popoverStyle : {}),
+    ...(borderFrame
+      ? { "--cal-beak-top": `${borderFrame.beakTop + BEAK_HALF}px` }
+      : {}),
   };
+
+  const compactQuickForm = (
+    <form
+      className="cal-modal-form cal-event-modal-form cal-event-modal-form--quick"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (canEdit) {
+          onSave();
+        }
+      }}
+    >
+      <CompactEventForm
+        form={form}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        isPlanning={isPlanning}
+        vorhabenOptions={vorhabenOptions}
+        lektionOptions={lektionOptions}
+        onChange={onChange}
+        onClose={onClose}
+        onDelete={onDelete}
+        onExpand={() => setExpanded(true)}
+        titleId={titleId}
+        firstFieldRef={firstFieldRef}
+      />
+    </form>
+  );
+
   return (
     <div
       className={`cal-modal-overlay cal-event-modal-overlay ${effectiveOverlayClass}`}
@@ -528,7 +555,15 @@ const CalendarEventModal = ({
       <div
         ref={modalRef}
         className={`cal-modal cal-event-modal${showCompact ? " cal-event-modal--compact" : ""}${
-          borderFrame ? " cal-event-modal--beaked" : ""
+          borderFrame
+            ? ` cal-event-modal--beaked${
+                borderFrame.side === "left"
+                  ? " cal-event-modal--beak-left"
+                  : borderFrame.side === "right"
+                    ? " cal-event-modal--beak-right"
+                    : ""
+              }`
+            : ""
         }`}
         role="dialog"
         aria-modal="true"
@@ -536,32 +571,7 @@ const CalendarEventModal = ({
         style={Object.keys(modalStyle).length ? modalStyle : undefined}
         onClick={(e) => e.stopPropagation()}
       >
-        {showCompact ? (
-          <form
-            className="cal-modal-form cal-event-modal-form cal-event-modal-form--quick"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (canEdit) {
-                onSave();
-              }
-            }}
-          >
-            <CompactEventForm
-              form={form}
-              canEdit={canEdit}
-              canDelete={canDelete}
-              isPlanning={isPlanning}
-              vorhabenOptions={vorhabenOptions}
-              lektionOptions={lektionOptions}
-              onChange={onChange}
-              onClose={onClose}
-              onDelete={onDelete}
-              onExpand={() => setExpanded(true)}
-              titleId={titleId}
-              firstFieldRef={firstFieldRef}
-            />
-          </form>
-        ) : (
+        {showCompact ? compactQuickForm : (
           <>
             <header className="cal-modal-header cal-event-modal-header">
               <div className="cal-event-modal-head-text">

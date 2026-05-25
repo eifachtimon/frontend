@@ -91,30 +91,6 @@ const KalenderPage = () => {
     setRefreshing(false);
   }, [calStore]);
 
-  /** Dev: /kalender?calPopoverShot=1 öffnet verankertes Kompakt-Popup für visuelle Tests. */
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "development") {
-      return;
-    }
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("calPopoverShot") !== "1") {
-      return;
-    }
-    const start = new Date();
-    start.setMinutes(Math.floor(start.getMinutes() / 15) * 15, 0, 0);
-    const end = new Date(start.getTime() + 45 * 60 * 1000);
-    setEventForm(
-      buildEmptyForm({
-        mode: "create",
-        source: "local",
-        start: start.toISOString(),
-        end: end.toISOString(),
-      })
-    );
-    setEventAnchor({ top: 380, left: 168, width: 52, height: 64 });
-    setModalOpen(true);
-  }, []);
-
   useEffect(() => {
     const enabled = calStore.subscriptions.filter(
       (s) => s.enabled && s.url && !calStore.subscriptionCache?.[s.id]
