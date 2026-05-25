@@ -4,7 +4,13 @@ import {
   anchorFromEventClick,
   anchorFromSelectInfo,
 } from "./calendarEventAnchor";
-import { buildEmptyForm, formFromFcEvent, formFromSelection } from "./calendarEventResolve";
+import {
+  buildEmptyForm,
+  formFromFcEvent,
+  formFromSelection,
+} from "./calendarEventResolve";
+import { createVorhaben } from "../planning/planningStore";
+import { resolveCalendarEventClick } from "./calendarEventSelection";
 
 /**
  * Gemeinsame Termin-Modal-Logik für Kalender, Home und Wochenplan.
@@ -19,6 +25,7 @@ const useCalendarTerminModal = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [eventForm, setEventForm] = useState(null);
   const [eventAnchor, setEventAnchor] = useState(null);
+  const [selectedEventId, setSelectedEventId] = useState(null);
 
   const closeModal = useCallback(() => {
     setModalOpen(false);
@@ -26,8 +33,13 @@ const useCalendarTerminModal = ({
     setEventAnchor(null);
   }, []);
 
+  const clearEventSelection = useCallback(() => {
+    setSelectedEventId(null);
+  }, []);
+
   const openCreate = useCallback(
     (start = new Date(), end = new Date(Date.now() + 45 * 60000)) => {
+      setSelectedEventId(null);
       setEventAnchor(null);
       setEventForm(
         buildEmptyForm({
@@ -48,16 +60,49 @@ const useCalendarTerminModal = ({
       if (info.event.extendedProps?.source === "stundenplan") {
         return;
       }
+      const eventId = info.event.id;
       info.jsEvent?.preventDefault?.();
-      setEventAnchor(anchorFromEventClick(info));
-      setEventForm(formFromFcEvent(info.event, planningStore, calStore));
-      setModalOpen(true);
+      const { openEditor, selectOnly } = resolveCalendarEventClick({
+        eventId,
+        selectedEventId,
+        modalOpen,
+      });
+
+      if (openEditor) {
+        setEventAnchor(anchorFromEventClick(info));
+        setEventForm(formFromFcEvent(info.event, planningStore, calStore));
+        setModalOpen(true);
+        return;
+      }
+
+      if (selectOnly) {
+        if (modalOpen) {
+          closeModal();
+        }
+        setSelectedEventId(eventId);
+      }
     },
-    [planningStore, calStore]
+    [selectedEventId, modalOpen, closeModal, planningStore, calStore]
+  );
+
+  const handleDateClick = useCallback(() => {
+    setSelectedEventId(null);
+    if (modalOpen) {
+      closeModal();
+    }
+  }, [modalOpen, closeModal]);
+
+  const handleCreateVorhaben = useCallback(
+    (partial) => {
+      const created = createVorhaben(partial);
+      return onPlanningStoreChange(created);
+    },
+    [onPlanningStoreChange]
   );
 
   const handleDateSelect = useCallback(
     (selectInfo) => {
+      setSelectedEventId(null);
       const anchor = anchorFromSelectInfo(selectInfo);
       setEventAnchor(anchor);
       setEventForm(formFromSelection(selectInfo));
@@ -108,6 +153,7 @@ const useCalendarTerminModal = ({
         onPlanningStoreChange,
         onCalStoreChange,
       });
+      setSelectedEventId(null);
       closeModal();
     },
     [
@@ -125,14 +171,18 @@ const useCalendarTerminModal = ({
     modalOpen,
     eventForm,
     eventAnchor,
+    selectedEventId,
     setEventForm,
     closeModal,
+    clearEventSelection,
     openCreate,
     handleEventClick,
+    handleDateClick,
     handleDateSelect,
     handleSaveEvent,
     handleDeleteEvent,
     canDeleteEvent,
+    handleCreateVorhaben,
   };
 };
 

@@ -5,12 +5,20 @@ import {
 } from "../config/appUrls";
 import { VORHABEN_TEMPLATES, WEEKDAYS } from "../planning/planningDefaults";
 import { getVorhabenById } from "../planning/planningStore";
-import { calendarEventClassNames, withBauhausEventStyle } from "./calendarEventStyles";
+import {
+  calendarEventClassNames,
+  withBauhausEventStyle,
+} from "./calendarEventStyles";
+import { resolvePlanningEventColors } from "../planning/fachColors";
 import { weekdayIdFromDate } from "./planningEvents";
 
 const DRAFT_PREVIEW_ID = "__cal-draft-preview__";
 
 export const DRAFT_PREVIEW_EVENT_ID = DRAFT_PREVIEW_ID;
+
+const LEKTION_DRAG_PREVIEW_ID = "__lek-drag-preview__";
+
+export const LEKTION_DRAG_PREVIEW_EVENT_ID = LEKTION_DRAG_PREVIEW_ID;
 
 export const DRAFT_PREVIEW_DEFAULT_TITLE = "Neuer Termin";
 
@@ -191,6 +199,48 @@ export const formToDraftPreviewEvent = (form, planningStore) => {
   };
 
   return withBauhausEventStyle(base);
+};
+
+/** Vorschau im Wochenkalender beim Ziehen einer Lektion aus der Themen-Übersicht. */
+export const lektionDragPreviewToEvent = (preview, planningStore) => {
+  if (!preview?.slot || !preview?.lektionId || !preview?.vorhabenId) {
+    return null;
+  }
+  const vorhaben = getVorhabenById(planningStore, preview.vorhabenId);
+  const lek = vorhaben?.lektionen?.find((l) => l.id === preview.lektionId);
+  if (!vorhaben || !lek) {
+    return null;
+  }
+
+  const { start } = preview.slot;
+  const durationMin = lek.durationMin || 45;
+  const end = new Date(start.getTime() + durationMin * 60000);
+  const colors = resolvePlanningEventColors(vorhaben, "lektion");
+
+  return withBauhausEventStyle({
+    id: LEKTION_DRAG_PREVIEW_ID,
+    title: lek.title,
+    start,
+    end,
+    editable: false,
+    display: "block",
+    classNames: [
+      ...calendarEventClassNames("planning", "lektion"),
+      "cal-event--drag-preview",
+      "cal-event--lek-drag-preview",
+    ],
+    extendedProps: {
+      source: "planning",
+      cardType: "lektion",
+      vorhabenId: vorhaben.id,
+      lektionId: lek.id,
+      fach: vorhaben.fach,
+      isLektionDragPreview: true,
+      eventAccent: colors.accent,
+      eventBg: colors.bg,
+      plain: false,
+    },
+  });
 };
 
 export const formFromSelection = (selectInfo) => {

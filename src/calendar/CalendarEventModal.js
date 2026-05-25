@@ -6,6 +6,7 @@ import {
   measureCompactPopoverWidth,
 } from "./calendarEventAnchor";
 import { withVorhabenAssignment } from "./calendarEventResolve";
+import ThemePickerCompact from "./ThemePickerCompact";
 import useOverlayPresentation from "../ui/useOverlayPresentation";
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90];
@@ -94,8 +95,9 @@ const CompactEventForm = ({
   onExpand,
   moreOpen,
   onMoreOpenChange,
-  themeAssignOpen,
-  onThemeAssignOpenChange,
+  themeInputId,
+  themeListId,
+  onCreateVorhaben,
   titleId,
   firstFieldRef,
 }) => {
@@ -134,45 +136,21 @@ const CompactEventForm = ({
         </button>
       </header>
 
-      {canEdit && form.mode === "create" && vorhabenOptions.length > 0 ? (
-        <div className="cal-event-theme-block">
-          <button
-            type="button"
-            className={`cal-event-dur-chip cal-event-dur-chip--theme${
-              themeAssignOpen ? " cal-event-dur-chip--theme-open" : ""
-            }`}
-            aria-pressed={themeAssignOpen}
-            onClick={() => {
-              const next = !themeAssignOpen;
-              onThemeAssignOpenChange(next);
-              if (!next) {
-                onChange(withVorhabenAssignment(form, "", null, vorhabenOptions));
-              }
-            }}
-          >
-            Themen hinzufügen
-          </button>
-          {themeAssignOpen ? (
-            <label className="cal-event-quick-field cal-event-theme-field">
-              <span>Thema</span>
-              <select
-                id="cal-ev-vorhaben-quick"
-                value={form.vorhabenId || ""}
-                onChange={(e) =>
-                  onChange(
-                    withVorhabenAssignment(form, e.target.value, null, vorhabenOptions)
-                  )
-                }
-              >
-                <option value="">Thema wählen…</option>
-                {vorhabenOptions.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
+      {canEdit && form.mode === "create" ? (
+        <div className="cal-event-theme-block cal-event-theme-block--compact">
+          <ThemePickerCompact
+            vorhabenOptions={vorhabenOptions}
+            selectedId={form.vorhabenId || ""}
+            themeInputId={themeInputId}
+            listId={themeListId}
+            onCreateVorhaben={onCreateVorhaben}
+            onSelect={(vorhabenId) =>
+              onChange(withVorhabenAssignment(form, vorhabenId, null, vorhabenOptions))
+            }
+            onClear={() =>
+              onChange(withVorhabenAssignment(form, "", null, vorhabenOptions))
+            }
+          />
         </div>
       ) : null}
 
@@ -303,26 +281,20 @@ const CompactEventForm = ({
             className="cal-event-modal-more-panel"
             onClick={(e) => e.stopPropagation()}
           >
-          {canEdit && vorhabenOptions.length > 0 && form.mode !== "create" ? (
-            <label className="cal-event-quick-field">
-              <span>Thema</span>
-              <select
-                id="cal-ev-vorhaben"
-                value={form.vorhabenId || ""}
-                onChange={(e) =>
-                  onChange(
-                    withVorhabenAssignment(form, e.target.value, null, vorhabenOptions)
-                  )
-                }
-              >
-                <option value="">Nur Kalender</option>
-                {vorhabenOptions.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {canEdit && form.mode !== "create" ? (
+            <ThemePickerCompact
+              vorhabenOptions={vorhabenOptions}
+              selectedId={form.vorhabenId || ""}
+              themeInputId="cal-ev-vorhaben-input-more"
+              listId="cal-ev-vorhaben-list-more"
+              onCreateVorhaben={onCreateVorhaben}
+              onSelect={(vorhabenId) =>
+                onChange(withVorhabenAssignment(form, vorhabenId, null, vorhabenOptions))
+              }
+              onClear={() =>
+                onChange(withVorhabenAssignment(form, "", null, vorhabenOptions))
+              }
+            />
           ) : null}
 
           {canEdit && isPlanning ? (
@@ -470,8 +442,11 @@ const CalendarEventModal = ({
   onDelete,
   vorhabenOptions = [],
   lektionOptions = [],
+  onCreateVorhaben,
 }) => {
   const titleId = useId();
+  const themeInputId = useId();
+  const themeListId = useId();
   const firstFieldRef = useRef(null);
   const modalRef = useRef(null);
   const anchoredLeftRef = useRef({ key: "", left: null });
@@ -482,7 +457,6 @@ const CalendarEventModal = ({
   const [compactStyle, setCompactStyle] = useState(null);
   const [borderFrame, setBorderFrame] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [themeAssignOpen, setThemeAssignOpen] = useState(false);
   const overlayClass = useOverlayPresentation(open && expanded);
 
   const showCompact = !expanded;
@@ -493,22 +467,15 @@ const CalendarEventModal = ({
       : "cal-modal-overlay--compact-standalone"
     : overlayClass || "app-overlay--float-panel";
 
-  const formMode = form?.mode;
-  const formVorhabenId = form?.vorhabenId;
-
   useEffect(() => {
     if (!open) {
       setExpanded(false);
       setMoreOpen(false);
-      setThemeAssignOpen(false);
       layoutWidthLockRef.current = null;
       layoutAnchorKeyRef.current = "";
       return;
     }
-    if (formMode === "create" && formVorhabenId) {
-      setThemeAssignOpen(true);
-    }
-  }, [open, formMode, formVorhabenId]);
+  }, [open]);
 
   const anchorLayoutKey =
     anchor &&
@@ -662,10 +629,10 @@ const CalendarEventModal = ({
   }, [open, showCompact, isAnchored, anchor, anchorLayoutKey, moreOpen, form?.allDay, form?.title]);
 
   useEffect(() => {
-    if (open) {
+    if (open && form?.mode === "create") {
       firstFieldRef.current?.focus();
     }
-  }, [open]);
+  }, [open, form?.mode]);
 
   useEffect(() => {
     if (!open || !form) {
@@ -724,8 +691,9 @@ const CalendarEventModal = ({
         onExpand={() => setExpanded(true)}
         moreOpen={moreOpen}
         onMoreOpenChange={setMoreOpen}
-        themeAssignOpen={themeAssignOpen}
-        onThemeAssignOpenChange={setThemeAssignOpen}
+        themeInputId={themeInputId}
+        themeListId={themeListId}
+        onCreateVorhaben={onCreateVorhaben}
         titleId={titleId}
         firstFieldRef={firstFieldRef}
       />
@@ -734,9 +702,8 @@ const CalendarEventModal = ({
 
   return (
     <div
-      className={`cal-modal-overlay cal-event-modal-overlay ${effectiveOverlayClass}`}
+      className={`cal-modal-overlay cal-event-modal-overlay cal-modal-overlay--pass-through ${effectiveOverlayClass}`}
       role="presentation"
-      onClick={onClose}
     >
       <div
         ref={modalRef}
@@ -830,25 +797,23 @@ const CalendarEventModal = ({
                   />
                 </div>
 
-                {canEdit && vorhabenOptions.length > 0 && form.mode !== "create" ? (
-                  <div className="cal-modal-field">
-                    <label htmlFor="cal-ev-vorhaben">Thema</label>
-                    <select
-                      id="cal-ev-vorhaben"
-                      value={form.vorhabenId || ""}
-                      onChange={(e) =>
+                {canEdit ? (
+                  <div className="cal-modal-field cal-modal-field--theme">
+                    <ThemePickerCompact
+                      vorhabenOptions={vorhabenOptions}
+                      selectedId={form.vorhabenId || ""}
+                      themeInputId={`${themeInputId}-expanded`}
+                      listId={`${themeListId}-expanded`}
+                      onCreateVorhaben={onCreateVorhaben}
+                      onSelect={(vorhabenId) =>
                         onChange(
-                          withVorhabenAssignment(form, e.target.value, null, vorhabenOptions)
+                          withVorhabenAssignment(form, vorhabenId, null, vorhabenOptions)
                         )
                       }
-                    >
-                      <option value="">— Nur Kalender (lokal) —</option>
-                      {vorhabenOptions.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.title}
-                        </option>
-                      ))}
-                    </select>
+                      onClear={() =>
+                        onChange(withVorhabenAssignment(form, "", null, vorhabenOptions))
+                      }
+                    />
                   </div>
                 ) : null}
 

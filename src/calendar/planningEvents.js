@@ -126,9 +126,27 @@ export const subscriptionToCalendarEvents = (subscription, cached) => {
   );
 };
 
+/** Alte Defaults zählen nicht als Nutzerfarbe — sonst bleibt plain false und Termin wird gelb. */
+const LEGACY_DEFAULT_LOCAL_COLORS = new Set([
+  "#edd100",
+  "#f0c020",
+  "#fff9c4",
+]);
+
+export const isPlainLocalCalendarEvent = (ev) => {
+  if (ev?.vorhabenId) {
+    return false;
+  }
+  const color = String(ev?.color || "").trim().toLowerCase();
+  if (!color) {
+    return true;
+  }
+  return LEGACY_DEFAULT_LOCAL_COLORS.has(color);
+};
+
 export const localToCalendarEvents = (localEvents) =>
   (localEvents || []).map((ev) => {
-    const plain = !ev.vorhabenId && !ev.color;
+    const plain = isPlainLocalCalendarEvent(ev);
     return withBauhausEventStyle({
       id: `local-${ev.id}`,
       title: ev.title,

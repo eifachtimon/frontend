@@ -1491,6 +1491,11 @@
   padding-bottom: var(--space-2);
 }
 
+.thema-dashboard__lektionen--reordering .thema-lek-card {
+  touch-action: none;
+  user-select: none;
+}
+
 .thema-overview-lek-list--empty {
   min-height: 5.25rem;
 }
@@ -1516,7 +1521,15 @@
 }
 
 /* Lektionskarte — Bauhaus wie Toggle/Todo (scharf, 2px, Offset-Schatten) */
-.thema-dashboard__lektionen .thema-lek-card.fc-external-event {
+.thema-dashboard__lektionen .thema-overview-lek-item {
+  cursor: grab;
+}
+
+.thema-dashboard__lektionen .thema-overview-lek-item:active {
+  cursor: grabbing;
+}
+
+.thema-dashboard__lektionen .thema-lek-card {
   display: flex;
   align-items: stretch;
   width: 100%;
@@ -1532,27 +1545,13 @@
   color: var(--bh-fg, #121212);
   font-size: inherit;
   font-weight: inherit;
-  cursor: grab;
+  cursor: inherit;
   overflow: hidden;
   box-shadow: none;
 }
 
-.thema-dashboard__lektionen .thema-lek-card.fc-external-event:active {
-  cursor: grabbing;
-}
-
-.thema-dashboard__lektionen .thema-lek-card.fc-external-event:active {
+.thema-dashboard__lektionen .thema-lek-card:active {
   transform: none;
-}
-
-.thema-dashboard__lektionen .thema-lek-card.fc-external-event--lifting,
-.thema-dashboard__lektionen .fc-event-dragging.thema-lek-card.fc-external-event {
-  opacity: 1 !important;
-  transform: rotate(-1deg) scale(1.03);
-  box-shadow: var(--bh-shadow-md, 6px 6px 0 0 #121212) !important;
-  border-style: solid !important;
-  z-index: 5;
-  cursor: grabbing !important;
 }
 
 .thema-lek-card__main {

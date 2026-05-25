@@ -29,13 +29,16 @@ const WochePanel = ({ vorhaben, rituals, onChange }) => {
     modalOpen,
     eventForm,
     eventAnchor,
+    selectedEventId,
     setEventForm,
     closeModal,
     handleEventClick,
+    handleDateClick,
     handleDateSelect,
     handleSaveEvent,
     handleDeleteEvent,
     canDeleteEvent,
+    handleCreateVorhaben,
   } = useCalendarTerminModal({
     planningStore: store,
     calStore,
@@ -106,6 +109,8 @@ const WochePanel = ({ vorhaben, rituals, onChange }) => {
               muteTodayHighlight
               onEventClick={handleEventClick}
               onDateSelect={handleDateSelect}
+              onDateClick={handleDateClick}
+              focusedFcEventId={selectedEventId}
               initialView="timeGridWeek"
               spacious
               height="min(58vh, 680px)"
@@ -135,6 +140,7 @@ const WochePanel = ({ vorhaben, rituals, onChange }) => {
           onClose={closeModal}
           onSave={handleSaveEvent}
           onDelete={handleDeleteEvent}
+          onCreateVorhaben={handleCreateVorhaben}
           vorhabenOptions={store.vorhaben}
           lektionOptions={vorhaben?.lektionen || []}
         />

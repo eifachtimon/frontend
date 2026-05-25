@@ -20,10 +20,12 @@ import {
   formFromFcEvent,
   formFromSelection,
 } from "../calendar/calendarEventResolve";
+import { createVorhaben } from "../planning/planningStore";
 import {
   anchorFromEventClick,
   anchorFromSelectInfo,
 } from "../calendar/calendarEventAnchor";
+import { resolveCalendarEventClick } from "../calendar/calendarEventSelection";
 import { loadCalFilters, saveCalFilters } from "../calendar/calendarFilters";
 import {
   loadCalendarStore,
@@ -115,7 +117,6 @@ const KalenderPage = () => {
     setModalOpen(false);
     setEventForm(null);
     setEventAnchor(null);
-    setFocusedFcEventId(null);
   }, []);
 
   const closeStpModal = useCallback(() => {
@@ -177,6 +178,7 @@ const KalenderPage = () => {
 
   const openCreate = useCallback(
     (start = new Date(), end = new Date(Date.now() + 45 * 60000)) => {
+      setFocusedFcEventId(null);
       setEventAnchor(null);
       setEventForm(
         buildEmptyForm({
@@ -215,16 +217,41 @@ const KalenderPage = () => {
       if (info.event.extendedProps?.source === "stundenplan") {
         return;
       }
+      const eventId = info.event.id;
       lastSelectionRef.current = { kind: "event", event: info.event };
       setSelectionTick((t) => t + 1);
       info.jsEvent.preventDefault();
-      setEventAnchor(anchorFromEventClick(info));
-      setFocusedFcEventId(info.event.id);
-      setEventForm(formFromFcEvent(info.event, planningStore, calStore));
-      setModalOpen(true);
+
+      const { openEditor, selectOnly } = resolveCalendarEventClick({
+        eventId,
+        selectedEventId: focusedFcEventId,
+        modalOpen,
+      });
+
+      if (openEditor) {
+        setEventAnchor(anchorFromEventClick(info));
+        setEventForm(formFromFcEvent(info.event, planningStore, calStore));
+        setModalOpen(true);
+        return;
+      }
+
+      if (selectOnly) {
+        if (modalOpen) {
+          closeModal();
+        }
+        setFocusedFcEventId(eventId);
+      }
     },
-    [planningStore, calStore]
+    [focusedFcEventId, modalOpen, closeModal, planningStore, calStore]
   );
+
+  const handleDateClick = useCallback(() => {
+    setFocusedFcEventId(null);
+    lastSelectionRef.current = null;
+    if (modalOpen) {
+      closeModal();
+    }
+  }, [modalOpen, closeModal]);
 
   const handleSaveStundenplanSlot = useCallback(() => {
     if (!stpSlot) {
@@ -264,6 +291,11 @@ const KalenderPage = () => {
     closeModal();
   }, [eventForm, planningStore, calStore, saveVorhaben, persistCal, closeModal]);
 
+  const handleCreateVorhaben = useCallback(
+    (partial) => saveVorhaben(createVorhaben(partial)),
+    [saveVorhaben]
+  );
+
   const handleDeleteEvent = useCallback(
     (opts = {}) => {
       let form = eventForm;
@@ -293,6 +325,7 @@ const KalenderPage = () => {
         onCalStoreChange: persistCal,
       });
       lastSelectionRef.current = null;
+      setFocusedFcEventId(null);
       closeModal();
     },
     [eventForm, planningStore, calStore, saveVorhaben, persistCal, closeModal]
@@ -480,6 +513,7 @@ const KalenderPage = () => {
               showExternalEvents={showDragStrip && Boolean(draftVorhaben)}
               onEventClick={handleEventClick}
               onDateSelect={handleDateSelect}
+              onDateClick={handleDateClick}
                 onStundenplanSlotClick={handleStundenplanSlotClick}
                 draftPreviewForm={draftPreviewForm}
                 focusedFcEventId={focusedFcEventId}
@@ -532,6 +566,7 @@ const KalenderPage = () => {
         onClose={closeModal}
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
+        onCreateVorhaben={handleCreateVorhaben}
         vorhabenOptions={planningStore.vorhaben}
         lektionOptions={lektionOptions}
       />

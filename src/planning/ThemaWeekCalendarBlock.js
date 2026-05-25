@@ -15,6 +15,7 @@ const ThemaWeekCalendarBlock = ({
   vorhaben,
   rituals,
   onChange,
+  lektionDragPreview = null,
   compactHeader = false,
 }) => {
   const { store } = usePlanningStore();
@@ -31,13 +32,16 @@ const ThemaWeekCalendarBlock = ({
     modalOpen,
     eventForm,
     eventAnchor,
+    selectedEventId,
     setEventForm,
     closeModal,
     handleEventClick,
+    handleDateClick,
     handleDateSelect,
     handleSaveEvent,
     handleDeleteEvent,
     canDeleteEvent,
+    handleCreateVorhaben,
   } = useCalendarTerminModal({
     planningStore: store,
     calStore,
@@ -94,12 +98,15 @@ const ThemaWeekCalendarBlock = ({
           saveVorhaben={onChange}
           filters={scopedFilters}
           draftVorhabenId={vorhaben?.id}
+          lektionDragPreview={lektionDragPreview}
           rituals={rituals}
           showExternalEvents={false}
           showDragStrip={false}
           muteTodayHighlight
           onEventClick={handleEventClick}
           onDateSelect={handleDateSelect}
+          onDateClick={handleDateClick}
+          focusedFcEventId={selectedEventId}
           initialView="timeGridWeek"
           spacious
           height="100%"
@@ -117,6 +124,7 @@ const ThemaWeekCalendarBlock = ({
         onClose={closeModal}
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
+        onCreateVorhaben={handleCreateVorhaben}
         vorhabenOptions={store.vorhaben}
         lektionOptions={vorhaben?.lektionen || []}
       />

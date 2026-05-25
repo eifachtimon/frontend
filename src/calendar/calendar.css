@@ -656,7 +656,7 @@
   height: 100%;
   --fc-page-bg-color: var(--bh-white, #fff);
   --fc-neutral-bg-color: var(--bh-muted, #e0e0e0);
-  --fc-list-event-hover-bg-color: var(--bh-yellow-pale, #fff9c4);
+  --fc-list-event-hover-bg-color: transparent;
   --fc-today-bg-color: var(--bh-yellow-pale, #fff9c4);
   --fc-highlight-color: rgba(240, 192, 32, 0.35);
   --fc-event-border-color: var(--bh-fg, #121212);
@@ -848,6 +848,23 @@
   font-weight: 700;
 }
 
+/* Kein Hover auf Terminen — Hervorhebung nur durch Auswahl (Klick) */
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):hover,
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):focus,
+.cal-fullcalendar-host .fc-daygrid-event:not(.cal-event--selected):hover,
+.cal-fullcalendar-host .fc-timegrid-event:not(.cal-event--selected):hover,
+.cal-fullcalendar-host .fc-list-event:not(.cal-event--selected):hover,
+.cal-fullcalendar-host .fc-list-event:not(.cal-event--selected):hover td {
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.cal-fullcalendar-host .fc-list-event.cal-event:not(.cal-event--selected):hover .fc-list-event-title,
+.cal-fullcalendar-host .fc-list-event.cal-event:not(.cal-event--selected):hover .fc-list-event-time {
+  color: var(--bh-fg, #121212) !important;
+}
+
 .cal-fullcalendar-host .fc-event.cal-event--lektion {
   background: var(--bh-white, #fff) !important;
 }
@@ -871,7 +888,7 @@
   font-style: normal;
 }
 
-.cal-fullcalendar-host .fc-event.cal-event--local {
+.cal-fullcalendar-host .fc-event.cal-event--local:not(.cal-event--plain):not(.cal-event--fach) {
   background: var(--bh-yellow-pale, #fff9c4) !important;
 }
 
@@ -942,7 +959,8 @@ body.cal-is-resizing {
 }
 
 body.cal-is-dragging .cal-fullcalendar-host,
-body.cal-is-resizing .cal-fullcalendar-host {
+body.cal-is-resizing .cal-fullcalendar-host,
+body.cal-lektion-drag-preview-active .cal-fullcalendar-host {
   --fc-highlight-color: rgba(240, 192, 32, 0.42);
 }
 
@@ -1010,6 +1028,11 @@ body.cal-is-dragging .fc-external-event:not(.fc-external-event--lifting) {
   z-index: 50 !important;
 }
 
+/* Lektion aus Themen-Übersicht: Vorschau folgt Zeiger, blockiert keine Hit-Tests */
+.cal-fullcalendar-host .fc-event.cal-event--lek-drag-preview {
+  pointer-events: none !important;
+}
+
 .cal-fullcalendar-host .fc-timegrid-event-harness-inset .fc-event-mirror,
 .cal-fullcalendar-host .fc-timegrid-event-harness-inset:has(.cal-event--draft-preview),
 body.cal-draft-preview-active
@@ -1024,12 +1047,10 @@ body.cal-draft-preview-active
   margin: 0 2px;
 }
 
-/* Ablegezone: Spalte unter der Vorschau */
+/* Ablegezone: Spalte unter der Vorschau (ohne blauen Rand) */
 body.cal-is-dragging .cal-fullcalendar-host .fc-timegrid-col:has(.fc-event-mirror),
 body.cal-is-dragging .cal-fullcalendar-host .fc-daygrid-day:has(.fc-event-mirror) {
   background: var(--bh-yellow-pale, #fff9c4) !important;
-  outline: var(--bh-border-w, 2px) dashed var(--bh-blue, #1040c0);
-  outline-offset: -2px;
 }
 
 .cal-fullcalendar-host .fc-highlight {
@@ -1041,22 +1062,31 @@ body.cal-draft-preview-active .cal-fullcalendar-host .fc-highlight {
   display: none !important;
 }
 
-/* Hintergrund abdunkeln — Draft-Vorschau und Pop-up bleiben hell */
-body.cal-draft-preview-active .cal-fullcalendar-host .fc-scrollgrid-section-body,
-body.cal-draft-preview-active .cal-fullcalendar-host .fc-scrollgrid-section-header,
-body.cal-draft-preview-active .cal-fullcalendar-host .fc-list-day-cushion,
-body.cal-draft-preview-active .cal-fullcalendar-host .fc-list-day-text,
-body.cal-draft-preview-active .cal-view-wrap .cal-external-strip,
-body.cal-draft-preview-active .cal-view-wrap .cal-external-events {
-  opacity: 0.55;
+.cal-fullcalendar-host .fc-event.cal-event--selected {
+  z-index: 45 !important;
+  opacity: 1 !important;
+  filter: saturate(1.4) contrast(1.06);
+  transform: scale(1.02);
+  box-shadow:
+    0 0 0 2px var(--bh-fg, #121212),
+    4px 4px 0 0 var(--cal-event-accent, var(--bh-fg, #121212)) !important;
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-body.cal-draft-preview-active .cal-fullcalendar-host .fc-event:not(.cal-event--draft-preview) {
-  opacity: 0.42 !important;
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--plain {
+  filter: none;
+  background: var(--bh-white, #fff) !important;
+  border-left-width: 6px !important;
+  box-shadow:
+    0 0 0 2px var(--bh-fg, #121212),
+    4px 4px 0 0 var(--bh-fg, #121212) !important;
 }
 
-body.cal-draft-preview-active .cal-page-calendar .cal-week-badge {
-  opacity: 0.55;
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--fach {
+  border-left-width: 6px !important;
 }
 
 .cal-fullcalendar-host .fc-event.cal-event--draft-preview,

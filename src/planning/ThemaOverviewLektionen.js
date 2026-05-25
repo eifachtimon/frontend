@@ -1,14 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback } from "react";
 import { Link } from "react-router-dom";
 import { APP_ROUTES } from "../config/appUrls";
 import { reorderLektion } from "./planningStore";
-import {
-  dropTargetsEqual,
-  isDropMarkerBefore,
-  resolveDropTargetFromPointer,
-  resolveReorderDrop,
-} from "./themaOverviewDnD";
-import { LEKTION_DRAG_MIME, hasLektionDrag } from "./planningDragMime";
+import { isDropMarkerBefore } from "./themaOverviewDnD";
+import useThemaLektionPointerDrag from "./useThemaLektionPointerDrag";
 import {
   getLektionScheduleDisplay,
   groupLektionenByPhase,
@@ -16,62 +11,41 @@ import {
   lektionHasTimeMismatch,
   lektionHasZiel,
 } from "./themaOverviewUtils";
-const LEKTION_OPEN_DRAG_THRESHOLD_PX = 6;
 
 const ThemaOverviewLektionen = ({
   vorhaben,
   onChange,
   onOpenLektion,
   onAddLektion,
+  onCalendarDragPreview,
   unscheduledCount = 0,
 }) => {
-  const [dragLektionId, setDragLektionId] = useState(null);
-  const [dropTarget, setDropTarget] = useState(null);
-  const dropTargetRef = useRef(null);
-  const suppressOpenClickRef = useRef(false);
-  const cardPointerRef = useRef(null);
-
   const phaseGroups = groupLektionenByPhase(vorhaben);
-  const isReordering = Boolean(dragLektionId);
+
+  const {
+    draggingId,
+    dropTarget,
+    isDragging,
+    shouldSuppressOpenClick,
+  } = useThemaLektionPointerDrag({
+    vorhaben,
+    phaseGroups,
+    onChange,
+    reorderLektion,
+    onCalendarDragPreview,
+  });
+
   const draggedLektion =
-    dragLektionId && (vorhaben.lektionen || []).find((l) => l.id === dragLektionId);
-
-  useEffect(() => {
-    dropTargetRef.current = dropTarget;
-  }, [dropTarget]);
-
-  const clearDropTarget = useCallback(() => setDropTarget(null), []);
-
-  const handleReorderStart = useCallback((e, lektionId) => {
-    e.dataTransfer.setData(LEKTION_DRAG_MIME, lektionId);
-    e.dataTransfer.effectAllowed = "move";
-    setDragLektionId(lektionId);
-    clearDropTarget();
-    document.body.classList.add("cal-is-dragging");
-  }, [clearDropTarget]);
-
-  const suppressOpenAfterDrag = useCallback(() => {
-    suppressOpenClickRef.current = true;
-    window.setTimeout(() => {
-      suppressOpenClickRef.current = false;
-    }, 300);
-  }, []);
-
-  const handleReorderEnd = useCallback(() => {
-    setDragLektionId(null);
-    clearDropTarget();
-    document.body.classList.remove("cal-is-dragging");
-    suppressOpenAfterDrag();
-  }, [clearDropTarget, suppressOpenAfterDrag]);
+    draggingId && (vorhaben.lektionen || []).find((l) => l.id === draggingId);
 
   const handleOpenLektionClick = useCallback(
     (lektionId) => {
-      if (suppressOpenClickRef.current) {
+      if (shouldSuppressOpenClick()) {
         return;
       }
       onOpenLektion(lektionId);
     },
-    [onOpenLektion]
+    [onOpenLektion, shouldSuppressOpenClick]
   );
 
   const handleOpenLektionKeyDown = useCallback(
@@ -82,94 +56,6 @@ const ThemaOverviewLektionen = ({
       }
     },
     [handleOpenLektionClick]
-  );
-
-  useEffect(() => {
-    const onPointerDown = (e) => {
-      const card = e.target.closest?.(".thema-lek-card");
-      if (!card?.closest(".thema-dashboard__lektionen")) {
-        return;
-      }
-      cardPointerRef.current = { x: e.clientX, y: e.clientY };
-    };
-    const onPointerUp = (e) => {
-      const start = cardPointerRef.current;
-      cardPointerRef.current = null;
-      if (!start) {
-        return;
-      }
-      const dx = Math.abs(e.clientX - start.x);
-      const dy = Math.abs(e.clientY - start.y);
-      if (dx >= LEKTION_OPEN_DRAG_THRESHOLD_PX || dy >= LEKTION_OPEN_DRAG_THRESHOLD_PX) {
-        suppressOpenAfterDrag();
-      }
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("pointerup", onPointerUp);
-    document.addEventListener("pointercancel", onPointerUp);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("pointerup", onPointerUp);
-      document.removeEventListener("pointercancel", onPointerUp);
-    };
-  }, [suppressOpenAfterDrag]);
-
-  const allowReorder = useCallback((e) => {
-    if (!hasLektionDrag(e.dataTransfer)) {
-      return false;
-    }
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    return true;
-  }, []);
-
-  const updateDropFromList = useCallback(
-    (e, phaseId) => {
-      if (!allowReorder(e)) {
-        return;
-      }
-      e.stopPropagation();
-      const listEl = e.currentTarget;
-      const next = resolveDropTargetFromPointer({
-        listEl,
-        clientY: e.clientY,
-        phaseId,
-        dragLektionId,
-      });
-      if (!next) {
-        return;
-      }
-      setDropTarget((prev) => {
-        if (prev && dropTargetsEqual(prev, next)) {
-          return prev;
-        }
-        return next;
-      });
-    },
-    [allowReorder, dragLektionId]
-  );
-
-  const commitDrop = useCallback(
-    (e) => {
-      if (!allowReorder(e)) {
-        return;
-      }
-      const lektionId = e.dataTransfer.getData(LEKTION_DRAG_MIME);
-      const target = dropTargetRef.current;
-      const resolved = resolveReorderDrop(phaseGroups, lektionId, target);
-      if (resolved) {
-        onChange(
-          reorderLektion(
-            vorhaben,
-            resolved.lektionId,
-            resolved.beforeLektionId,
-            resolved.phaseId
-          )
-        );
-      }
-      handleReorderEnd();
-    },
-    [allowReorder, phaseGroups, onChange, vorhaben, handleReorderEnd]
   );
 
   const handleAddForPhase = (phaseId) => {
@@ -186,14 +72,14 @@ const ThemaOverviewLektionen = ({
     </li>
   );
 
-  const renderLektionCard = (lek, group) => {
+  const renderLektionCard = (lek) => {
     const scheduled = isLektionScheduled(lek, vorhaben);
     const mismatch = lektionHasTimeMismatch(lek);
     const scheduleDisplay = getLektionScheduleDisplay(lek, vorhaben);
     const scheduleLabel = scheduleDisplay
       ? [scheduleDisplay.weekday, scheduleDisplay.date].filter(Boolean).join(" ")
       : null;
-    const isDragging = dragLektionId === lek.id;
+    const isDragging = draggingId === lek.id;
 
     return (
       <li
@@ -202,8 +88,7 @@ const ThemaOverviewLektionen = ({
         data-lektion-id={lek.id}
       >
         <article
-          className="thema-lek-card fc-external-event"
-          draggable
+          className="thema-lek-card"
           data-kind="lektion"
           data-lektion-id={lek.id}
           data-title={lek.title}
@@ -216,8 +101,6 @@ const ThemaOverviewLektionen = ({
                 ? `${lek.title}, Termin ${scheduleLabel || "gesetzt"}`
                 : `${lek.title}, ohne Termin`
           }
-          onDragStart={(e) => handleReorderStart(e, lek.id)}
-          onDragEnd={handleReorderEnd}
         >
           <div
             role="button"
@@ -275,43 +158,22 @@ const ThemaOverviewLektionen = ({
     const phaseId = group.phaseId ?? null;
 
     return (
-      <ul
-        className="thema-overview-lek-list"
-        onDragOver={(e) => updateDropFromList(e, phaseId)}
-        onDrop={commitDrop}
-      >
+      <ul className="thema-overview-lek-list" data-phase-id={phaseId ?? ""}>
         {group.lektionen.map((lek) => (
           <React.Fragment key={lek.id}>
-            {isReordering && isDropMarkerBefore(dropTarget, phaseId, lek.id)
+            {isDragging && isDropMarkerBefore(dropTarget, phaseId, lek.id)
               ? renderDropPlaceholder(`ins-before-${lek.id}`)
               : null}
-            {renderLektionCard(lek, group)}
+            {renderLektionCard(lek)}
           </React.Fragment>
         ))}
-        {isReordering &&
+        {isDragging &&
         dropTarget != null &&
         (dropTarget.phaseId ?? null) === phaseId &&
         dropTarget.beforeLektionId == null
           ? renderDropPlaceholder(`ins-append-${phaseId ?? "none"}`)
           : null}
-        <li
-          className="thema-lek-drop-slot"
-          aria-hidden={!isReordering}
-          onDragOver={(e) => {
-            if (!allowReorder(e)) {
-              return;
-            }
-            e.stopPropagation();
-            setDropTarget((prev) => {
-              const next = { phaseId: phaseId ?? null, beforeLektionId: null };
-              if (prev && dropTargetsEqual(prev, next)) {
-                return prev;
-              }
-              return next;
-            });
-          }}
-          onDrop={commitDrop}
-        />
+        <li className="thema-lek-drop-slot" aria-hidden={!isDragging} />
       </ul>
     );
   };
@@ -319,7 +181,7 @@ const ThemaOverviewLektionen = ({
   return (
     <section
       id="thema-section-lektionen"
-      className={`thema-unified-section thema-dashboard__lektionen${isReordering ? " thema-dashboard__lektionen--reordering" : ""}`}
+      className={`thema-unified-section thema-dashboard__lektionen${isDragging ? " thema-dashboard__lektionen--reordering" : ""}`}
       aria-labelledby="thema-lek-title"
     >
       <div className="thema-overview-section-head">
@@ -376,10 +238,9 @@ const ThemaOverviewLektionen = ({
                 {group.lektionen.length === 0 ? (
                   <ul
                     className="thema-overview-lek-list thema-overview-lek-list--empty"
-                    onDragOver={(e) => updateDropFromList(e, phaseId)}
-                    onDrop={commitDrop}
+                    data-phase-id={phaseId ?? ""}
                   >
-                    {isReordering &&
+                    {isDragging &&
                     dropTarget != null &&
                     (dropTarget.phaseId ?? null) === phaseId
                       ? renderDropPlaceholder(`ins-empty-${phaseId ?? "none"}`)

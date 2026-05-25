@@ -221,6 +221,19 @@ body.app-overlay-open:not(.cal-modal-open) {
   display: flex;
 }
 
+/* Termin-Pop-up: kein Vollflächen-Overlay — Kalender bleibt voll sichtbar */
+.cal-event-modal-overlay.cal-modal-overlay--pass-through,
+.cal-modal-overlay.cal-modal-overlay--pass-through {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  pointer-events: none;
+}
+
+.cal-event-modal-overlay.cal-modal-overlay--pass-through .cal-modal,
+.cal-modal-overlay.cal-modal-overlay--pass-through .cal-modal {
+  pointer-events: auto;
+}
+
 /* Verankertes Popover neben der Kalender-Auswahl */
 .cal-modal-overlay.cal-modal-overlay--anchored {
   align-items: flex-start;
@@ -381,16 +394,18 @@ body.app-overlay-open:not(.cal-modal-open) {
   background: transparent !important;
 }
 
-/* Neuer Termin: kein Vollflächen-Schleier — nur Pop-up + Draft-Event hell */
+/* Neuer Termin: Pop-up ohne Abdunkeln — Draft bleibt hervorgehoben */
 body.cal-draft-preview-active .cal-modal-overlay.cal-modal-overlay--anchored,
-body.cal-draft-preview-active .cal-modal-overlay.cal-modal-overlay--compact-standalone {
+body.cal-draft-preview-active .cal-modal-overlay.cal-modal-overlay--compact-standalone,
+body.cal-draft-preview-active .cal-event-modal-overlay.cal-modal-overlay--pass-through {
   background: transparent !important;
   backdrop-filter: none !important;
   pointer-events: none;
 }
 
 body.cal-draft-preview-active .cal-modal-overlay.cal-modal-overlay--anchored .cal-modal,
-body.cal-draft-preview-active .cal-modal-overlay.cal-modal-overlay--compact-standalone .cal-modal {
+body.cal-draft-preview-active .cal-modal-overlay.cal-modal-overlay--compact-standalone .cal-modal,
+body.cal-draft-preview-active .cal-event-modal-overlay.cal-modal-overlay--pass-through .cal-modal {
   pointer-events: auto;
 }
 
@@ -483,13 +498,171 @@ body.cal-draft-preview-active .cal-modal-overlay.cal-modal-overlay--compact-stan
 .cal-event-theme-block {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 10px 8px;
+  padding: 6px 10px 4px;
   margin: 0;
+}
+
+.cal-event-theme-block--compact {
+  gap: 0;
 }
 
 .cal-event-modal-header--quick + .cal-event-theme-block {
   border-bottom: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
+}
+
+.cal-event-theme-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cal-event-theme-step {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cal-event-theme-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cal-event-theme-step-label {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--plan-text-muted, #666);
+}
+
+.cal-event-theme-skip {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--plan-text-muted, #666);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cal-event-theme-fach-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cal-event-theme-fach-chip {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  border-left-width: var(--bh-border-w-lg, 4px);
+  border-left-color: var(--fach-accent, var(--bh-border, #121212));
+  border-radius: 0;
+  background: var(--fach-bg, var(--bh-white, #fff));
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.cal-event-theme-fach-chip--active {
+  border-color: var(--fach-accent, var(--bh-blue, #1040c0));
+  box-shadow: inset 0 0 0 1px var(--fach-accent, var(--bh-blue, #1040c0));
+}
+
+.cal-event-theme-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: none;
+  border-bottom: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 0 5px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--bh-fg, #121212);
+  outline: none;
+}
+
+.cal-event-theme-input:focus {
+  border-bottom-color: var(--bh-blue, #1040c0);
+}
+
+.cal-event-theme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: min(6.5rem, 22vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cal-event-theme-chip {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  border-left-width: var(--bh-border-w-lg, 4px);
+  border-left-color: var(--fach-accent, var(--bh-border, #121212));
+  border-radius: 0;
+  background: var(--fach-bg, var(--bh-white, #fff));
+  box-shadow: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.25;
+}
+
+.cal-event-theme-chip--selected {
+  border-color: var(--fach-accent, var(--bh-blue, #1040c0));
+  box-shadow: inset 0 0 0 1px var(--fach-accent, var(--bh-blue, #1040c0));
+}
+
+.cal-event-theme-chip--create {
+  border-style: dashed;
+  background: var(--bh-white, #fff);
+}
+
+.cal-event-theme-chip-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--bh-fg, #121212);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-event-theme-empty {
+  margin: 2px 0 0;
+  padding: 2px 0;
+  font-size: 0.68rem;
+  color: var(--plan-text-muted, #666);
+}
+
+.cal-modal-field--theme {
+  margin-bottom: 8px;
+}
+
+.cal-event-modal-more-panel .cal-event-theme-picker {
+  margin-bottom: 6px;
 }
 
 .cal-event-dur-chip--theme,

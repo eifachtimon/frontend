@@ -115,10 +115,12 @@ export const addLocalEvent = (store, partial = {}) => {
     start: partial.start,
     end: partial.end || partial.start,
     allDay: Boolean(partial.allDay),
-    color: partial.color || "#edd100",
     notes: partial.notes || "",
     vorhabenId: partial.vorhabenId || null,
   };
+  if (partial.color != null && partial.color !== "") {
+    ev.color = partial.color;
+  }
   return saveCalendarStore({
     ...store,
     localEvents: [...store.localEvents, ev],

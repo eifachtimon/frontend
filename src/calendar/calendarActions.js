@@ -159,11 +159,12 @@ export const dropLektionOnCalendarAtPointer = ({
   clientY,
   calendarRoot,
   saveVorhaben,
+  stickyDate = null,
 }) => {
   if (!saveVorhaben || !draftVorhabenId || !lektionId || !calendarRoot) {
     return false;
   }
-  const slot = slotFromCalendarPointer(calendarRoot, clientX, clientY);
+  const slot = slotFromCalendarPointer(calendarRoot, clientX, clientY, { stickyDate });
   if (!slot) {
     return false;
   }

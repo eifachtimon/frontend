@@ -384,9 +384,9 @@ mark.text-highlight {
   font-family: var(--bh-font);
 }
 
-.cal-fullcalendar-host .fc-event.cal-event:active {
-  transform: translate(2px, 2px);
-  box-shadow: none !important;
+.cal-fullcalendar-host .fc-event.cal-event:active:not(.cal-event--selected) {
+  transform: none;
+  box-shadow: 3px 3px 0 0 var(--bh-fg, #121212) !important;
 }
 
 .cal-modal {

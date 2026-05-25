@@ -33,7 +33,7 @@ import {
   dropLektionOnCalendarAtPointer,
 } from "./calendarActions";
 import { slotFromCalendarPointer } from "./calendarDropFromPointer";
-import { hasLektionDrag, LEKTION_DRAG_MIME } from "../planning/planningDragMime";
+import { hasLektionDrag, readLektionDragId } from "../planning/planningDragMime";
 import { applyStundenplanEventDrop } from "./stundenplanActions";
 import { updateLocalEvent, upsertStundenplanSlot } from "./calendarStore";
 import {
@@ -44,6 +44,8 @@ import {
   DRAFT_PREVIEW_DEFAULT_TITLE,
   DRAFT_PREVIEW_EVENT_ID,
   formToDraftPreviewEvent,
+  LEKTION_DRAG_PREVIEW_EVENT_ID,
+  lektionDragPreviewToEvent,
 } from "./calendarEventResolve";
 import {
   accentForExternalKind,
@@ -55,6 +57,42 @@ import {
   slotFromFcEvent,
   stundenplanToCalendarEvents,
 } from "./stundenplanEvents";
+
+/** FullCalendar nutzt fc-event-mirror sowohl für neue Auswahl als auch für Event-Drag. */
+const isNewAppointmentSelectMirror = (info) => {
+  const props = info.event.extendedProps || {};
+  if (props.isDraftPreview) {
+    return false;
+  }
+  const isMirror =
+    Boolean(info.isMirror) ||
+    info.event.classNames?.includes?.("fc-event-mirror") ||
+    info.el?.classList?.contains?.("fc-event-mirror");
+  if (!isMirror) {
+    return false;
+  }
+  const eventId = String(info.event.id || "");
+  if (/^(local-|plan-)/.test(eventId)) {
+    return false;
+  }
+  if (
+    props.source &&
+    ["planning", "local", "subscription", "stundenplan"].includes(props.source)
+  ) {
+    return false;
+  }
+  if (props.source?.startsWith?.("external")) {
+    return false;
+  }
+  const classNames = info.event.classNames || [];
+  if (
+    classNames.includes("cal-event--drag-preview") ||
+    classNames.includes("cal-event--active-drag")
+  ) {
+    return false;
+  }
+  return true;
+};
 
 const formatDayHeaderHtml = (date, viewType) => {
   const isDayHeader = viewType === "timeGridDay";
@@ -105,6 +143,7 @@ const CalendarView = forwardRef(
       rituals = [],
       onEventClick,
       onDateSelect,
+      onDateClick,
       onStundenplanSlotClick,
       showExternalEvents = false,
       showDragStrip,
@@ -123,6 +162,8 @@ const CalendarView = forwardRef(
       /** Formular „Neuer Termin“ → Live-Vorschau im Raster */
       draftPreviewForm = null,
       onDraftPreviewMount = null,
+      /** { lektionId, vorhabenId, slot } — Pointer-Drag aus Themen-Übersicht */
+      lektionDragPreview = null,
       focusedFcEventId = null,
     },
     ref
@@ -284,6 +325,41 @@ const CalendarView = forwardRef(
       draftPreviewEvent,
     ]);
 
+    useEffect(() => {
+      if (lektionDragPreview?.slot) {
+        document.body.classList.add("cal-lektion-drag-preview-active");
+      } else {
+        document.body.classList.remove("cal-lektion-drag-preview-active");
+      }
+      return () => document.body.classList.remove("cal-lektion-drag-preview-active");
+    }, [lektionDragPreview]);
+
+    useEffect(() => {
+      const api = calendarRef.current?.getApi?.();
+      if (!api) {
+        return undefined;
+      }
+
+      const preview = lektionDragPreviewToEvent(lektionDragPreview, planningStore);
+      const existing = api.getEventById(LEKTION_DRAG_PREVIEW_EVENT_ID);
+
+      if (!preview) {
+        existing?.remove();
+        return undefined;
+      }
+
+      if (existing) {
+        existing.setProp("title", preview.title);
+        existing.setDates(preview.start, preview.end);
+        return undefined;
+      }
+
+      api.addEvent(preview);
+      return () => {
+        api.getEventById(LEKTION_DRAG_PREVIEW_EVENT_ID)?.remove();
+      };
+    }, [lektionDragPreview, planningStore]);
+
     useLayoutEffect(() => {
       if (!draftPreviewForm || draftPreviewForm.mode !== "create") {
         document.body.classList.remove("cal-draft-preview-active");
@@ -412,19 +488,14 @@ const CalendarView = forwardRef(
 
     const calHostRef = useRef(null);
 
-    const handleCalendarHostDragOver = useCallback(
-      (e) => {
-        if (!hasLektionDrag(e.dataTransfer)) {
-          return;
-        }
-        const slot = slotFromCalendarPointer(calHostRef.current, e.clientX, e.clientY);
-        if (slot) {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "copy";
-        }
-      },
-      []
-    );
+    const handleCalendarHostDragOver = useCallback((e) => {
+      if (!hasLektionDrag(e.dataTransfer)) {
+        return;
+      }
+      e.preventDefault();
+      const slot = slotFromCalendarPointer(calHostRef.current, e.clientX, e.clientY);
+      e.dataTransfer.dropEffect = slot ? "copy" : "none";
+    }, []);
 
     const handleCalendarHostDrop = useCallback(
       (e) => {
@@ -432,7 +503,8 @@ const CalendarView = forwardRef(
           return;
         }
         e.preventDefault();
-        const lektionId = e.dataTransfer.getData(LEKTION_DRAG_MIME);
+        e.stopPropagation();
+        const lektionId = readLektionDragId(e.dataTransfer);
         dropLektionOnCalendarAtPointer({
           planningStore,
           draftVorhabenId,
@@ -644,6 +716,13 @@ const CalendarView = forwardRef(
       [onEventClick, onStundenplanSlotClick]
     );
 
+    const handleDateClick = useCallback(
+      (info) => {
+        onDateClick?.(info);
+      },
+      [onDateClick]
+    );
+
     const handleDateSelect = useCallback(
       (selectInfo) => {
         if (onDateSelect) {
@@ -746,7 +825,7 @@ const CalendarView = forwardRef(
           classes.push("cal-event--past");
         }
         if (focusedFcEventId && arg.event.id === focusedFcEventId) {
-          classes.push("cal-event--editing-focus");
+          classes.push("cal-event--selected");
         }
         return classes;
       },
@@ -756,12 +835,12 @@ const CalendarView = forwardRef(
     const handleEventDidMount = useCallback(
       (info) => {
         const props = info.event.extendedProps || {};
-        const isSelectMirror =
+        const isMirror =
           Boolean(info.isMirror) ||
           info.event.classNames?.includes?.("fc-event-mirror") ||
           info.el?.classList?.contains?.("fc-event-mirror");
 
-        if (isSelectMirror && !props.isDraftPreview && info.el) {
+        if (isNewAppointmentSelectMirror(info) && info.el) {
           info.el.classList.add(
             "cal-event",
             "cal-event--local",
@@ -788,6 +867,19 @@ const CalendarView = forwardRef(
               main.prepend(node);
             }
           }
+        } else if (isMirror && !props.isDraftPreview && info.el) {
+          if (props.plain) {
+            info.el.classList.add("cal-event--plain");
+            applyDragAccent(info.el, "#121212");
+          } else {
+            applyFachEventElementStyles(
+              info.el,
+              props.fach,
+              props.vorhabenId,
+              props.cardType
+            );
+            applyDragAccent(info.el, props.eventAccent);
+          }
         } else if (props.isDraftPreview && info.el) {
           info.el.classList.add("cal-event--select-preview");
           if (props.plain) {
@@ -802,6 +894,14 @@ const CalendarView = forwardRef(
             );
             applyDragAccent(info.el, props.eventAccent);
           }
+        } else if (props.isLektionDragPreview && info.el) {
+          applyFachEventElementStyles(
+            info.el,
+            props.fach,
+            props.vorhabenId,
+            props.cardType
+          );
+          applyDragAccent(info.el, props.eventAccent);
         } else if (props.plain && info.el) {
           info.el.classList.add("cal-event--plain");
           applyDragAccent(info.el, "#121212");
@@ -967,6 +1067,7 @@ const CalendarView = forwardRef(
             eventResize={handleEventDrop}
             eventReceive={handleEventReceive}
             select={handleDateSelect}
+            dateClick={handleDateClick}
             eventClick={handleEventClick}
             datesSet={handleDatesSetWithBadge}
           />

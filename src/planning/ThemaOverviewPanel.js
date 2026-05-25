@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { vorhabenLektionPath } from "../config/appUrls";
 import ThemaOverviewPrepSection from "./ThemaOverviewPrepSection";
@@ -6,12 +6,27 @@ import ThemaWeekCalendarBlock from "./ThemaWeekCalendarBlock";
 import ThemaOverviewLektionen from "./ThemaOverviewLektionen";
 import { openThemaOverviewHash } from "./themaOverviewToggleUtils";
 import { addLektion } from "./planningStore";
+import { calendarSlotKey } from "../calendar/calendarDropFromPointer";
 import { getOverviewStats } from "./themaOverviewUtils";
 
 const ThemaOverviewPanel = ({ vorhaben, onChange, rituals = [] }) => {
   const navigate = useNavigate();
   const stats = getOverviewStats(vorhaben);
   const unscheduledCount = stats.unscheduled ?? 0;
+  const [lektionDragPreview, setLektionDragPreview] = useState(null);
+  const handleCalendarDragPreview = useCallback((preview) => {
+    setLektionDragPreview((prev) => {
+      const prevKey = prev?.slot ? calendarSlotKey(prev.slot) : null;
+      const nextKey = preview?.slot ? calendarSlotKey(preview.slot) : null;
+      if (
+        prevKey === nextKey &&
+        (prev?.lektionId ?? null) === (preview?.lektionId ?? null)
+      ) {
+        return prev;
+      }
+      return preview;
+    });
+  }, []);
 
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, "");
@@ -41,6 +56,7 @@ const ThemaOverviewPanel = ({ vorhaben, onChange, rituals = [] }) => {
           onChange={onChange}
           onOpenLektion={openLektionPlan}
           onAddLektion={handleAddLektion}
+          onCalendarDragPreview={handleCalendarDragPreview}
           unscheduledCount={unscheduledCount}
         />
 
@@ -48,6 +64,7 @@ const ThemaOverviewPanel = ({ vorhaben, onChange, rituals = [] }) => {
           vorhaben={vorhaben}
           rituals={rituals}
           onChange={onChange}
+          lektionDragPreview={lektionDragPreview}
           compactHeader
         />
       </div>

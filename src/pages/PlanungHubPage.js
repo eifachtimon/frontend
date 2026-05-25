@@ -109,12 +109,15 @@ const PlanungHubPage = () => {
     modalOpen,
     eventForm,
     eventAnchor,
+    selectedEventId,
     setEventForm,
     closeModal,
     handleEventClick,
+    handleDateClick,
     handleDateSelect,
     handleSaveEvent,
     handleDeleteEvent,
+    handleCreateVorhaben: handleCalendarCreateVorhaben,
   } = useCalendarTerminModal({
     planningStore: store,
     calStore,
@@ -334,6 +337,8 @@ const PlanungHubPage = () => {
                 showDragStrip={false}
                 onEventClick={handleEventClick}
                 onDateSelect={handleDateSelect}
+                onDateClick={handleDateClick}
+                focusedFcEventId={selectedEventId}
                 height="100%"
               />
             </div>
@@ -507,6 +512,7 @@ const PlanungHubPage = () => {
         onClose={closeModal}
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
+        onCreateVorhaben={handleCalendarCreateVorhaben}
         vorhabenOptions={store.vorhaben}
         lektionOptions={draftVorhaben?.lektionen || []}
       />
