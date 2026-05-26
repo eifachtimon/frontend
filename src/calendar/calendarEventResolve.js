@@ -9,7 +9,7 @@ import {
   calendarEventClassNames,
   withBauhausEventStyle,
 } from "./calendarEventStyles";
-import { resolvePlanningEventColors } from "../planning/fachColors";
+import { resolvePlanningEventColors, normalizeFachKey } from "../planning/fachColors";
 import { weekdayIdFromDate } from "./planningEvents";
 
 const DRAFT_PREVIEW_ID = "__cal-draft-preview__";
@@ -52,7 +52,7 @@ export const withVorhabenAssignment = (form, vorhabenId, planningStore, vorhaben
     return {
       ...form,
       vorhabenId: "",
-      source: "local",
+      source: form.cardId ? "planning" : "local",
       vorhabenTitle: "",
     };
   }
@@ -63,7 +63,20 @@ export const withVorhabenAssignment = (form, vorhabenId, planningStore, vorhaben
     vorhabenId,
     source: "planning",
     vorhabenTitle: vorhaben?.title || "",
+    draftFach: vorhaben?.fach || form.draftFach || "",
+    fach: vorhaben?.fach || "",
   };
+};
+
+const durationMinFromRange = (start, end, allDay) => {
+  if (allDay || !start || !end) {
+    return 45;
+  }
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  if (ms <= 0) {
+    return 45;
+  }
+  return Math.max(5, Math.round(ms / 60000));
 };
 
 export const formFromFcEvent = (fcEvent, planningStore, calStore) => {
@@ -91,20 +104,23 @@ export const formFromFcEvent = (fcEvent, planningStore, calStore) => {
     const lek = props.lektionId
       ? v?.lektionen?.find((l) => l.id === props.lektionId)
       : null;
+    const fach = v?.fach || props.fach || "";
     return {
       ...base,
       vorhabenId: props.vorhabenId,
+      initialVorhabenId: props.vorhabenId,
       weekId: props.weekId,
       weekday: props.weekday,
       cardId: props.cardId,
       cardType: card?.type || props.cardType || "notiz",
-      durationMin: card?.durationMin ?? 45,
+      durationMin: card?.durationMin ?? durationMinFromRange(base.start, base.end, base.allDay),
       notes: day?.notiz || lek?.notizen || "",
       lektionId: card?.lektionId || null,
       ritualId: card?.ritualId || null,
       vorhabenTitle: v?.title,
       templateLabel: templateLabel(v?.templateId),
-      fach: v?.fach,
+      fach,
+      draftFach: fach,
       klasse: v?.klasse,
       lektionTitle: lek?.title,
       weekFocus: week?.focus,
@@ -116,12 +132,16 @@ export const formFromFcEvent = (fcEvent, planningStore, calStore) => {
     const localEv = calStore?.localEvents?.find((e) => e.id === props.localEventId);
     const vid = localEv?.vorhabenId || props.vorhabenId || "";
     const v = vid ? getVorhabenById(planningStore, vid) : null;
+    const fach = v?.fach || localEv?.fach || props.fach || "";
     return {
       ...base,
       vorhabenId: vid,
       notes: localEv?.notes || props.notes || "",
       cardType: "notiz",
+      durationMin: durationMinFromRange(base.start, base.end, base.allDay),
       vorhabenTitle: v?.title,
+      fach,
+      draftFach: fach,
       links: vid
         ? [
             { to: vorhabenLevelPath(vid, "grob"), label: "Thema öffnen" },
@@ -168,8 +188,12 @@ export const formToDraftPreviewEvent = (form, planningStore) => {
   }
   const vorhabenId = form.vorhabenId || "";
   const vorhaben = vorhabenId ? getVorhabenById(planningStore, vorhabenId) : null;
-  const fach = vorhaben?.fach || form.draftFach || "";
-  const hasFachColor = Boolean(fach);
+  const fach =
+    vorhaben?.fach ||
+    form.draftFach ||
+    (form.mode !== "create" ? form.fach : "") ||
+    "";
+  const hasFachColor = Boolean(fach && normalizeFachKey(fach) !== "default");
   const source = vorhabenId ? "planning" : "local";
   const cardType = form.cardType || "notiz";
   const title = form.title?.length ? form.title : DRAFT_PREVIEW_DEFAULT_TITLE;
@@ -188,8 +212,6 @@ export const formToDraftPreviewEvent = (form, planningStore) => {
     classNames: [
       ...calendarEventClassNames(source, cardType),
       "cal-event--draft-preview",
-      "cal-event--select-preview",
-      "cal-event--editing-focus",
     ],
     extendedProps: {
       source,

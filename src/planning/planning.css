@@ -17,7 +17,7 @@
   text-decoration: none;
 }
 
-.planning-surface a:hover {
+.planning-surface a:hover:not(.fc-event) {
   color: var(--bh-blue, #1040c0);
   text-decoration: underline;
 }

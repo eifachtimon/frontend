@@ -28,7 +28,7 @@ export const saveCalFilters = (filters) => {
   return filters;
 };
 
-const matchesSearch = (event, q) => {
+export const matchesSearch = (event, q) => {
   if (!q) {
     return true;
   }
@@ -46,8 +46,31 @@ const matchesSearch = (event, q) => {
   return hay.includes(q);
 };
 
-export const filterCalendarEvents = (events, filters) => {
-  const q = (filters.search || "").trim().toLowerCase();
+export const countActiveCalendarFilters = (filters) => {
+  let n = 0;
+  if (filters.vorhabenIds?.length) {
+    n += 1;
+  }
+  if (filters.templateIds?.length) {
+    n += 1;
+  }
+  return n;
+};
+
+export const countActiveStundenplanOptions = (filters) => {
+  let n = 0;
+  if (filters.showStundenplan === false) {
+    n += 1;
+  }
+  if (filters.stundenplanEditMode) {
+    n += 1;
+  }
+  return n;
+};
+
+export const filterCalendarEvents = (events, filters, options = {}) => {
+  const { applySearch = true } = options;
+  const q = applySearch ? (filters.search || "").trim().toLowerCase() : "";
   const vorhabenSet =
     filters.vorhabenIds?.length > 0 ? new Set(filters.vorhabenIds) : null;
   const templateSet =
@@ -64,7 +87,7 @@ export const filterCalendarEvents = (events, filters) => {
     if (src === "planning" && !filters.showPlanning) {
       return false;
     }
-    if (!matchesSearch(ev, q)) {
+    if (applySearch && q && !matchesSearch(ev, q)) {
       return false;
     }
     if (src === "planning") {

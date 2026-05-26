@@ -1,4 +1,5 @@
 import {
+  applyFachEventElementStyles,
   getFachAccentColor,
   normalizeFachKey,
   resolvePlanningEventColors,
@@ -109,6 +110,48 @@ export const externalDragEventData = (eventEl, draftVorhabenId, draftFach = "") 
       cardType,
     },
   };
+};
+
+/** Entfernt Fach-/Neutral-Flächen vom FC-Element (vor Live-Vorschau-Update). */
+export const clearCalEventSurfaceStyles = (el) => {
+  if (!el) {
+    return;
+  }
+  el.classList.remove("cal-event--plain", "cal-event--fach");
+  Array.from(el.classList)
+    .filter((cls) => cls.startsWith("fach-tone"))
+    .forEach((cls) => el.classList.remove(cls));
+  el.style.removeProperty("--cal-event-bg");
+  el.style.removeProperty("--cal-event-accent");
+  el.style.removeProperty("background-color");
+};
+
+/** Live-Vorschau: gleiche Flächenfarbe/Akzent wie der spätere Termin (klassenbasiert, FC überschreibt style-Attr.). */
+export const applyDraftPreviewElementStyles = (el, preview) => {
+  if (!el || !preview) {
+    return;
+  }
+  clearCalEventSurfaceStyles(el);
+  const props = preview.extendedProps || {};
+  const classSet = new Set(["cal-event"]);
+  (preview.classNames || []).forEach((cls) => {
+    if (cls && cls !== "cal-event--draft-preview") {
+      classSet.add(cls);
+    }
+  });
+  if (props.plain) {
+    classSet.add("cal-event--plain");
+    classSet.delete("cal-event--fach");
+    [...classSet].forEach((cls) => {
+      if (!cls.startsWith("fach-tone")) {
+        el.classList.add(cls);
+      }
+    });
+    return;
+  }
+  classSet.delete("cal-event--plain");
+  [...classSet].forEach((cls) => el.classList.add(cls));
+  applyFachEventElementStyles(el, props.fach, props.vorhabenId, props.cardType);
 };
 
 export const withBauhausEventStyle = (event) => {

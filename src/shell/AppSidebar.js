@@ -6,16 +6,19 @@ import { WEEKDAYS } from "../planning/planningDefaults";
 import SidebarBibliothek from "./SidebarBibliothek";
 import SidebarNavLink from "./SidebarNavLink";
 import SidebarIcon from "./SidebarIcon";
+import SidebarResizeHandle from "./SidebarResizeHandle";
 import SidebarVorhabenTree from "./SidebarVorhabenTree";
 
 const WEEKDAY_LABELS = Object.fromEntries(WEEKDAYS.map((d) => [d.id, d.label]));
 
 const AppSidebar = ({
   collapsed,
+  sidebarWidth,
   isMobile,
   mobileOpen,
   onToggleCollapsed,
   onCloseMobile,
+  onSidebarResize,
 }) => {
   const [toast, setToast] = useState("");
   const { kw } = getIsoWeek();
@@ -37,6 +40,11 @@ const AppSidebar = ({
     .filter(Boolean)
     .join(" ");
 
+  const sidebarStyle =
+    !rail && !isMobile
+      ? { width: sidebarWidth, minWidth: sidebarWidth, maxWidth: sidebarWidth }
+      : undefined;
+
   return (
     <>
       {isMobile && mobileOpen ? (
@@ -47,59 +55,64 @@ const AppSidebar = ({
           onClick={onCloseMobile}
         />
       ) : null}
-      <aside id="app-sidebar" className={shellClass} aria-label="Hauptnavigation und Bibliothek">
-        <nav className="app-sidebar-group" aria-label="Orientierung">
-          {!rail ? (
-            <span className="app-sidebar-group-label">Orientierung</span>
-          ) : (
-            <span className="app-sidebar-rail-spacer" aria-hidden="true" />
-          )}
-          <SidebarNavLink
-            to={APP_ROUTES.home}
-            end
-            icon="plan"
-            label="Mein Unterricht"
-            collapsed={rail}
-          />
-          <SidebarNavLink
-            to={APP_ROUTES.kalender}
-            icon="calendar"
-            label="Kalender"
-            collapsed={rail}
-          />
-        </nav>
+      <aside
+        id="app-sidebar"
+        className={shellClass}
+        style={sidebarStyle}
+        aria-label="Hauptnavigation und Bibliothek"
+      >
+        <div className="app-sidebar-primary">
+          <nav className="app-sidebar-group" aria-label="Orientierung">
+            {!rail ? (
+              <span className="app-sidebar-section-label">Orientierung</span>
+            ) : null}
+            <SidebarNavLink
+              to={APP_ROUTES.home}
+              end
+              icon="plan"
+              label="Mein Unterricht"
+              collapsed={rail}
+            />
+            <SidebarNavLink
+              to={APP_ROUTES.kalender}
+              icon="calendar"
+              label="Kalender"
+              collapsed={rail}
+            />
+          </nav>
 
-        <nav className="app-sidebar-group" aria-label="Kompetenzen">
-          {!rail ? (
-            <span className="app-sidebar-group-label">Kompetenzen</span>
-          ) : (
-            <span className="app-sidebar-rail-spacer app-sidebar-rail-spacer--thin" aria-hidden="true" />
-          )}
-          <SidebarNavLink
-            to={APP_ROUTES.search}
-            icon="search"
-            label="Suche"
-            collapsed={rail}
-          />
-          <SidebarNavLink
-            to={APP_ROUTES.landkarte}
-            icon="map"
-            label="Landkarte"
-            collapsed={rail}
-          />
-        </nav>
+          <nav className="app-sidebar-group" aria-label="Kompetenzen">
+            {!rail ? (
+              <span className="app-sidebar-section-label">Kompetenzen</span>
+            ) : null}
+            <SidebarNavLink
+              to={APP_ROUTES.search}
+              icon="search"
+              label="Suche"
+              collapsed={rail}
+            />
+            <SidebarNavLink
+              to={APP_ROUTES.landkarte}
+              icon="map"
+              label="Landkarte"
+              collapsed={rail}
+            />
+          </nav>
+        </div>
 
         {rail ? <span className="app-sidebar-rail-divider" aria-hidden="true" /> : null}
 
-        <SidebarVorhabenTree collapsed={rail} onDropToast={handleDropToast} />
+        <div className="app-sidebar-panels">
+          <SidebarVorhabenTree collapsed={rail} onDropToast={handleDropToast} />
 
-        {rail ? <span className="app-sidebar-rail-divider" aria-hidden="true" /> : null}
+          {rail ? <span className="app-sidebar-rail-divider" aria-hidden="true" /> : null}
 
-        <SidebarBibliothek
-          collapsed={rail}
-          onOpenMobileClose={onCloseMobile}
-          onExpandRequest={rail ? onToggleCollapsed : undefined}
-        />
+          <SidebarBibliothek
+            collapsed={rail}
+            onOpenMobileClose={onCloseMobile}
+            onExpandRequest={rail ? onToggleCollapsed : undefined}
+          />
+        </div>
 
         <footer className="app-sidebar-footer">
           <SidebarNavLink
@@ -133,6 +146,13 @@ const AppSidebar = ({
           <p className="app-sidebar-toast" role="status">
             {toast}
           </p>
+        ) : null}
+
+        {!rail && !isMobile ? (
+          <SidebarResizeHandle
+            currentWidth={sidebarWidth}
+            onResize={onSidebarResize}
+          />
         ) : null}
       </aside>
     </>

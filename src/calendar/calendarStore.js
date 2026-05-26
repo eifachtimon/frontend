@@ -117,6 +117,7 @@ export const addLocalEvent = (store, partial = {}) => {
     allDay: Boolean(partial.allDay),
     notes: partial.notes || "",
     vorhabenId: partial.vorhabenId || null,
+    fach: partial.fach || "",
   };
   if (partial.color != null && partial.color !== "") {
     ev.color = partial.color;

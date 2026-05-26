@@ -38,6 +38,8 @@ import { applyStundenplanEventDrop } from "./stundenplanActions";
 import { updateLocalEvent, upsertStundenplanSlot } from "./calendarStore";
 import {
   applyFachEventElementStyles,
+  applySelectedEventTextColor,
+  clearSelectedEventTextColor,
   resolvePlanningEventColors,
 } from "../planning/fachColors";
 import {
@@ -48,7 +50,18 @@ import {
   lektionDragPreviewToEvent,
 } from "./calendarEventResolve";
 import {
+  eventCompactClassNames,
+  isNewAppointmentSelectMirrorArg,
+  isNewAppointmentSelectMirrorEl,
+  paintNewAppointmentSelectMirrorEl,
+  renderTimeGridEventContent,
+  repaintTimeGridEventEl,
+  resolveEventDisplayTitle,
+  safeEventAllDay,
+} from "./calendarEventContent";
+import {
   accentForExternalKind,
+  applyDraftPreviewElementStyles,
   externalDragEventData,
   withBauhausEventStyle,
 } from "./calendarEventStyles";
@@ -57,42 +70,6 @@ import {
   slotFromFcEvent,
   stundenplanToCalendarEvents,
 } from "./stundenplanEvents";
-
-/** FullCalendar nutzt fc-event-mirror sowohl für neue Auswahl als auch für Event-Drag. */
-const isNewAppointmentSelectMirror = (info) => {
-  const props = info.event.extendedProps || {};
-  if (props.isDraftPreview) {
-    return false;
-  }
-  const isMirror =
-    Boolean(info.isMirror) ||
-    info.event.classNames?.includes?.("fc-event-mirror") ||
-    info.el?.classList?.contains?.("fc-event-mirror");
-  if (!isMirror) {
-    return false;
-  }
-  const eventId = String(info.event.id || "");
-  if (/^(local-|plan-)/.test(eventId)) {
-    return false;
-  }
-  if (
-    props.source &&
-    ["planning", "local", "subscription", "stundenplan"].includes(props.source)
-  ) {
-    return false;
-  }
-  if (props.source?.startsWith?.("external")) {
-    return false;
-  }
-  const classNames = info.event.classNames || [];
-  if (
-    classNames.includes("cal-event--drag-preview") ||
-    classNames.includes("cal-event--active-drag")
-  ) {
-    return false;
-  }
-  return true;
-};
 
 const formatDayHeaderHtml = (date, viewType) => {
   const isDayHeader = viewType === "timeGridDay";
@@ -122,6 +99,23 @@ const buildWeekBadgeEl = (kw, year, extraClass = "") => {
   badge.setAttribute("aria-label", `Kalenderwoche ${kw}, ${year}`);
   badge.innerHTML = `<span class="cal-week-badge-kw">KW ${kw}</span><span class="cal-week-badge-year">${year}</span>`;
   return badge;
+};
+
+const parseHmToMinutes = (hhmmss, fallback) => {
+  const [h, m] = String(hhmmss || "").split(":");
+  const hh = Number(h);
+  const mm = Number(m);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) {
+    return fallback;
+  }
+  return hh * 60 + mm;
+};
+
+const minutesToHhmmss = (minutes) => {
+  const clamped = Math.max(0, Math.min(24 * 60, minutes));
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
 };
 
 const applyDragAccent = (el, accent) => {
@@ -172,6 +166,7 @@ const CalendarView = forwardRef(
     const wrapRef = useRef(null);
     const externalRef = useRef(null);
     const [measuredHeight, setMeasuredHeight] = useState(null);
+    const [nowTs, setNowTs] = useState(() => Date.now());
     const isDayView = dayView || dayViewToday;
     const dayAnchor = useMemo(() => {
       const d = initialDate ? new Date(initialDate) : new Date();
@@ -210,6 +205,12 @@ const CalendarView = forwardRef(
     useImperativeHandle(ref, () => ({
       getApi: () => calendarRef.current?.getApi?.(),
     }));
+
+    useEffect(() => {
+      const tick = () => setNowTs(Date.now());
+      const id = window.setInterval(tick, 30000);
+      return () => window.clearInterval(id);
+    }, []);
 
     useEffect(() => {
       if (height !== "100%") {
@@ -264,8 +265,8 @@ const CalendarView = forwardRef(
     }, [calendarStore.subscriptions, calendarStore.subscriptionCache]);
 
     const localEvents = useMemo(
-      () => localToCalendarEvents(calendarStore.localEvents),
-      [calendarStore.localEvents]
+      () => localToCalendarEvents(calendarStore.localEvents, planningStore),
+      [calendarStore.localEvents, planningStore]
     );
 
     const stundenplanEvents = useMemo(() => {
@@ -313,7 +314,7 @@ const CalendarView = forwardRef(
 
     const allEvents = useMemo(() => {
       const merged = [...subscriptionEvents, ...localEvents, ...planningEvents];
-      const filtered = filterCalendarEvents(merged, filters);
+      const filtered = filterCalendarEvents(merged, filters, { applySearch: false });
       const base = [...stundenplanEvents, ...filtered];
       return draftPreviewEvent ? [...base, draftPreviewEvent] : base;
     }, [
@@ -324,6 +325,24 @@ const CalendarView = forwardRef(
       filters,
       draftPreviewEvent,
     ]);
+
+    useLayoutEffect(() => {
+      const api = calendarRef.current?.getApi?.();
+      if (!api) {
+        return;
+      }
+      api.getEvents().forEach((ev) => {
+        const el = ev.el;
+        if (!el?.classList?.contains("cal-event")) {
+          return;
+        }
+        if (focusedFcEventId && ev.id === focusedFcEventId) {
+          applySelectedEventTextColor(el);
+        } else {
+          clearSelectedEventTextColor(el);
+        }
+      });
+    }, [focusedFcEventId, allEvents]);
 
     useEffect(() => {
       if (lektionDragPreview?.slot) {
@@ -385,61 +404,107 @@ const CalendarView = forwardRef(
       };
     }, [draftPreviewForm]);
 
-    useEffect(() => {
-      const api = calendarRef.current?.getApi?.();
-      if (!draftPreviewForm) {
-        return;
+    useLayoutEffect(() => {
+      if (!draftPreviewForm || draftPreviewForm.mode !== "create") {
+        return undefined;
       }
-      const ev = api?.getEventById(DRAFT_PREVIEW_EVENT_ID);
-      if (!ev) {
-        return;
-      }
-      const title = draftPreviewForm.title?.length
-        ? draftPreviewForm.title
-        : DRAFT_PREVIEW_DEFAULT_TITLE;
-      ev.setProp("title", title);
-      ev.setAllDay(Boolean(draftPreviewForm.allDay));
-      if (draftPreviewForm.start) {
-        ev.setStart(draftPreviewForm.start);
-      }
-      const end =
-        draftPreviewForm.end ||
-        new Date(
-          new Date(draftPreviewForm.start).getTime() +
-            (draftPreviewForm.durationMin || 45) * 60000
-        ).toISOString();
-      ev.setEnd(end);
 
-      const preview = formToDraftPreviewEvent(draftPreviewForm, planningStore);
-      if (preview?.extendedProps) {
-        Object.entries(preview.extendedProps).forEach(([key, value]) => {
-          ev.setExtendedProp(key, value);
-        });
-      }
-      if (preview?.classNames) {
-        ev.setProp("classNames", preview.classNames);
-      }
-      const el = ev.el;
-      if (el && preview?.extendedProps) {
-        el.classList.remove("cal-event--plain", "cal-event--fach");
-        Array.from(el.classList)
-          .filter((cls) => cls.startsWith("fach-tone"))
-          .forEach((cls) => el.classList.remove(cls));
-        el.style.removeProperty("--cal-event-bg");
-        if (preview.extendedProps.plain) {
-          el.classList.add("cal-event--plain");
-          applyDragAccent(el, "#121212");
-        } else {
-          applyFachEventElementStyles(
-            el,
-            preview.extendedProps.fach,
-            preview.extendedProps.vorhabenId,
-            preview.extendedProps.cardType
-          );
-          applyDragAccent(el, preview.extendedProps.eventAccent);
+      let cancelled = false;
+      let frame = 0;
+
+      const syncDraftPreview = () => {
+        if (cancelled) {
+          return;
         }
+        const api = calendarRef.current?.getApi?.();
+        const ev = api?.getEventById(DRAFT_PREVIEW_EVENT_ID);
+        if (!ev?.el) {
+          frame = window.requestAnimationFrame(syncDraftPreview);
+          return;
+        }
+
+        const title = draftPreviewForm.title?.trim()
+          ? draftPreviewForm.title.trim()
+          : DRAFT_PREVIEW_DEFAULT_TITLE;
+        try {
+          ev.setProp("title", title);
+          ev.setAllDay(Boolean(draftPreviewForm.allDay));
+        } catch {
+          /* draft event may be mid-unmount */
+        }
+        if (draftPreviewForm.start) {
+          ev.setStart(draftPreviewForm.start);
+        }
+        const endDate =
+          draftPreviewForm.end ||
+          new Date(
+            new Date(draftPreviewForm.start).getTime() +
+              (draftPreviewForm.durationMin || 45) * 60000
+          ).toISOString();
+        ev.setEnd(endDate);
+
+        const preview = formToDraftPreviewEvent(draftPreviewForm, planningStore);
+        if (preview?.extendedProps) {
+          Object.entries(preview.extendedProps).forEach(([key, value]) => {
+            ev.setExtendedProp(key, value);
+          });
+        }
+        if (preview?.classNames) {
+          ev.setProp("classNames", preview.classNames);
+        }
+
+        const paintDraftEl = () => {
+          const currentEv = api?.getEventById(DRAFT_PREVIEW_EVENT_ID);
+          const target = currentEv?.el;
+          if (!target || !preview) {
+            return;
+          }
+          applyDraftPreviewElementStyles(target, preview);
+          repaintTimeGridEventEl(target, {
+            title,
+            start: currentEv.start,
+            end: currentEv.end,
+            allDay: safeEventAllDay(currentEv),
+          });
+        };
+
+        paintDraftEl();
+        frame = window.requestAnimationFrame(() => {
+          paintDraftEl();
+          window.requestAnimationFrame(paintDraftEl);
+        });
+      };
+
+      syncDraftPreview();
+
+      return () => {
+        cancelled = true;
+        if (frame) {
+          window.cancelAnimationFrame(frame);
+        }
+      };
+    }, [
+      draftPreviewForm,
+      draftPreviewForm?.draftFach,
+      draftPreviewForm?.vorhabenId,
+      draftPreviewForm?.start,
+      draftPreviewForm?.end,
+      draftPreviewForm?.allDay,
+      draftPreviewForm?.title,
+      draftPreviewForm?.durationMin,
+      planningStore,
+    ]);
+
+    useLayoutEffect(() => {
+      if (!draftPreviewEvent) {
+        return;
       }
-    }, [draftPreviewForm, planningStore]);
+      const api = calendarRef.current?.getApi?.();
+      const el = api?.getEventById(DRAFT_PREVIEW_EVENT_ID)?.el;
+      if (el) {
+        applyDraftPreviewElementStyles(el, draftPreviewEvent);
+      }
+    }, [draftPreviewEvent]);
 
     useEffect(() => {
       if (!draftPreviewForm || !onDraftPreviewMount) {
@@ -487,6 +552,91 @@ const CalendarView = forwardRef(
     }, [showExternalEvents, setupDraggable]);
 
     const calHostRef = useRef(null);
+
+    /** Während Ziehen: FC rendert Select-Mirror neu ohne eventDidMount → UI per Frame nachziehen. */
+    useEffect(() => {
+      const host = calHostRef.current;
+      if (!host) {
+        return undefined;
+      }
+
+      let frame = 0;
+      let painting = false;
+
+      const paintSelectMirrors = () => {
+        const api = calendarRef.current?.getApi?.();
+        const ctx = api?.getCurrentData?.();
+        const sel = ctx?.dateSelection;
+        if (!sel?.start || !ctx?.dateEnv) {
+          return;
+        }
+
+        const start = ctx.dateEnv.toDate(sel.start);
+        const end = sel.end ? ctx.dateEnv.toDate(sel.end) : start;
+        const title = draftPreviewForm?.title?.trim() || DRAFT_PREVIEW_DEFAULT_TITLE;
+        const mirrorPreview = draftPreviewForm
+          ? formToDraftPreviewEvent(draftPreviewForm, planningStore)
+          : null;
+        const paintOpts = {
+          title,
+          start,
+          end,
+          allDay: Boolean(sel.allDay),
+        };
+
+        host.querySelectorAll(".fc-event.fc-event-mirror").forEach((el) => {
+          if (!isNewAppointmentSelectMirrorEl(el)) {
+            return;
+          }
+          if (mirrorPreview && !mirrorPreview.extendedProps?.plain) {
+            applyDraftPreviewElementStyles(el, mirrorPreview);
+          } else {
+            el.classList.add("cal-event", "cal-event--local", "cal-event--plain");
+            applyDragAccent(el, "#121212");
+          }
+          paintNewAppointmentSelectMirrorEl(el, paintOpts);
+        });
+      };
+
+      const loop = () => {
+        if (!painting) {
+          return;
+        }
+        paintSelectMirrors();
+        frame = window.requestAnimationFrame(loop);
+      };
+
+      const handlePointerDown = (e) => {
+        if (e.button !== 0) {
+          return;
+        }
+        /* Klicks auf bestehende Termine → eventClick, kein Select-Mirror-Painting */
+        if (e.target.closest(".fc-event:not(.fc-event-mirror)")) {
+          return;
+        }
+        painting = true;
+        paintSelectMirrors();
+        frame = window.requestAnimationFrame(loop);
+      };
+
+      const handlePointerEnd = () => {
+        painting = false;
+        if (frame) {
+          window.cancelAnimationFrame(frame);
+        }
+      };
+
+      host.addEventListener("pointerdown", handlePointerDown);
+      window.addEventListener("pointerup", handlePointerEnd);
+      window.addEventListener("pointercancel", handlePointerEnd);
+
+      return () => {
+        handlePointerEnd();
+        host.removeEventListener("pointerdown", handlePointerDown);
+        window.removeEventListener("pointerup", handlePointerEnd);
+        window.removeEventListener("pointercancel", handlePointerEnd);
+      };
+    }, [draftPreviewForm?.title, draftPreviewForm?.draftFach, draftPreviewForm?.vorhabenId, planningStore]);
 
     const handleCalendarHostDragOver = useCallback((e) => {
       if (!hasLektionDrag(e.dataTransfer)) {
@@ -728,6 +878,12 @@ const CalendarView = forwardRef(
         if (onDateSelect) {
           onDateSelect(selectInfo);
         }
+        /* Select-Mirror hat andere UI als Draft — sofort ausblenden, Draft übernimmt. */
+        try {
+          selectInfo?.view?.calendar?.unselect?.();
+        } catch {
+          /* ignore */
+        }
       },
       [onDateSelect]
     );
@@ -819,7 +975,10 @@ const CalendarView = forwardRef(
 
     const eventClassNames = useCallback(
       (arg) => {
-        const classes = [...(arg.event.classNames || [])];
+        const classes = [...(arg.event.classNames || []), ...eventCompactClassNames(arg)];
+        if (isNewAppointmentSelectMirrorArg(arg)) {
+          classes.push("cal-event", "cal-event--local", "cal-event--plain");
+        }
         const end = arg.event.end || arg.event.start;
         if (!arg.event.extendedProps?.isDraftPreview && end && end < new Date()) {
           classes.push("cal-event--past");
@@ -834,40 +993,38 @@ const CalendarView = forwardRef(
 
     const handleEventDidMount = useCallback(
       (info) => {
-        const props = info.event.extendedProps || {};
+        if (!info?.el || !info.event) {
+          return;
+        }
+        let props = {};
+        try {
+          props = info.event.extendedProps || {};
+        } catch {
+          return;
+        }
+        const allDay = safeEventAllDay(info.event);
         const isMirror =
           Boolean(info.isMirror) ||
           info.event.classNames?.includes?.("fc-event-mirror") ||
           info.el?.classList?.contains?.("fc-event-mirror");
 
-        if (isNewAppointmentSelectMirror(info) && info.el) {
-          info.el.classList.add(
-            "cal-event",
-            "cal-event--local",
-            "cal-event--plain",
-            "cal-event--select-preview"
-          );
-          info.el.style.background = "#fff";
-          info.el.style.boxShadow = "none";
+        if (isNewAppointmentSelectMirrorArg(info) && info.el) {
+          info.el.classList.add("cal-event", "cal-event--local", "cal-event--plain");
           applyDragAccent(info.el, "#121212");
+          const mirrorTitle = resolveEventDisplayTitle(info.event, info);
           try {
-            info.event.setProp("title", DRAFT_PREVIEW_DEFAULT_TITLE);
+            info.event.setProp("title", mirrorTitle);
           } catch {
             /* mirror may not support setProp in all views */
           }
-          const titleEl = info.el.querySelector(".fc-event-title");
-          if (titleEl) {
-            titleEl.textContent = DRAFT_PREVIEW_DEFAULT_TITLE;
-          } else {
-            const main = info.el.querySelector(".fc-event-main");
-            if (main) {
-              const node = document.createElement("div");
-              node.className = "fc-event-title";
-              node.textContent = DRAFT_PREVIEW_DEFAULT_TITLE;
-              main.prepend(node);
-            }
-          }
+          repaintTimeGridEventEl(info.el, {
+            title: mirrorTitle,
+            start: info.event.start,
+            end: info.event.end,
+            allDay,
+          });
         } else if (isMirror && !props.isDraftPreview && info.el) {
+          info.el.classList.add("cal-event");
           if (props.plain) {
             info.el.classList.add("cal-event--plain");
             applyDragAccent(info.el, "#121212");
@@ -881,19 +1038,22 @@ const CalendarView = forwardRef(
             applyDragAccent(info.el, props.eventAccent);
           }
         } else if (props.isDraftPreview && info.el) {
-          info.el.classList.add("cal-event--select-preview");
-          if (props.plain) {
-            info.el.classList.add("cal-event--plain");
-            applyDragAccent(info.el, "#121212");
-          } else {
-            applyFachEventElementStyles(
-              info.el,
-              props.fach,
-              props.vorhabenId,
-              props.cardType
-            );
-            applyDragAccent(info.el, props.eventAccent);
+          const preview =
+            draftPreviewForm?.mode === "create"
+              ? formToDraftPreviewEvent(draftPreviewForm, planningStore)
+              : null;
+          if (preview) {
+            applyDraftPreviewElementStyles(info.el, preview);
           }
+          const previewTitle = draftPreviewForm?.title?.trim()
+            ? draftPreviewForm.title.trim()
+            : resolveEventDisplayTitle(info.event, info);
+          repaintTimeGridEventEl(info.el, {
+            title: previewTitle,
+            start: info.event.start,
+            end: info.event.end,
+            allDay,
+          });
         } else if (props.isLektionDragPreview && info.el) {
           applyFachEventElementStyles(
             info.el,
@@ -914,12 +1074,35 @@ const CalendarView = forwardRef(
           );
           applyDragAccent(info.el, props.eventAccent);
         }
+        let eventId = "";
+        try {
+          eventId = info.event.id;
+        } catch {
+          return;
+        }
+        if (info.el && focusedFcEventId && eventId === focusedFcEventId) {
+          applySelectedEventTextColor(info.el);
+        }
       },
-      []
+      [
+        draftPreviewForm?.title,
+        draftPreviewForm?.draftFach,
+        draftPreviewForm?.vorhabenId,
+        planningStore,
+        focusedFcEventId,
+      ]
     );
 
     const slotMin = calendarStore.settings?.slotMinTime || "06:00:00";
-    const slotMax = calendarStore.settings?.slotMaxTime || "20:00:00";
+    const configuredMaxMin = parseHmToMinutes(
+      calendarStore.settings?.slotMaxTime || "20:00:00",
+      20 * 60
+    );
+    const now = new Date(nowTs);
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    // Keep at least 90 minutes after "now" visible for testing and late-day planning.
+    const dynamicMaxMin = Math.ceil((nowMin + 90) / 15) * 15;
+    const slotMax = minutesToHhmmss(Math.max(configuredMaxMin, dynamicMaxMin));
 
     const dragStripVisible =
       showDragStrip !== undefined ? showDragStrip : showExternalEvents;
@@ -1035,6 +1218,7 @@ const CalendarView = forwardRef(
             droppable
             selectable
             selectMirror
+            selectOverlap={false}
             selectLongPressDelay={280}
             eventLongPressDelay={280}
             longPressDelay={280}
@@ -1044,12 +1228,14 @@ const CalendarView = forwardRef(
             firstDay={1}
             slotDuration="00:15:00"
             snapDuration="00:15:00"
+            eventMinHeight={14}
             slotLabelInterval="01:00:00"
             slotLabelFormat={{
               hour: "2-digit",
               minute: "2-digit",
               hour12: false,
             }}
+            displayEventTime={false}
             eventTimeFormat={{
               hour: "2-digit",
               minute: "2-digit",
@@ -1058,6 +1244,7 @@ const CalendarView = forwardRef(
             events={allEvents}
             eventDisplay="block"
             eventClassNames={eventClassNames}
+            eventContent={renderTimeGridEventContent}
             eventDidMount={handleEventDidMount}
             eventDragStart={handleEventDragStart}
             eventDragStop={handleEventDragStop}

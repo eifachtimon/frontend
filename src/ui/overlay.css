@@ -256,15 +256,53 @@ body.app-overlay-open:not(.cal-modal-open) {
   box-shadow: none;
 }
 
-/* Kompakt ohne „Mehr Optionen“: mit Inhalt mitwachsen, nicht scrollen */
+/* Kompakt ohne „Mehr Optionen“: mit Inhalt mitwachsen, solange Viewport es erlaubt */
 .cal-modal-overlay.cal-modal-overlay--anchored
-  .cal-modal.cal-event-modal--compact:not(.cal-event-modal--more-open) {
+  .cal-modal.cal-event-modal--compact:not(.cal-event-modal--more-open):not(
+    .cal-event-modal--viewport-clamped
+  ) {
   max-height: none;
 }
 
 .cal-modal-overlay.cal-modal-overlay--compact-standalone
-  .cal-modal.cal-event-modal--compact:not(.cal-event-modal--more-open) {
+  .cal-modal.cal-event-modal--compact:not(.cal-event-modal--more-open):not(
+    .cal-event-modal--viewport-clamped
+  ) {
   max-height: none;
+}
+
+/* Inhalt höher als Viewport → max. Höhe + scrollbare Mitte */
+.cal-modal-overlay.cal-modal-overlay--anchored .cal-modal.cal-event-modal--viewport-clamped,
+.cal-modal-overlay.cal-modal-overlay--compact-standalone
+  .cal-modal.cal-event-modal--viewport-clamped {
+  max-height: var(--cal-popover-max-h, min(calc(100dvh - 24px), 92vh)) !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cal-event-modal--viewport-clamped .cal-event-modal-form--quick {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: inherit;
+  overflow: hidden;
+}
+
+.cal-event-modal--viewport-clamped .cal-event-modal-header--quick,
+.cal-event-modal--viewport-clamped .cal-event-theme-block,
+.cal-event-modal--viewport-clamped .cal-event-modal-footer--quick {
+  flex-shrink: 0;
+}
+
+.cal-event-modal--viewport-clamped .cal-event-modal-body--quick {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .cal-modal-overlay.cal-modal-overlay--compact-standalone .cal-modal {
@@ -1188,9 +1226,40 @@ body.cal-draft-preview-active .cal-event-modal-overlay.cal-modal-overlay--pass-t
   .cal-modal-overlay.cal-modal-overlay--compact-standalone .cal-modal {
     width: auto;
     min-width: min(100%, 15.5rem);
-    max-width: min(100%, 26rem);
-    max-height: min(52vh, 320px);
+    max-width: min(calc(100vw - 16px), 26rem);
+    max-height: min(calc(100dvh - 16px), 92vh);
     border-radius: 14px 14px 0 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cal-modal-overlay.cal-modal-overlay--anchored
+    .cal-modal.cal-event-modal--compact:not(.cal-event-modal--viewport-clamped),
+  .cal-modal-overlay.cal-modal-overlay--compact-standalone
+    .cal-modal.cal-event-modal--compact:not(.cal-event-modal--viewport-clamped) {
+    max-height: min(calc(100dvh - 16px), 92vh);
+  }
+
+  .cal-modal-overlay.cal-modal-overlay--anchored .cal-modal.cal-event-modal--compact .cal-event-modal-form--quick,
+  .cal-modal-overlay.cal-modal-overlay--compact-standalone
+    .cal-modal.cal-event-modal--compact
+    .cal-event-modal-form--quick {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cal-modal-overlay.cal-modal-overlay--anchored .cal-modal.cal-event-modal--compact .cal-event-modal-body--quick,
+  .cal-modal-overlay.cal-modal-overlay--compact-standalone
+    .cal-modal.cal-event-modal--compact
+    .cal-event-modal-body--quick {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .cal-modal-overlay.cal-modal-overlay--anchored .cal-modal {

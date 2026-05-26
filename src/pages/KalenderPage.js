@@ -613,6 +613,7 @@ const KalenderPage = () => {
         onDelete={handleDeleteEvent}
         onCreateVorhaben={handleCreateVorhaben}
         vorhabenOptions={planningStore.vorhaben}
+        planningStore={planningStore}
         lektionOptions={lektionOptions}
       />
 

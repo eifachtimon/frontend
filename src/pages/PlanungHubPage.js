@@ -514,6 +514,7 @@ const PlanungHubPage = () => {
         onDelete={handleDeleteEvent}
         onCreateVorhaben={handleCalendarCreateVorhaben}
         vorhabenOptions={store.vorhaben}
+        planningStore={store}
         lektionOptions={draftVorhaben?.lektionen || []}
       />
     </div>

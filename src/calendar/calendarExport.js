@@ -39,7 +39,7 @@ export const collectExportEvents = (planningStore, calStore) => {
   for (const v of planningStore?.vorhaben || []) {
     list.push(...vorhabenToCalendarEvents(v));
   }
-  list.push(...localToCalendarEvents(calStore?.localEvents || []));
+  list.push(...localToCalendarEvents(calStore?.localEvents || [], planningStore));
   return list;
 };
 

@@ -126,6 +126,7 @@ const ThemaWeekCalendarBlock = ({
         onDelete={handleDeleteEvent}
         onCreateVorhaben={handleCreateVorhaben}
         vorhabenOptions={store.vorhaben}
+        planningStore={store}
         lektionOptions={vorhaben?.lektionen || []}
       />
     </section>

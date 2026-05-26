@@ -278,18 +278,7 @@
   gap: var(--layout-inline-gap) !important;
 }
 
-.app-sidebar {
-  padding: var(--layout-inset-bar) var(--layout-inset-compact) !important;
-  gap: var(--layout-cluster-gap) !important;
-}
-
-.app-sidebar-group {
-  gap: var(--layout-tight-gap);
-}
-
-.app-sidebar-nav-link {
-  padding: var(--layout-inset-compact) var(--layout-inline-gap) !important;
-}
+/* Sidebar-Rhythmus: app-shell.css (--sidebar-*) */
 
 /* —— Kette / Modals —— */
 .competency-chain-panel {

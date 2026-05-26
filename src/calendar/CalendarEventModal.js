@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   BEAK_HALF,
   computeAnchoredPopoverStyle,
+  computeStandalonePopoverStyle,
   measureCompactPopoverWidth,
 } from "./calendarEventAnchor";
 import { withVorhabenAssignment } from "./calendarEventResolve";
@@ -88,6 +89,7 @@ const CompactEventForm = ({
   onCreateVorhaben,
   onFachChange,
   onThemeSelect,
+  planningStore,
   titleId,
   firstFieldRef,
 }) => {
@@ -164,26 +166,37 @@ const CompactEventForm = ({
         </button>
       </header>
 
-      {canEdit && form.mode === "create" ? (
+      {canEdit ? (
         <div className="cal-event-theme-block cal-event-theme-block--compact">
           <ThemePickerCompact
             vorhabenOptions={vorhabenOptions}
             selectedId={form.vorhabenId || ""}
-            draftFach={form.draftFach || ""}
+            draftFach={
+              form.mode === "create"
+                ? form.draftFach || ""
+                : form.draftFach || form.fach || ""
+            }
             themeInputId={themeInputId}
             listId={themeListId}
             onCreateVorhaben={onCreateVorhaben}
             onFachChange={onFachChange}
             onSelect={onThemeSelect}
             onClear={() =>
-              onChange(withVorhabenAssignment(form, "", null, vorhabenOptions))
+              onChange(
+                withVorhabenAssignment(
+                  { ...form, draftFach: "", fach: "" },
+                  "",
+                  planningStore,
+                  vorhabenOptions
+                )
+              )
             }
           />
         </div>
       ) : null}
 
       <div className="cal-event-modal-body cal-event-modal-body--quick">
-        {form.mode !== "create" && form.vorhabenTitle ? (
+        {!canEdit && form.vorhabenTitle ? (
           <p className="cal-event-quick-meta">{form.vorhabenTitle}</p>
         ) : null}
 
@@ -337,6 +350,7 @@ const CalendarEventModal = ({
   onDelete,
   vorhabenOptions = [],
   lektionOptions = [],
+  planningStore = null,
   onCreateVorhaben,
 }) => {
   const titleId = useId();
@@ -351,6 +365,7 @@ const CalendarEventModal = ({
   const [popoverStyle, setPopoverStyle] = useState(null);
   const [compactStyle, setCompactStyle] = useState(null);
   const [borderFrame, setBorderFrame] = useState(null);
+  const [viewportClamped, setViewportClamped] = useState(false);
   const overlayClass = useOverlayPresentation(open && expanded);
 
   const showCompact = !expanded;
@@ -364,6 +379,7 @@ const CalendarEventModal = ({
   useEffect(() => {
     if (!open) {
       setExpanded(false);
+      setViewportClamped(false);
       layoutWidthLockRef.current = null;
       layoutAnchorKeyRef.current = "";
       return;
@@ -379,6 +395,7 @@ const CalendarEventModal = ({
       setPopoverStyle(null);
       setCompactStyle(null);
       setBorderFrame(null);
+      setViewportClamped(false);
       return undefined;
     }
 
@@ -394,6 +411,8 @@ const CalendarEventModal = ({
     let lastPopoverKey = "";
     let lastBorderKey = "";
     let lastCompactKey = "";
+
+    const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
 
     const applyLayout = (remeasureWidth = false) => {
       if (!modalRef.current) {
@@ -418,7 +437,11 @@ const CalendarEventModal = ({
         node.style.maxWidth = widthPx;
       }
 
-      const height = Math.max(node.offsetHeight, node.getBoundingClientRect().height);
+      const height = Math.max(
+        node.scrollHeight,
+        node.offsetHeight,
+        node.getBoundingClientRect().height
+      );
 
       if (isAnchored && anchor) {
         const anchorKey = `${Math.round(anchor.top)}|${Math.round(anchor.left)}|${Math.round(anchor.width)}|${Math.round(anchor.height)}`;
@@ -428,20 +451,39 @@ const CalendarEventModal = ({
         const layout = computeAnchoredPopoverStyle(anchor, {
           width,
           height,
-          expandFull: false,
         });
-        const { beakSide: side, beakTop, top, left, width: panelWidth } = layout;
+        const {
+          beakSide: side,
+          beakTop,
+          top,
+          left,
+          width: panelWidth,
+          maxHeight,
+          clamped,
+        } = layout;
         if (anchoredLeftRef.current.left === null) {
           anchoredLeftRef.current.left = left;
         }
-        const popLeft = anchoredLeftRef.current.left;
-        const popoverKey = `${top}|${popLeft}|${panelWidth}`;
+        const vw = window.innerWidth;
+        const margin = 12;
+        const popLeft = clampValue(
+          anchoredLeftRef.current.left,
+          margin,
+          Math.max(margin, vw - margin - panelWidth)
+        );
+        const popoverKey = `${top}|${popLeft}|${panelWidth}|${maxHeight || 0}|${clamped ? 1 : 0}`;
         const borderKey =
           side && side !== "none" ? `${beakTop}|${side}` : "none";
 
         if (popoverKey !== lastPopoverKey) {
           lastPopoverKey = popoverKey;
-          setPopoverStyle({ top, left: popLeft, width: panelWidth });
+          setPopoverStyle({
+            top,
+            left: popLeft,
+            width: panelWidth,
+            ...(maxHeight ? { maxHeight, "--cal-popover-max-h": `${maxHeight}px` } : {}),
+          });
+          setViewportClamped(Boolean(clamped));
         }
         if (borderKey !== lastBorderKey) {
           lastBorderKey = borderKey;
@@ -454,7 +496,8 @@ const CalendarEventModal = ({
           setCompactStyle(null);
         }
       } else {
-        const compactKey = `${width}`;
+        const standalone = computeStandalonePopoverStyle({ width, height });
+        const compactKey = `${standalone.width}|${standalone.maxHeight || 0}|${standalone.clamped ? 1 : 0}`;
         if (lastPopoverKey !== "") {
           lastPopoverKey = "";
           setPopoverStyle(null);
@@ -465,7 +508,17 @@ const CalendarEventModal = ({
         }
         if (compactKey !== lastCompactKey) {
           lastCompactKey = compactKey;
-          setCompactStyle({ width, maxWidth: width });
+          setCompactStyle({
+            width: standalone.width,
+            maxWidth: standalone.width,
+            ...(standalone.maxHeight
+              ? {
+                  maxHeight: standalone.maxHeight,
+                  "--cal-popover-max-h": `${standalone.maxHeight}px`,
+                }
+              : {}),
+          });
+          setViewportClamped(Boolean(standalone.clamped));
         }
       }
     };
@@ -498,6 +551,10 @@ const CalendarEventModal = ({
       ? new ResizeObserver(() => scheduleWidthRemeasure())
       : null;
     titleRo?.observe(titleInput);
+    const themeBlock = el.querySelector(".cal-event-theme-block");
+    if (themeBlock) {
+      ro.observe(themeBlock);
+    }
     const onWinResize = () => scheduleLayout(true);
     const onWinScroll = () => scheduleLayout(false);
     window.addEventListener("resize", onWinResize);
@@ -519,10 +576,21 @@ const CalendarEventModal = ({
         modalRef.current.style.maxWidth = "";
       }
     };
-  }, [open, showCompact, isAnchored, anchor, anchorLayoutKey, form?.allDay, form?.title]);
+  }, [
+    open,
+    showCompact,
+    isAnchored,
+    anchor,
+    anchorLayoutKey,
+    form?.allDay,
+    form?.title,
+    form?.draftFach,
+    form?.vorhabenId,
+    form?.mode,
+  ]);
 
   useEffect(() => {
-    if (open && form?.mode === "create") {
+    if (open) {
       firstFieldRef.current?.focus();
     }
   }, [open, form?.mode]);
@@ -563,17 +631,37 @@ const CalendarEventModal = ({
 
   const handleFachChange = (fachName) => {
     if (!fachName) {
-      onChange(withVorhabenAssignment({ ...form, draftFach: "" }, "", null, vorhabenOptions));
+      if (form.mode === "edit" && form.cardId) {
+        onChange({ ...form, draftFach: "", fach: "" });
+        return;
+      }
+      onChange(
+        withVorhabenAssignment(
+          { ...form, draftFach: "", fach: "" },
+          "",
+          planningStore,
+          vorhabenOptions
+        )
+      );
+      return;
+    }
+    if (form.mode === "edit" && form.cardId && form.vorhabenId) {
+      onChange({ ...form, draftFach: fachName });
       return;
     }
     onChange({
-      ...withVorhabenAssignment(form, "", null, vorhabenOptions),
+      ...withVorhabenAssignment(form, "", planningStore, vorhabenOptions),
       draftFach: fachName,
     });
   };
 
   const handleThemeSelect = (vorhabenId) => {
-    const updated = withVorhabenAssignment(form, vorhabenId, null, vorhabenOptions);
+    const updated = withVorhabenAssignment(
+      form,
+      vorhabenId,
+      planningStore,
+      vorhabenOptions
+    );
     const vorhaben = vorhabenOptions.find((v) => v.id === vorhabenId);
     onChange({
       ...updated,
@@ -605,6 +693,7 @@ const CalendarEventModal = ({
         onCreateVorhaben={onCreateVorhaben}
         onFachChange={handleFachChange}
         onThemeSelect={handleThemeSelect}
+        planningStore={planningStore}
         titleId={titleId}
         firstFieldRef={firstFieldRef}
       />
@@ -619,6 +708,8 @@ const CalendarEventModal = ({
       <div
         ref={modalRef}
         className={`cal-modal cal-event-modal${showCompact ? " cal-event-modal--compact" : ""}${
+          viewportClamped ? " cal-event-modal--viewport-clamped" : ""
+        }${
           borderFrame
             ? ` cal-event-modal--beaked${
                 borderFrame.side === "left"
@@ -680,7 +771,7 @@ const CalendarEventModal = ({
               }}
             >
               <div className="cal-event-modal-body">
-                {form.vorhabenTitle || form.fach ? (
+                {!canEdit && (form.vorhabenTitle || form.fach) ? (
                   <p className="cal-modal-meta">
                     {form.vorhabenTitle ? (
                       <span className="cal-modal-meta-badge">{form.vorhabenTitle}</span>
@@ -711,14 +802,25 @@ const CalendarEventModal = ({
                     <ThemePickerCompact
                       vorhabenOptions={vorhabenOptions}
                       selectedId={form.vorhabenId || ""}
-                      draftFach={form.draftFach || ""}
+                      draftFach={
+                        form.mode === "create"
+                          ? form.draftFach || ""
+                          : form.draftFach || form.fach || ""
+                      }
                       themeInputId={`${themeInputId}-expanded`}
                       listId={`${themeListId}-expanded`}
                       onCreateVorhaben={onCreateVorhaben}
                       onFachChange={handleFachChange}
                       onSelect={handleThemeSelect}
                       onClear={() =>
-                        onChange(withVorhabenAssignment(form, "", null, vorhabenOptions))
+                        onChange(
+                          withVorhabenAssignment(
+                            { ...form, draftFach: "", fach: "" },
+                            "",
+                            planningStore,
+                            vorhabenOptions
+                          )
+                        )
                       }
                     />
                   </div>

@@ -7,6 +7,7 @@ import {
   removeDayCard,
   updateDayCard,
 } from "../planning/planningStore";
+import { normalizeFachKey } from "../planning/fachColors";
 import {
   addLocalEvent,
   removeLocalEvent,
@@ -21,6 +22,69 @@ const parseFormTimes = (form) => {
   return { start, end };
 };
 
+const readPlanningCard = (vorhaben, weekId, weekday, cardId) => {
+  const week = vorhaben?.wochen?.find((w) => w.id === weekId);
+  const day = week?.days?.[weekday];
+  return day?.cards?.find((c) => c.id === cardId) || null;
+};
+
+/** Planungskarte in anderes Thema verschieben (gleiche KW / Wochentag). */
+const movePlanningCardToVorhaben = ({
+  planningStore,
+  form,
+  start,
+  durationMin,
+  startMin,
+}) => {
+  const fromId = form.initialVorhabenId || form.vorhabenId;
+  const toId = form.vorhabenId;
+  if (!fromId || !toId || fromId === toId) {
+    return null;
+  }
+
+  let fromV = getVorhabenById(planningStore, fromId);
+  const card = readPlanningCard(fromV, form.weekId, form.weekday, form.cardId);
+  if (!fromV || !card) {
+    return null;
+  }
+
+  fromV = removeDayCard(fromV, form.weekId, form.weekday, form.cardId);
+
+  let toV = getVorhabenById(planningStore, toId);
+  if (!toV) {
+    return null;
+  }
+
+  const { kw, year } = getIsoWeek(start);
+  const { vorhaben: toV0, week } = getOrCreateWeek(toV, kw, year);
+  toV = addDayCard(toV0, week.id, form.weekday, {
+    type: form.cardType || card.type,
+    label: form.title,
+    durationMin,
+    startMin,
+    ritualId: form.ritualId ?? card.ritualId,
+    lektionId: form.lektionId ?? card.lektionId,
+  });
+
+  return { fromV, toV };
+};
+
+const localEventPatchFromForm = (form) => {
+  const fach =
+    form.draftFach && normalizeFachKey(form.draftFach) !== "default"
+      ? form.draftFach
+      : "";
+  return {
+    title: form.title,
+    start: form.start,
+    end: form.end,
+    allDay: form.allDay,
+    notes: form.notes,
+    vorhabenId: form.vorhabenId || null,
+    fach: form.vorhabenId ? "" : fach,
+  };
+};
+
 export const saveEventFromForm = ({
   form,
   planningStore,
@@ -31,7 +95,7 @@ export const saveEventFromForm = ({
   const { start, end } = parseFormTimes(form);
   const durationMin = form.allDay
     ? null
-    : Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000));
+    : Math.max(5, Math.round((end.getTime() - start.getTime()) / 60000));
   const startMin = form.allDay ? null : start.getHours() * 60 + start.getMinutes();
   const weekday = weekdayIdFromDate(start) || form.weekday || "mo";
 
@@ -41,30 +105,43 @@ export const saveEventFromForm = ({
       : null;
 
   if (!planningVorhaben) {
+    const patch = localEventPatchFromForm({
+      ...form,
+      start: start.toISOString(),
+      end: end.toISOString(),
+    });
     if (form.localEventId) {
-      onCalStoreChange(
-        updateLocalEvent(calStore, form.localEventId, {
-          title: form.title,
-          start: start.toISOString(),
-          end: end.toISOString(),
-          allDay: form.allDay,
-          notes: form.notes,
-          vorhabenId: form.vorhabenId || null,
-        })
-      );
+      onCalStoreChange(updateLocalEvent(calStore, form.localEventId, patch));
     } else {
       onCalStoreChange(
         addLocalEvent(calStore, {
-          title: form.title,
-          start: start.toISOString(),
-          end: end.toISOString(),
-          allDay: form.allDay,
-          notes: form.notes,
-          vorhabenId: form.vorhabenId || null,
+          ...patch,
+          start: patch.start,
+          end: patch.end,
         })
       );
     }
     return;
+  }
+
+  const moved = movePlanningCardToVorhaben({
+    planningStore,
+    form,
+    start,
+    durationMin,
+    startMin,
+  });
+  if (moved) {
+    onPlanningStoreChange(moved.fromV);
+    onPlanningStoreChange(moved.toV);
+    if (form.localEventId) {
+      onCalStoreChange(removeLocalEvent(calStore, form.localEventId));
+    }
+    return;
+  }
+
+  if (form.localEventId && form.vorhabenId) {
+    onCalStoreChange(removeLocalEvent(calStore, form.localEventId));
   }
 
   let vorhaben = planningVorhaben;
@@ -101,7 +178,9 @@ export const saveEventFromForm = ({
       v = {
         ...v,
         lektionen: v.lektionen.map((l) =>
-          l.id === form.lektionId ? { ...l, title: form.title, durationMin: durationMin || l.durationMin } : l
+          l.id === form.lektionId
+            ? { ...l, title: form.title, durationMin: durationMin || l.durationMin }
+            : l
         ),
       };
     }
@@ -139,8 +218,9 @@ export const deleteEventFromForm = ({
     onCalStoreChange(removeLocalEvent(calStore, form.localEventId));
     return;
   }
-  if (form.source === "planning" && form.vorhabenId && form.cardId) {
-    const v = getVorhabenById(planningStore, form.vorhabenId);
+  if (form.source === "planning" && form.cardId) {
+    const vid = form.initialVorhabenId || form.vorhabenId;
+    const v = getVorhabenById(planningStore, vid);
     if (!v) {
       return;
     }

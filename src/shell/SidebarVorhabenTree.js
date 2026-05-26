@@ -7,6 +7,14 @@ import { createVorhaben } from "../planning/planningStore";
 import { getFachCssVars, getFachToneClassName } from "../planning/fachColors";
 import { groupVorhabenByFach } from "../planning/planningHomeUtils";
 import { getLevelBadge } from "../planning/planningLevels";
+import {
+  FAECHER,
+  FAECHER_UND_THEMEN,
+  NEUES_THEMA,
+  NOCH_KEIN_THEMA_UNTER_FACH,
+  SIDEBAR_THEMEN_QUICK,
+  THEMEN_IN_FACH,
+} from "../planning/themaLabels";
 import usePlanningStore from "../planning/usePlanningStore";
 import {
   allowDrop,
@@ -126,7 +134,7 @@ const SidebarVorhabenTree = ({ collapsed, onDropToast }) => {
               `app-sidebar-vorhaben-link${toneClass ? ` ${toneClass}` : ""}${isActive ? " app-sidebar-vorhaben-link--active" : ""}`
             }
             style={toneClass ? getFachCssVars(v.fach, v.id) : undefined}
-            title={v.title}
+            title={`${v.title} (${v.fach || "Fach"})`}
           >
             <span className="app-sidebar-vorhaben-title">{v.title}</span>
             {badge ? (
@@ -142,7 +150,7 @@ const SidebarVorhabenTree = ({ collapsed, onDropToast }) => {
 
   if (collapsed) {
     return (
-      <nav className="app-sidebar-vorhaben-collapsed" aria-label="Themen">
+      <nav className="app-sidebar-vorhaben-collapsed" aria-label={SIDEBAR_THEMEN_QUICK}>
         {sortedFlat.slice(0, 5).map((v) => {
           const initial = (v.title || "?").trim().slice(0, 1).toUpperCase();
           const toneClass = getFachToneClassName(v.fach);
@@ -165,8 +173,8 @@ const SidebarVorhabenTree = ({ collapsed, onDropToast }) => {
           type="button"
           className="app-sidebar-rail-btn app-sidebar-rail-btn--add"
           onClick={handleCreate}
-          aria-label="Neues Thema"
-          title="Neues Thema"
+          aria-label={NEUES_THEMA}
+          title={NEUES_THEMA}
         >
           <SidebarIcon name="plus" />
         </button>
@@ -177,26 +185,32 @@ const SidebarVorhabenTree = ({ collapsed, onDropToast }) => {
   return (
     <div className="app-sidebar-vorhaben">
       <div className="app-sidebar-section-head">
-        <span className="app-sidebar-section-title">Themen</span>
+        <span className="app-sidebar-section-label">{FAECHER}</span>
         <button
           type="button"
           className="app-sidebar-section-action"
           onClick={handleCreate}
-          aria-label="Neues Thema"
+          aria-label={NEUES_THEMA}
+          title={NEUES_THEMA}
         >
           +
         </button>
       </div>
       {fachFolders.length === 0 ? (
-        <p className="app-sidebar-empty">Noch kein Thema.</p>
+        <p className="app-sidebar-empty">{NOCH_KEIN_THEMA_UNTER_FACH}</p>
       ) : (
-        <ul className="app-sidebar-tree" role="tree">
+        <ul className="app-sidebar-tree" role="tree" aria-label={FAECHER_UND_THEMEN}>
           {fachFolders.map(({ fach, items }) => {
             const open = isFolderOpen(fach, items.length);
             const toneClass = getFachToneClassName(fach);
             const folderId = `sidebar-fach-${fach.replace(/\s+/g, "-")}`;
             return (
-              <li key={fach} className="app-sidebar-tree-fach" role="none">
+              <li
+                key={fach}
+                className="app-sidebar-tree-fach"
+                role="treeitem"
+                aria-expanded={open}
+              >
                 <div className="app-sidebar-fach-folder-head">
                   <button
                     type="button"
@@ -221,7 +235,7 @@ const SidebarVorhabenTree = ({ collapsed, onDropToast }) => {
                     id={folderId}
                     className="app-sidebar-tree-children"
                     role="group"
-                    aria-label={fach}
+                    aria-label={THEMEN_IN_FACH(fach)}
                   >
                     {items.map((v) => renderVorhabenRow(v))}
                   </ul>

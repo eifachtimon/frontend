@@ -9,11 +9,13 @@ const AppShellLayout = ({ children }) => {
   const location = useLocation();
   const {
     collapsed,
+    sidebarWidth,
     mobileOpen,
     isMobile,
     toggleCollapsed,
     toggleMobile,
     closeMobile,
+    handleSidebarResize,
   } = useSidebarLayout();
 
   useEffect(() => {
@@ -31,18 +33,20 @@ const AppShellLayout = ({ children }) => {
   return (
     <div className="app-shell-layout">
       <AppTopNav
-        onMenuClick={isMobile ? toggleMobile : toggleCollapsed}
-        menuExpanded={isMobile ? mobileOpen : !collapsed}
-        showMenuButton
+        onMenuClick={toggleMobile}
+        menuExpanded={mobileOpen}
+        showMenuButton={isMobile}
         isMobile={isMobile}
       />
       <div className="app-shell-body">
         <AppSidebar
           collapsed={collapsed}
+          sidebarWidth={sidebarWidth}
           isMobile={isMobile}
           mobileOpen={mobileOpen}
           onToggleCollapsed={toggleCollapsed}
           onCloseMobile={closeMobile}
+          onSidebarResize={handleSidebarResize}
         />
         <main
           id="app-main-content"

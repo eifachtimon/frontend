@@ -199,5 +199,45 @@ export const applyFachEventElementStyles = (el, fach, vorhabenId = "", cardType 
   }
 };
 
+/** Volle Fach-/Ritual-Fläche bei Auswahl → helle Schrift (FC setzt sonst #121212 inline auf .fc-event-main). */
+export const eventSelectedTextUsesLightForeground = (el) => {
+  if (!el) {
+    return false;
+  }
+  if (el.classList.contains("cal-event--fach") || el.classList.contains("fach-tone")) {
+    return true;
+  }
+  return (
+    el.classList.contains("cal-event--ritual") &&
+    !el.classList.contains("cal-event--fach")
+  );
+};
+
+export const applySelectedEventTextColor = (el) => {
+  if (!el || !eventSelectedTextUsesLightForeground(el)) {
+    return;
+  }
+  el.style.setProperty("--fc-event-text-color", "#fff");
+  el.style.setProperty("color", "#fff", "important");
+  el.querySelectorAll(
+    ".fc-event-main, .fc-event-title, .fc-event-time, .cal-event-compact, .cal-event-compact-title, .cal-event-compact-time"
+  ).forEach((node) => {
+    node.style.setProperty("color", "#fff", "important");
+  });
+};
+
+export const clearSelectedEventTextColor = (el) => {
+  if (!el) {
+    return;
+  }
+  el.style.removeProperty("--fc-event-text-color");
+  el.style.removeProperty("color");
+  el.querySelectorAll(
+    ".fc-event-main, .fc-event-title, .fc-event-time, .cal-event-compact, .cal-event-compact-title, .cal-event-compact-time"
+  ).forEach((node) => {
+    node.style.removeProperty("color");
+  });
+};
+
 /** Für Suche / App.js — Basisfarbe nach Fachname. */
 export const getFachColorForLabel = (fachLabel) => getFachBaseColor(fachLabel);

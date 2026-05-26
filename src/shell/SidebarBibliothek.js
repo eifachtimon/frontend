@@ -122,7 +122,7 @@ const SidebarBibliothek = ({ collapsed, onOpenMobileClose, onExpandRequest }) =>
   return (
     <div className="app-sidebar-bibliothek">
       <div className="app-sidebar-section-head">
-        <span className="app-sidebar-section-title">
+        <span className="app-sidebar-section-label">
           Bibliothek
           {total > 0 ? (
             <span className="app-sidebar-section-count"> ({total})</span>
@@ -139,8 +139,11 @@ const SidebarBibliothek = ({ collapsed, onOpenMobileClose, onExpandRequest }) =>
         </button>
       </div>
 
-      <p className="app-sidebar-empty app-sidebar-empty--hint" title="Kompetenz in der Suche merken, dann hier ins Thema ziehen">
-        Merken in der Suche → ins Thema ziehen.
+      <p
+        className="app-sidebar-hint"
+        title="Kompetenz in der Suche merken, dann unter Fach ins Thema ziehen"
+      >
+        Merken in der Suche → unter Fach ins Thema ziehen.
       </p>
 
       {recentItems.length > 0 ? (

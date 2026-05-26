@@ -24,93 +24,245 @@
   max-width: none;
 }
 
-.cal-page-toolbar {
+/* Kopf: gelber Planning-View-Header + kompakte Toolbar-Zeile */
+.cal-page-header-wrap {
   flex-shrink: 0;
+  position: relative;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 4px;
+  box-shadow: var(--bh-shadow-lg, 8px 8px 0 0 #121212);
+}
+
+.cal-page-header-wrap .planning-view-header {
+  margin-bottom: 0;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.cal-page-header-wrap .planning-view-header--yellow {
+  box-shadow: none;
+}
+
+.cal-page-header-wrap .planning-view-header__actions .cal-toolbar-btn {
+  background: var(--bh-white, #fff);
+}
+
+.cal-toolbar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 6px var(--layout-inset-card, 12px);
+  background: var(--bh-white, #fff);
+  border: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
+  border-top: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  box-shadow: none;
+}
+
+.cal-toolbar-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
-  padding: 6px 10px;
-  background: var(--bh-white, #fff);
-  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
-  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
-  position: relative;
+  gap: 6px;
 }
 
-.cal-page-toolbar-title {
-  margin: 0;
-  font-size: 0.92rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: -0.02em;
-  flex-shrink: 0;
-}
-
-.cal-page-toolbar .cal-filter-shell {
-  flex: 1;
-  min-width: min(100%, 10rem);
-}
-
-.cal-page-toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-.cal-toolbar-icon-btn {
+.cal-toolbar-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  min-height: 34px;
-  padding: 6px 10px;
+  gap: 6px;
+  min-height: 2rem;
+  padding: 4px 10px;
   border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
   background: var(--bh-white, #fff);
   color: var(--bh-fg, #121212);
   font-family: inherit;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   cursor: pointer;
   box-shadow: 2px 2px 0 0 var(--bh-fg, #121212);
   white-space: nowrap;
 }
 
-.cal-toolbar-icon-btn:hover {
+.cal-toolbar-btn:hover {
   background: var(--bh-muted, #e0e0e0);
 }
 
-.cal-toolbar-icon-btn--active,
-.cal-toolbar-icon-btn--primary {
+.cal-toolbar-btn--active,
+.cal-toolbar-btn--primary {
   background: var(--bh-yellow, #f0c020);
 }
 
-.cal-toolbar-icon-btn--primary {
-  font-weight: 800;
+.cal-toolbar-btn--primary {
+  margin-left: auto;
 }
 
-.cal-filter-shell {
+.cal-toolbar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 4px;
+  background: var(--bh-blue, #1040c0);
+  color: var(--bh-white, #fff);
+  font-size: 0.62rem;
+  font-weight: 800;
+  border: 1px solid var(--bh-border, #121212);
+}
+
+.cal-toolbar-panel {
+  margin-top: 8px;
+  padding: 10px 0 4px;
+  border-top: var(--bh-border-w, 2px) dashed var(--bh-border, #121212);
+  max-height: min(40vh, 16rem);
+  overflow-y: auto;
+}
+
+.cal-toolbar-panel-hint,
+.cal-toolbar-panel-empty {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.cal-toolbar-panel-section {
+  margin-bottom: 10px;
+}
+
+.cal-toolbar-panel-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.cal-toolbar-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.cal-toolbar-chip {
+  padding: 4px 10px;
+  min-height: 1.75rem;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  border-radius: 0;
+  background: var(--bh-white, #fff);
+  color: var(--bh-fg, #121212);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 0 var(--bh-fg, #121212);
+}
+
+.cal-toolbar-chip:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.cal-toolbar-chip--active {
+  background: var(--bh-yellow, #f0c020);
+}
+
+.cal-toolbar-search-wrap {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.cal-toolbar-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 2.25rem 8px 10px;
+  min-height: 2.25rem;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  border-radius: 0;
+  background: var(--bh-white, #fff);
+  color: var(--bh-fg, #121212);
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.cal-toolbar-search-input:focus {
+  outline: 2px solid var(--bh-blue, #1040c0);
+  outline-offset: 1px;
+}
+
+.cal-toolbar-kbd {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border: 1px solid var(--bh-border, #121212);
+  background: var(--bh-muted, #e0e0e0);
+}
+
+.cal-toolbar-search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
+  background: var(--bh-white, #fff);
+  max-height: min(36vh, 14rem);
+  overflow-y: auto;
+}
+
+.cal-toolbar-search-hit {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 1px solid var(--bh-muted, #e0e0e0);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
 }
 
-.cal-filter-shell .cal-filter-bar-secondary {
-  width: 100%;
+.cal-toolbar-search-hit:last-child {
+  border-bottom: none;
 }
 
-.cal-shortcuts-popover {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 8px;
-  z-index: 60;
-  padding: 10px 12px;
+.cal-toolbar-search-hit:hover {
+  background: var(--bh-yellow-pale, #fff9c4);
+}
+
+.cal-toolbar-search-hit-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--bh-fg, #121212);
+}
+
+.cal-toolbar-search-hit-meta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted, #3a3a3a);
+}
+
+.cal-shortcuts-strip {
+  padding: 6px var(--layout-inset-card, 12px);
   background: var(--bh-yellow-pale, #fff9c4);
   border: var(--bh-border-w, 2px) solid var(--bh-border, #121212);
-  box-shadow: var(--bh-shadow-md, 6px 6px 0 0 #121212);
-  max-width: min(22rem, calc(100vw - 2rem));
+  border-top: none;
+  box-shadow: var(--bh-shadow-sm, 4px 4px 0 0 #121212);
 }
 
 .cal-page .planning-view-panel--calendar {
@@ -184,33 +336,18 @@
     gap: 4px;
   }
 
-  .cal-page-toolbar {
+  .cal-toolbar {
     padding: 6px 8px;
   }
 
-  .cal-page-toolbar-title {
-    width: 100%;
-    font-size: 0.85rem;
+  .cal-toolbar-btn {
+    min-height: 2.25rem;
+    padding: 6px 8px;
   }
 
-  .cal-page-toolbar .cal-filter-shell {
-    order: 3;
-    flex: 1 1 100%;
-  }
-
-  .cal-page-toolbar-actions {
-    order: 2;
-    margin-left: auto;
-  }
-
-  .cal-toolbar-icon-btn {
-    min-height: 40px;
-    padding: 8px 10px;
-  }
-
-  .cal-filter-new {
-    min-width: 2.5rem;
-    padding-inline: 10px;
+  .cal-toolbar-btn--primary {
+    margin-left: 0;
+    flex: 1 1 auto;
   }
 }
 
@@ -608,16 +745,16 @@
 }
 
 .fc-external-event--ritual {
-  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-blue, #1040c0);
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
   background: var(--bh-yellow-pale, #fff9c4);
 }
 
 .fc-external-event--lektion {
-  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-blue, #1040c0);
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
 }
 
 .fc-external-event--stundenplan {
-  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-yellow, #f0c020);
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212);
 }
 
 .fc-external-event--lifting,
@@ -710,6 +847,33 @@
 .cal-fullcalendar-host .fc-day-today .fc-list-day-text {
   color: #e85c5c !important;
   font-weight: 700;
+}
+
+/* Jetzt-Linie (aktuelle Uhrzeit) */
+.cal-fullcalendar-host .fc-timegrid-now-indicator-line {
+  border-color: #e53935 !important;
+  border-top-width: 4px !important;
+  opacity: 1;
+  z-index: 4;
+}
+
+.cal-fullcalendar-host .fc-timegrid-now-indicator-arrow {
+  border-top-color: #e53935 !important;
+  border-bottom-color: #e53935 !important;
+  border-top-width: 7px !important;
+  border-bottom-width: 7px !important;
+  margin-top: -7px;
+}
+
+.cal-fullcalendar-host .fc-timegrid-now-indicator-container {
+  z-index: 4;
+  /* Volle Spaltenhöhe — sonst blockiert die Schicht Klicks auf Termine darunter */
+  pointer-events: none;
+}
+
+.cal-fullcalendar-host .fc-timegrid-now-indicator-line,
+.cal-fullcalendar-host .fc-timegrid-now-indicator-arrow {
+  pointer-events: none;
 }
 
 @import "../planning/fachColors.css";
@@ -833,7 +997,7 @@
   --cal-event-accent: var(--bh-blue, #1040c0);
   background: var(--bh-white, #fff) !important;
   border: var(--bh-border-w, 2px) solid var(--bh-border, #121212) !important;
-  border-left: var(--bh-border-w-lg, 4px) solid var(--cal-event-accent) !important;
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212) !important;
   border-radius: 0 !important;
   box-shadow: 3px 3px 0 0 var(--bh-fg, #121212) !important;
   color: var(--bh-fg, #121212) !important;
@@ -841,16 +1005,130 @@
   overflow: hidden;
 }
 
+.cal-fullcalendar-host .fc-event.cal-event .fc-event-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1px;
+  min-width: 0;
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: 1.15;
+  padding: 2px 3px 2px 2px;
+  box-sizing: border-box;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--compact) .fc-event-title-container {
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  min-width: 0;
+  order: 1;
+  width: 100%;
+}
+
 .cal-fullcalendar-host .fc-event.cal-event .fc-event-main,
-.cal-fullcalendar-host .fc-event.cal-event .fc-event-title,
-.cal-fullcalendar-host .fc-event.cal-event .fc-event-time {
+.cal-fullcalendar-host .fc-event.cal-event .fc-event-title {
   color: var(--bh-fg, #121212) !important;
   font-weight: 700;
 }
 
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--compact) .fc-event-title {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 !important;
+  font-style: normal !important;
+  overflow: hidden;
+  position: static !important;
+  text-overflow: ellipsis;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+/* Einheitlicher Inhalt (eventContent): Titel, darunter Uhrzeit */
+.cal-fullcalendar-host .fc-event.cal-event .cal-event-stack,
+.cal-fullcalendar-host .fc-event.fc-event-mirror .cal-event-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1px;
+  width: 100%;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event .cal-event-stack .fc-event-title,
+.cal-fullcalendar-host .fc-event.fc-event-mirror .cal-event-stack .fc-event-title {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 !important;
+  font-style: normal !important;
+  overflow: hidden;
+  position: static !important;
+  text-overflow: ellipsis;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event .cal-event-stack .fc-event-time,
+.cal-fullcalendar-host .fc-event.fc-event-mirror .cal-event-stack .fc-event-time {
+  display: block !important;
+  flex-grow: 0;
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0;
+  opacity: 0.88;
+  white-space: nowrap;
+}
+
+/* Uhrzeit klein direkt unter dem Titel (Legacy-FC-Struktur) */
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--compact):not(:has(.cal-event-stack)) .fc-event-time,
+.cal-fullcalendar-host .fc-daygrid-block-event.cal-event .fc-event-time {
+  display: block !important;
+  flex-grow: 0;
+  flex-shrink: 0;
+  order: 2;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0;
+  opacity: 0.88;
+  white-space: nowrap;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--fach .fc-event-time,
+.cal-fullcalendar-host .fc-event.cal-event--selected.fach-tone .fc-event-time,
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--ritual:not(.cal-event--fach) .fc-event-time,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.cal-event--fach .fc-event-time,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.fach-tone .fc-event-time,
+.planning-surface
+  .cal-fullcalendar-host
+  a.fc-event.cal-event.cal-event--selected.cal-event--ritual:not(.cal-event--fach)
+  .fc-event-time {
+  color: var(--bh-white, #fff) !important;
+  opacity: 0.92;
+}
+
+.planning-surface .cal-fullcalendar-host a.fc-event:not(.cal-event--selected),
+.planning-surface .cal-fullcalendar-host a.fc-event:not(.cal-event--selected):hover,
+.planning-surface .cal-fullcalendar-host a.fc-event:not(.cal-event--selected):focus,
+.planning-surface .cal-fullcalendar-host a.fc-event:not(.cal-event--selected) .fc-event-title,
+.planning-surface .cal-fullcalendar-host a.fc-event:not(.cal-event--selected) .fc-event-time,
+.planning-surface .cal-fullcalendar-host a.fc-event:not(.cal-event--selected):hover .fc-event-title,
+.planning-surface .cal-fullcalendar-host a.fc-event:not(.cal-event--selected):hover .fc-event-time {
+  text-decoration: none !important;
+  color: var(--bh-fg, #121212) !important;
+}
+
 /* Kein Hover auf Terminen — Hervorhebung nur durch Auswahl (Klick) */
 .cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):hover,
-.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):focus,
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):focus:not(:focus-visible),
 .cal-fullcalendar-host .fc-daygrid-event:not(.cal-event--selected):hover,
 .cal-fullcalendar-host .fc-timegrid-event:not(.cal-event--selected):hover,
 .cal-fullcalendar-host .fc-list-event:not(.cal-event--selected):hover,
@@ -858,11 +1136,26 @@
   filter: none !important;
   opacity: 1 !important;
   transform: none !important;
+  box-shadow: 3px 3px 0 0 var(--bh-fg, #121212) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):hover::before,
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):hover::after,
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):focus:not(:focus-visible)::before,
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):focus:not(:focus-visible)::after {
+  display: none !important;
+  content: none !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):hover .fc-event-resizer,
+.cal-fullcalendar-host .fc-event.cal-event:not(.cal-event--selected):focus:not(:focus-visible) .fc-event-resizer {
+  display: none !important;
 }
 
 .cal-fullcalendar-host .fc-list-event.cal-event:not(.cal-event--selected):hover .fc-list-event-title,
 .cal-fullcalendar-host .fc-list-event.cal-event:not(.cal-event--selected):hover .fc-list-event-time {
   color: var(--bh-fg, #121212) !important;
+  text-decoration: none !important;
 }
 
 .cal-fullcalendar-host .fc-event.cal-event--lektion {
@@ -870,20 +1163,24 @@
 }
 
 .cal-fullcalendar-host .fc-event.cal-event--fach {
-  background: var(--cal-event-bg, #fff) !important;
+  background: var(--cal-event-bg, var(--fach-bg, #fff)) !important;
+  border-left-color: var(--bh-border, #121212) !important;
 }
 
 .cal-fullcalendar-host .fc-event.cal-event--fach.cal-event--ritual,
 .cal-fullcalendar-host .fc-event.cal-event--fach.cal-event--lektion,
-.cal-fullcalendar-host .fc-event.cal-event--fach.cal-event--notiz {
-  background: var(--cal-event-bg, #fff) !important;
+.cal-fullcalendar-host .fc-event.cal-event--fach.cal-event--notiz,
+.cal-fullcalendar-host .fc-event.cal-event--fach.fach-tone,
+.cal-fullcalendar-host .fc-event.cal-event--draft-preview.cal-event--fach {
+  background: var(--cal-event-bg, var(--fach-bg, #fff)) !important;
+  border-left-color: var(--bh-border, #121212) !important;
 }
 
 .cal-fullcalendar-host .fc-event.cal-event--ritual:not(.cal-event--fach) {
   background: var(--bh-yellow-pale, #fff9c4) !important;
 }
 
-.cal-fullcalendar-host .fc-event.cal-event--notiz {
+.cal-fullcalendar-host .fc-event.cal-event--notiz:not(.cal-event--fach) {
   background: var(--bh-muted, #e0e0e0) !important;
   font-style: normal;
 }
@@ -911,13 +1208,15 @@
   box-shadow: 2px 2px 0 0 var(--bh-fg, #121212) !important;
 }
 
-.cal-fullcalendar-host .fc-event.cal-event--past .fc-event-title,
-.cal-fullcalendar-host .fc-event.cal-event--past .fc-event-time {
+.cal-fullcalendar-host .fc-event.cal-event--past .fc-event-title {
   text-decoration: none;
 }
 
-.cal-fullcalendar-host .fc-event.cal-event.fc-event-selected,
-.cal-fullcalendar-host .fc-event.cal-event:focus-visible {
+.cal-fullcalendar-host .fc-event.cal-event.fc-event-selected {
+  outline: none;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event:focus-visible:not(.cal-event--selected) {
   outline: 2px solid var(--bh-blue, #1040c0);
   outline-offset: 2px;
 }
@@ -928,7 +1227,7 @@
   border-style: dashed !important;
   border-width: var(--bh-border-w, 2px) !important;
   border-color: var(--bh-fg, #121212) !important;
-  border-left: var(--bh-border-w-lg, 4px) dashed var(--cal-event-accent, #f0c020) !important;
+  border-left: var(--bh-border-w-lg, 4px) dashed var(--bh-border, #121212) !important;
   font-size: 0.72rem;
   z-index: 1 !important;
   box-shadow: 2px 2px 0 0 var(--bh-fg, #121212) !important;
@@ -948,9 +1247,6 @@
   border-left-width: var(--bh-border-w-lg, 4px) !important;
 }
 
-.cal-fullcalendar-host .fc-daygrid-block-event.cal-event .fc-event-time {
-  font-weight: 700;
-}
 
 /* —— Drag & Drop —— */
 body.cal-is-dragging,
@@ -973,7 +1269,7 @@ body.cal-is-dragging .fc-external-event:not(.fc-external-event--lifting) {
 .fc-event-dragging.cal-stundenplan-lektion-item {
   background: var(--bh-white, #fff) !important;
   border: var(--bh-border-w, 2px) solid var(--bh-border, #121212) !important;
-  border-left: var(--bh-border-w-lg, 4px) solid var(--cal-event-accent, #1040c0) !important;
+  border-left: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212) !important;
   border-radius: 0 !important;
   box-shadow: var(--bh-shadow-lg, 8px 8px 0 0 #121212) !important;
   color: var(--bh-fg, #121212) !important;
@@ -983,34 +1279,148 @@ body.cal-is-dragging .fc-external-event:not(.fc-external-event--lifting) {
   padding: 8px 10px !important;
 }
 
-/* Vorschau beim Ziehen / Draft — Layout stabil, ohne Schatten */
-.cal-fullcalendar-host .fc-event.cal-event--select-preview,
+/* Live-Vorschau beim Anlegen: gleiche Optik wie finaler Termin, nur höherer z-index */
 .cal-fullcalendar-host .fc-event.cal-event--draft-preview {
-  opacity: 1 !important;
-  transform: none !important;
   z-index: 50 !important;
-  box-shadow: none !important;
 }
 
-/* Neutral weiß: nur ohne gewähltes Thema */
-.cal-fullcalendar-host .fc-event.cal-event--select-preview.cal-event--plain,
-.cal-fullcalendar-host .fc-event.cal-event--draft-preview.cal-event--plain {
+/* Select-Mirror ohne cal-event-Klasse: Bauhaus statt FC-Blau */
+.cal-fullcalendar-host
+  .fc-event.fc-event-mirror:not(.cal-event--drag-preview):not(.cal-event):not(.cal-stundenplan-slot) {
   background: var(--bh-white, #fff) !important;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212) !important;
   border-left: var(--bh-border-w-lg, 4px) solid var(--bh-border, #121212) !important;
-}
-
-/* Fachfarbe in Live-Vorschau, wenn Thema gewählt */
-.cal-fullcalendar-host .fc-event.cal-event--select-preview.cal-event--fach,
-.cal-fullcalendar-host .fc-event.cal-event--draft-preview.cal-event--fach {
-  background: var(--cal-event-bg, var(--bh-white, #fff)) !important;
-  border-left: var(--bh-border-w-lg, 4px) solid var(--cal-event-accent, var(--bh-blue, #1040c0)) !important;
-}
-
-.cal-fullcalendar-host .fc-event.cal-event--select-preview .fc-event-main,
-.cal-fullcalendar-host .fc-event.cal-event--select-preview .fc-event-time,
-.cal-fullcalendar-host .fc-event.cal-event--select-preview .fc-event-title {
+  border-radius: 0 !important;
+  box-shadow: 3px 3px 0 0 var(--bh-fg, #121212) !important;
   color: var(--bh-fg, #121212) !important;
-  font-weight: 700 !important;
+}
+
+/* Kurze Zeitgrid-Termine — kompakte Darstellung (Titel + Uhrzeit lesbar) */
+.cal-fullcalendar-host .fc-event.cal-event--compact {
+  box-shadow: 1px 1px 0 0 var(--bh-fg, #121212) !important;
+  min-height: 0 !important;
+  padding: 0 2px !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--compact .fc-event-main {
+  align-items: flex-start !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  justify-content: flex-start !important;
+  min-height: 0 !important;
+  padding: 1px 2px !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--compact .fc-event-title,
+.cal-fullcalendar-host .fc-event.cal-event--compact .fc-event-time {
+  display: none !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--compact .cal-event-compact {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  gap: 0;
+  line-height: 1.05;
+  min-width: 0;
+  width: 100%;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--compact .cal-event-compact-title {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--compact .cal-event-compact-time {
+  display: block;
+  flex-shrink: 0;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+/* ≤10 Min.: eine Zeile — Titel links, Uhrzeit rechts */
+.cal-fullcalendar-host .fc-event.cal-event--compact .cal-event-compact--inline {
+  align-items: center;
+  flex-direction: row;
+  gap: 3px;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--compact .cal-event-compact--inline .cal-event-compact-title {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--compact .cal-event-compact--inline .cal-event-compact-time {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 2px;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--inline-time .fc-event-main {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--nano {
+  border-width: 1px !important;
+  border-left-width: 2px !important;
+  box-shadow: none !important;
+  padding: 0 1px !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--nano .cal-event-compact {
+  gap: 0;
+  line-height: 1;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--nano .cal-event-compact-time {
+  font-size: 0.96em;
+  opacity: 0.92;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--micro {
+  border-width: 1px !important;
+  border-left-width: 2px !important;
+  box-shadow: 1px 1px 0 0 var(--bh-fg, #121212) !important;
+  padding: 0 2px !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--micro .cal-event-compact {
+  gap: 0;
+  line-height: 1.08;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--micro .cal-event-compact-time {
+  font-size: 0.94em;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--short .cal-event-compact {
+  gap: 1px;
+  line-height: 1.1;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--short .cal-event-compact-time {
+  font-size: 0.92em;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--compact.cal-event--fach .cal-event-compact,
+.cal-fullcalendar-host .fc-event.cal-event--compact.fach-tone .cal-event-compact {
+  color: var(--bh-fg, #121212) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--compact.cal-event--selected.cal-event--fach .cal-event-compact,
+.cal-fullcalendar-host .fc-event.cal-event--compact.cal-event--selected.fach-tone .cal-event-compact,
+.cal-fullcalendar-host
+  .fc-event.cal-event--compact.cal-event--selected.cal-event--ritual:not(.cal-event--fach)
+  .cal-event-compact {
+  color: var(--bh-white, #fff) !important;
 }
 
 .cal-fullcalendar-host .fc-timegrid-col:has(.fc-event-mirror) .fc-highlight,
@@ -1019,7 +1429,7 @@ body.cal-is-dragging .fc-external-event:not(.fc-external-event--lifting) {
 }
 
 /* Vorschau auf dem Raster (extern + intern verschieben) — nicht Select-Mirror */
-.cal-fullcalendar-host .fc-event.cal-event.fc-event-mirror:not(.cal-event--select-preview),
+.cal-fullcalendar-host .fc-event.cal-event.fc-event-mirror:not(.cal-event--draft-preview),
 .cal-fullcalendar-host .fc-event.cal-event.cal-event--drag-preview,
 .cal-fullcalendar-host .fc-event.cal-event.cal-event--active-drag {
   opacity: 0.92 !important;
@@ -1062,31 +1472,106 @@ body.cal-draft-preview-active .cal-fullcalendar-host .fc-highlight {
   display: none !important;
 }
 
+/* Nach Ziehen: alter Select-Mirror ausblenden — nur Draft-Vorschau sichtbar */
+body.cal-draft-preview-active
+  .cal-fullcalendar-host
+  .fc-event.fc-event-mirror:not(.cal-event--draft-preview) {
+  display: none !important;
+}
+
+/* Select-Mirror beim Ziehen: keine FC-Kurzzeit-Layout-Artefakte */
+.cal-fullcalendar-host
+  .fc-timegrid-event.fc-event-mirror.fc-timegrid-event-short:has(.cal-event-stack)
+  .fc-event-time::after {
+  content: none !important;
+}
+
+.cal-fullcalendar-host .fc-timegrid-event.fc-event-mirror:has(.cal-event-stack) .fc-event-main {
+  display: block !important;
+}
+
+/* Auswahl (1. Klick): volle Fachfarbe — wie Apple-Kalender, ohne gelben Resize-Streifen */
 .cal-fullcalendar-host .fc-event.cal-event--selected {
   z-index: 45 !important;
   opacity: 1 !important;
-  filter: saturate(1.4) contrast(1.06);
-  transform: scale(1.02);
-  box-shadow:
-    0 0 0 2px var(--bh-fg, #121212),
-    4px 4px 0 0 var(--cal-event-accent, var(--bh-fg, #121212)) !important;
-  transition:
-    filter 0.15s ease,
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+  filter: none !important;
+  transform: none !important;
+  box-shadow: 3px 3px 0 0 var(--bh-fg, #121212) !important;
+  border: var(--bh-border-w, 2px) solid var(--bh-border, #121212) !important;
+  border-left-width: var(--bh-border-w-lg, 4px) !important;
+  border-left-color: var(--bh-border, #121212) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--selected::before,
+.cal-fullcalendar-host .fc-event.cal-event--selected::after,
+.cal-fullcalendar-host .fc-event.cal-event.fc-event-selected::before,
+.cal-fullcalendar-host .fc-event.cal-event.fc-event-selected::after {
+  display: none !important;
+  content: none !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--fach,
+.cal-fullcalendar-host .fc-event.cal-event--selected.fach-tone,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.cal-event--fach,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.fach-tone {
+  background: var(--fach-base, var(--cal-event-accent, #1040c0)) !important;
+  border-left-color: var(--bh-border, #121212) !important;
+  --fc-event-text-color: var(--bh-white, #fff);
+  color: var(--bh-white, #fff) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--fach .fc-event-main,
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--fach .fc-event-title,
+.cal-fullcalendar-host .fc-event.cal-event--selected.fach-tone .fc-event-main,
+.cal-fullcalendar-host .fc-event.cal-event--selected.fach-tone .fc-event-title,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.cal-event--fach .fc-event-main,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.cal-event--fach .fc-event-title,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.fach-tone .fc-event-main,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.fach-tone .fc-event-title {
+  color: var(--bh-white, #fff) !important;
 }
 
 .cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--plain {
-  filter: none;
-  background: var(--bh-white, #fff) !important;
-  border-left-width: 6px !important;
-  box-shadow:
-    0 0 0 2px var(--bh-fg, #121212),
-    4px 4px 0 0 var(--bh-fg, #121212) !important;
+  background: var(--bh-yellow, #f0c020) !important;
+  border-left-color: var(--bh-border, #121212) !important;
 }
 
-.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--fach {
-  border-left-width: 6px !important;
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--local:not(.cal-event--plain):not(.cal-event--fach) {
+  background: var(--bh-yellow, #f0c020) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--ritual:not(.cal-event--fach),
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.cal-event--ritual:not(.cal-event--fach) {
+  background: var(--bh-blue, #1040c0) !important;
+  border-left-color: var(--bh-border, #121212) !important;
+  --fc-event-text-color: var(--bh-white, #fff);
+  color: var(--bh-white, #fff) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--ritual:not(.cal-event--fach) .fc-event-title,
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--ritual:not(.cal-event--fach) .fc-event-main,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.cal-event--ritual:not(.cal-event--fach) .fc-event-title,
+.planning-surface .cal-fullcalendar-host a.fc-event.cal-event.cal-event--selected.cal-event--ritual:not(.cal-event--fach) .fc-event-main {
+  color: var(--bh-white, #fff) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--notiz:not(.cal-event--fach) {
+  background: var(--bh-muted, #c8c8c8) !important;
+}
+
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--subscription,
+.cal-fullcalendar-host .fc-event.cal-event--selected.cal-event--readonly {
+  background: var(--bh-muted, #c8c8c8) !important;
+}
+
+.cal-fullcalendar-host .fc-list-event.cal-event--selected td {
+  background: var(--cal-event-bg, var(--bh-yellow-pale, #fff9c4)) !important;
+}
+
+.cal-fullcalendar-host .fc-list-event.cal-event--selected.fach-tone td,
+.cal-fullcalendar-host .fc-list-event.cal-event--selected.cal-event--fach td {
+  background: var(--fach-base, var(--cal-event-accent)) !important;
+  color: var(--bh-white, #fff) !important;
 }
 
 .cal-fullcalendar-host .fc-event.cal-event--draft-preview,
@@ -1105,12 +1590,18 @@ body.cal-draft-preview-active .cal-fullcalendar-host .fc-list-event:has(.cal-eve
   z-index: 50 !important;
 }
 
-/* Resize-Griff */
-.cal-fullcalendar-host .fc-event .fc-event-resizer {
-  border-radius: 0;
-  background: var(--bh-yellow, #f0c020);
-  border: 2px solid var(--bh-fg, #121212);
-  opacity: 1;
+/* Resize-Griff ausblenden (gelber Streifen unten) — Größe ändern per Ziehen am Termin */
+.cal-fullcalendar-host .fc-event.cal-event .fc-event-resizer,
+.cal-fullcalendar-host .fc-event.cal-event--selected .fc-event-resizer,
+.cal-fullcalendar-host .fc-event.cal-event.fc-event-selected .fc-event-resizer {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .cal-fullcalendar-host .fc-event.fc-event-resizing {

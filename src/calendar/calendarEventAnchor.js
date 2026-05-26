@@ -62,12 +62,14 @@ export const anchorFromEventClick = (info) => {
 
 const PANEL_MIN_W = 280;
 const PANEL_MAX_W = 440;
-const PANEL_MAX_H = 300;
 const WHEN_ROW_MIN_W = 300;
 /** Abstand Popover-Kante → Auswahl; Pfeil ragt ~11px nach links */
 const GAP = 5;
-const MARGIN = 12;
+export const VIEWPORT_MARGIN = 12;
 export const BEAK_HALF = 7;
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
 /**
  * Breite an Titel + Header-Buttons anpassen.
  * @param {HTMLElement | null} modalEl
@@ -75,7 +77,7 @@ export const BEAK_HALF = 7;
  */
 export const measureCompactPopoverWidth = (modalEl, title = "") => {
   const vw = typeof window !== "undefined" ? window.innerWidth : 800;
-  const maxW = Math.min(PANEL_MAX_W, vw - MARGIN * 2);
+  const maxW = Math.min(PANEL_MAX_W, vw - VIEWPORT_MARGIN * 2);
   const minW = Math.min(PANEL_MIN_W, maxW);
 
   if (!modalEl) {
@@ -106,9 +108,7 @@ export const measureCompactPopoverWidth = (modalEl, title = "") => {
   const headerW = textW + headerChrome + padding;
 
   const themeRow = modalEl.querySelector(".cal-event-theme-fach-row");
-  const themeW = themeRow
-    ? themeRow.scrollWidth + 40
-    : 0;
+  const themeW = themeRow ? themeRow.scrollWidth + 40 : 0;
 
   const body = modalEl.querySelector(".cal-event-modal-form--quick");
   const contentW = body ? body.offsetWidth : 0;
@@ -119,62 +119,83 @@ export const measureCompactPopoverWidth = (modalEl, title = "") => {
 };
 
 /**
+ * Popover neben dem Anker platzieren — vollständig im sichtbaren Bereich.
  * @param {AnchorRect} anchor
  * @param {{ width?: number, height?: number }} [measured]
  */
 export const computeAnchoredPopoverStyle = (anchor, measured = {}) => {
-  const panelW = measured.width || PANEL_MIN_W;
-  const panelH = measured.height || 0;
-  const expandFull = Boolean(measured.expandFull);
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const viewportMax = vh - MARGIN * 2;
+  const margin = VIEWPORT_MARGIN;
+  const viewportMaxW = vw - margin * 2;
+  const viewportMaxH = vh - margin * 2;
+
+  const panelW = clamp(measured.width || PANEL_MIN_W, PANEL_MIN_W, viewportMaxW);
+  const naturalH = Math.max(measured.height || 0, 120);
+  const needsClamp = naturalH > viewportMaxH;
+  const layoutHeight = needsClamp ? viewportMaxH : naturalH;
 
   const anchorRight = anchor.left + anchor.width;
   const anchorCenterY = anchor.top + anchor.height / 2;
 
-  const roomRight = vw - MARGIN - (anchorRight + GAP);
-  const roomLeft = anchor.left - GAP - MARGIN;
+  const roomRight = vw - margin - (anchorRight + GAP);
+  const roomLeft = anchor.left - GAP - margin;
   let beakSide = "left";
   let left = anchorRight + GAP;
 
-  /* Seite nur nach Platz am Anker — nicht nach gemessener Popup-Breite (verhindert Sprung) */
-  if (roomRight < PANEL_MIN_W && roomLeft > roomRight) {
+  if (roomRight < panelW && roomLeft >= roomRight) {
     beakSide = "right";
     left = anchor.left - panelW - GAP;
   }
-  if (left < MARGIN) {
-    left = MARGIN;
-  }
-  if (beakSide === "right" && left + panelW > vw - MARGIN) {
-    left = Math.max(MARGIN, vw - MARGIN - panelW);
-  }
 
-  const maxH = expandFull && panelH > 0
-    ? Math.min(panelH, viewportMax)
-    : Math.min(PANEL_MAX_H, viewportMax);
-  const layoutHeight =
-    expandFull && panelH > 0 ? Math.min(panelH, viewportMax) : maxH;
+  left = clamp(left, margin, Math.max(margin, vw - margin - panelW));
 
   let top = anchor.top;
-  if (top + layoutHeight > vh - MARGIN) {
-    top = Math.max(MARGIN, vh - MARGIN - layoutHeight);
+  if (top + layoutHeight > vh - margin) {
+    top = vh - margin - layoutHeight;
   }
-  if (top < MARGIN) {
-    top = MARGIN;
+  if (top < margin) {
+    top = margin;
   }
 
-  const beakTop = Math.max(
+  if (needsClamp && layoutHeight >= viewportMaxH) {
+    top = margin;
+  }
+
+  const beakTop = clamp(
+    anchorCenterY - top - BEAK_HALF,
     BEAK_HALF + 4,
-    Math.min(layoutHeight - BEAK_HALF - 4, anchorCenterY - top - BEAK_HALF)
+    Math.max(BEAK_HALF + 4, layoutHeight - BEAK_HALF - 4)
   );
 
   return {
     top: Math.round(top),
     left: Math.round(left),
-    width: panelW,
-    maxHeight: expandFull ? undefined : maxH,
+    width: Math.round(panelW),
+    maxHeight: needsClamp ? Math.round(viewportMaxH) : undefined,
+    clamped: needsClamp,
     beakSide,
     beakTop: Math.round(beakTop),
+  };
+};
+
+/**
+ * Kompakt-Popup ohne Anker (z. B. Toolbar „+ Termin“) im Viewport halten.
+ * @param {{ width?: number, height?: number }} measured
+ */
+export const computeStandalonePopoverStyle = (measured = {}) => {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const margin = VIEWPORT_MARGIN;
+  const viewportMaxW = vw - margin * 2;
+  const viewportMaxH = vh - margin * 2;
+  const panelW = clamp(measured.width || PANEL_MIN_W, PANEL_MIN_W, viewportMaxW);
+  const naturalH = Math.max(measured.height || 0, 120);
+  const needsClamp = naturalH > viewportMaxH;
+
+  return {
+    width: Math.round(panelW),
+    maxHeight: needsClamp ? Math.round(viewportMaxH) : undefined,
+    clamped: needsClamp,
   };
 };

@@ -1,7 +1,7 @@
 import { getWeekdayDatesForIsoWeek } from "../planning/calendarUtils";
 import { VORHABEN_TEMPLATES, WEEKDAYS } from "../planning/planningDefaults";
-import { getIsoWeek } from "../planning/planningStore";
-import { resolvePlanningEventColors } from "../planning/fachColors";
+import { getIsoWeek, getVorhabenById } from "../planning/planningStore";
+import { normalizeFachKey, resolvePlanningEventColors } from "../planning/fachColors";
 import {
   accentForCard,
   calendarEventClassNames,
@@ -137,6 +137,9 @@ export const isPlainLocalCalendarEvent = (ev) => {
   if (ev?.vorhabenId) {
     return false;
   }
+  if (ev?.fach && normalizeFachKey(ev.fach) !== "default") {
+    return false;
+  }
   const color = String(ev?.color || "").trim().toLowerCase();
   if (!color) {
     return true;
@@ -144,9 +147,14 @@ export const isPlainLocalCalendarEvent = (ev) => {
   return LEGACY_DEFAULT_LOCAL_COLORS.has(color);
 };
 
-export const localToCalendarEvents = (localEvents) =>
+export const localToCalendarEvents = (localEvents, planningStore = null) =>
   (localEvents || []).map((ev) => {
-    const plain = isPlainLocalCalendarEvent(ev);
+    const vorhaben =
+      ev.vorhabenId && planningStore
+        ? getVorhabenById(planningStore, ev.vorhabenId)
+        : null;
+    const fach = vorhaben?.fach || ev.fach || "";
+    const plain = isPlainLocalCalendarEvent(ev) && !fach;
     return withBauhausEventStyle({
       id: `local-${ev.id}`,
       title: ev.title,
@@ -159,6 +167,7 @@ export const localToCalendarEvents = (localEvents) =>
         source: "local",
         localEventId: ev.id,
         vorhabenId: ev.vorhabenId,
+        fach,
         notes: ev.notes || "",
         plain,
         eventAccent: ev.color || undefined,
